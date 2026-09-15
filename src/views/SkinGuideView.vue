@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, shallowRef, watch } from 'vue'
+import { computed, reactive, ref, shallowRef, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import GuideViewer from '../components/GuideViewer.vue'
 import PaintControls from '../components/PaintControls.vue'
@@ -9,6 +9,7 @@ import { loadPixels, pixelsToDataUrl, type PixelImage } from '../engine/pixels'
 import { skinFront, skinToModel, type SkinOptions } from '../engine/skin'
 import { buildGuide } from '../engine/steps'
 import { currentSkin, setSkin } from '../lib/skinStore'
+import { setPageMeta } from '../lib/meta'
 import { hashString, readStored, writeStored } from '../lib/storage'
 
 const pixels = shallowRef<PixelImage | null>(null)
@@ -17,11 +18,19 @@ const prefs = reactive(
 )
 watch(prefs, (v) => writeStored('prefs:skin', v))
 
+const loadError = ref('')
+
 watch(
   () => currentSkin.value?.dataUrl,
   async (url) => {
-    pixels.value = url ? await loadPixels(url) : null
-    if (currentSkin.value) document.title = `${currentSkin.value.label} skin · Block by Block`
+    loadError.value = ''
+    setPageMeta(currentSkin.value ? `${currentSkin.value.label}'s skin build guide` : 'Skin build guide')
+    try {
+      pixels.value = url ? await loadPixels(url) : null
+    } catch {
+      pixels.value = null
+      loadError.value = "This saved skin couldn't be opened. Look it up or upload it again."
+    }
   },
   { immediate: true },
 )
@@ -67,6 +76,10 @@ const storageKey = computed(() => {
 
     <div v-if="!currentSkin" class="notice">
       No skin loaded yet. <RouterLink to="/skin">Look one up or upload a file</RouterLink> to get started.
+    </div>
+
+    <div v-else-if="loadError" class="notice error-box" role="alert">
+      {{ loadError }} <RouterLink to="/skin">Choose a skin</RouterLink>
     </div>
 
     <template v-else>
@@ -121,13 +134,6 @@ const storageKey = computed(() => {
 </template>
 
 <style scoped>
-.back {
-  display: inline-block;
-  margin-bottom: 12px;
-  text-decoration: none;
-  font-weight: 600;
-}
-
 .head {
   display: flex;
   gap: 16px;

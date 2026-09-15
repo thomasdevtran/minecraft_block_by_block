@@ -1,0 +1,13 @@
+{
+  "name": "Block by Block",
+  "short_name": "Block by Block",
+  "description": "Step-by-step guides for building Minecraft items, blocks and skins out of real cubes.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1815",
+  "theme_color": "#4f8a22",
+  "icons": [
+    { "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

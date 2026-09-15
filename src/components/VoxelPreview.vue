@@ -156,6 +156,9 @@ onMounted(() => {
   camera = new THREE.PerspectiveCamera(35, 1, 0.1, 1000)
   controls = new OrbitControls(camera, renderer.domElement)
   controls.addEventListener('change', render)
+  // OrbitControls blocks all touch scrolling. Let vertical swipes scroll the page on phones;
+  // sideways drags still rotate and pinches still zoom.
+  renderer.domElement.style.touchAction = 'pan-y'
 
   resizeObserver = new ResizeObserver(resize)
   resizeObserver.observe(host.value!)
@@ -188,7 +191,7 @@ onBeforeUnmount(() => {
   width: 100%;
   height: 100%;
   min-height: 280px;
-  touch-action: none;
+  touch-action: pan-y;
 }
 
 .voxel-preview :deep(canvas) {

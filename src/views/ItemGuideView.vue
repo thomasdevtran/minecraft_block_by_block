@@ -11,17 +11,18 @@ import { flowerToModel, pottedSprite } from '../engine/flower'
 import { itemToModel } from '../engine/item'
 import { loadPixels, type PixelImage } from '../engine/pixels'
 import { buildGuide } from '../engine/steps'
-import { blockUrl, loadCatalog, loadRemoved, textureUrl, type BuildableItem, type RemovedItem } from '../lib/catalog'
+import { blockUrl, loadCatalog, textureUrl, type BuildableItem } from '../lib/catalog'
 import { look } from '../lib/look'
+import { setPageMeta } from '../lib/meta'
 import { readStored, writeStored } from '../lib/storage'
+import NotFoundView from './NotFoundView.vue'
 
-/** `removed` guides come from the Removed page instead of today's catalog. */
-const props = withDefaults(defineProps<{ id: string; collection?: 'current' | 'removed' }>(), { collection: 'current' })
+const props = defineProps<{ id: string }>()
 const route = useRoute()
 const router = useRouter()
 
 const item = ref<BuildableItem | null>(null)
-/** Pot textures for this item's era: today's, classic, or the removed items' own. */
+/** Pot textures for today's and the classic look. */
 const potUrls = ref<{ current: string; classic: string } | null>(null)
 const classicVersion = ref('')
 const flatPixels = shallowRef<PixelImage | null>(null)
@@ -56,54 +57,69 @@ const VIEWS = computed(() => [
 
 /** The texture set in use; only items with a classic look can switch. */
 const activeLook = computed(() => (item.value?.classic ? look.value : 'current'))
-const removedInfo = computed(() => (props.collection === 'removed' ? (item.value as RemovedItem | null) : null))
 
-watch(
-  () => [props.id, props.collection] as const,
-  async ([id, collection]) => {
-    item.value = null
-    potUrls.value = null
-    error.value = ''
-    try {
-      if (collection === 'removed') {
-        const removed = await loadRemoved()
-        item.value = removed.items.find((i) => i.id === id) ?? null
-        potUrls.value = { current: `/${removed.pot}`, classic: `/${removed.pot}` }
-      } else {
-        const catalog = await loadCatalog()
-        item.value = catalog.items.find((i) => i.id === id) ?? null
-        potUrls.value = { current: `/${catalog.pot}`, classic: `/${catalog.classicPot}` }
-        classicVersion.value = catalog.classicVersion
-      }
-      if (!item.value) throw new Error(`There's no item called “${id}”.`)
-      document.title = `${item.value.name} · Block by Block`
-    } catch (e) {
-      error.value = (e as Error).message
-    }
-  },
-  { immediate: true },
-)
+const notFound = ref(false)
+const loading = ref(false)
+/** Bumped on every load so a slow response for an earlier item can't overwrite a newer one. */
+let loadToken = 0
 
-watch(
-  [item, activeLook],
-  async ([found, lookNow]) => {
-    flatPixels.value = null
-    blockPixels.value = null
-    potPixels.value = null
-    if (!found || !potUrls.value) return
-    try {
-      const strip = blockUrl(found, lookNow)
-      ;[flatPixels.value, blockPixels.value, potPixels.value] = await Promise.all([
-        loadPixels(textureUrl(found, lookNow)),
-        strip ? loadPixels(strip) : null,
-        found.flower?.pottable ? loadPixels(potUrls.value[lookNow]) : null,
-      ])
-    } catch (e) {
-      error.value = (e as Error).message
+async function loadItem(id: string) {
+  const token = ++loadToken
+  item.value = null
+  potUrls.value = null
+  notFound.value = false
+  error.value = ''
+  loading.value = true
+  try {
+    const catalog = await loadCatalog()
+    if (token !== loadToken) return
+    const found = catalog.items.find((i) => i.id === id) ?? null
+    potUrls.value = { current: `/${catalog.pot}`, classic: `/${catalog.classicPot}` }
+    classicVersion.value = catalog.classicVersion
+    if (!found) {
+      notFound.value = true
+      setPageMeta('Item not found')
+      return
     }
-  },
-  { immediate: true },
-)
+    item.value = found
+    setPageMeta(`How to build ${found.name}`, `Step-by-step guide and paint list for building a Minecraft ${found.name} out of real cubes.`)
+  } catch {
+    if (token === loadToken) error.value = "Couldn't load the item list. Check your connection and try again."
+  } finally {
+    if (token === loadToken && !item.value) loading.value = false
+  }
+}
+
+async function loadTextures() {
+  const token = ++loadToken
+  const found = item.value
+  const lookNow = activeLook.value
+  flatPixels.value = null
+  blockPixels.value = null
+  potPixels.value = null
+  if (!found || !potUrls.value) return
+  error.value = ''
+  loading.value = true
+  try {
+    const strip = blockUrl(found, lookNow)
+    const loaded = await Promise.all([
+      loadPixels(textureUrl(found, lookNow)),
+      strip ? loadPixels(strip) : null,
+      found.flower?.pottable ? loadPixels(potUrls.value[lookNow]) : null,
+    ])
+    if (token !== loadToken) return
+    ;[flatPixels.value, blockPixels.value, potPixels.value] = loaded
+  } catch {
+    if (token === loadToken) error.value = `Couldn't load the textures for ${found.name}. Check your connection and try again.`
+  } finally {
+    if (token === loadToken) loading.value = false
+  }
+}
+
+const retry = () => (item.value ? loadTextures() : loadItem(props.id))
+
+watch(() => props.id, loadItem, { immediate: true })
+watch([item, activeLook], loadTextures)
 
 const lookModel = computed({ get: () => look.value, set: (v) => (look.value = v) })
 const LOOKS = computed(() => [
@@ -128,7 +144,7 @@ const connectivity = computed(() =>
   model.value && model.value.kind !== 'block' ? checkConnectivity(model.value.voxels) : null,
 )
 const storageKey = computed(() => {
-  const parts = [`${props.collection}:${props.id}`, activeLook.value, maxPaints.value, view.value, potted.value ? 'pot' : '']
+  const parts = [`item:${props.id}`, activeLook.value, maxPaints.value, view.value, potted.value ? 'pot' : '']
   if (view.value === '3d') parts.push(blockPrefs.simplePaint ? 'simple' : 'exact')
   if (view.value === '3d' && item.value?.block) parts.push(blockPrefs.hollow ? 'hollow' : 'solid')
   return parts.join(':')
@@ -153,10 +169,14 @@ const description = computed(() => {
 </script>
 
 <template>
-  <div class="container">
-    <RouterLink v-if="collection === 'removed'" to="/removed" class="back muted">← Removed items</RouterLink>
-    <RouterLink v-else to="/" class="back muted">← All items</RouterLink>
-    <p v-if="error" class="notice">{{ error }}</p>
+  <NotFoundView v-if="notFound" :message="`There's no item called “${id}” in the catalog. It may have been renamed or removed.`" />
+  <div v-else class="container">
+    <RouterLink to="/" class="back muted">← All items</RouterLink>
+    <div v-if="error" class="notice error-box" role="alert">
+      <span>{{ error }}</span>
+      <button class="btn" @click="retry">Try again</button>
+    </div>
+    <p v-else-if="loading && !model" class="loading muted" role="status">Loading guide…</p>
 
     <template v-if="item">
       <header class="head">
@@ -166,8 +186,8 @@ const description = computed(() => {
         </div>
         <div class="head-text">
           <h1>{{ potted ? `Potted ${item.name}` : item.name }}</h1>
-          <p v-if="removedInfo" class="removed-note">
-            <strong>Removed from the game.</strong> {{ removedInfo.note }} Texture from {{ removedInfo.source }}.
+          <p v-if="item.note" class="item-note">
+            {{ item.note }}
           </p>
           <p class="muted">{{ description }}</p>
         </div>
@@ -207,11 +227,8 @@ const description = computed(() => {
 </template>
 
 <style scoped>
-.back {
-  display: inline-block;
-  margin-bottom: 12px;
-  text-decoration: none;
-  font-weight: 600;
+.loading {
+  margin: 12px 0;
 }
 
 .head {
@@ -250,7 +267,7 @@ const description = computed(() => {
   margin: 0;
 }
 
-.removed-note {
+.item-note {
   margin: 0.2rem 0 0.4rem !important;
   font-size: 0.95rem;
 }

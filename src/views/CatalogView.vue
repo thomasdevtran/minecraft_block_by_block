@@ -45,7 +45,17 @@ onMounted(async () => {
   }
 })
 
-const FEATURED = ['grass_block', 'poppy', 'diamond_ore', 'tnt', 'cornflower', 'diamond_sword']
+/** Scrolls to the item list. Works on every click, not just the first. */
+function scrollToCatalog() {
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  document.getElementById('catalog')?.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' })
+  // Put keyboard focus in the search box, but don't pop up the on-screen keyboard on phones.
+  if (window.matchMedia('(pointer: fine)').matches) {
+    document.querySelector<HTMLInputElement>('#catalog input[type="search"]')?.focus({ preventScroll: true })
+  }
+}
+
+const FEATURED =['grass_block', 'poppy', 'diamond_ore', 'tnt', 'cornflower', 'diamond_sword']
 
 const featured = computed(() =>
   FEATURED.map((id) => items.value.find((i) => i.id === id)).filter((i): i is CatalogItem => !!i),
@@ -84,7 +94,7 @@ const filtered = computed(() => {
           have to squint at a reference picture.
         </p>
         <div class="hero-actions">
-          <a href="#catalog" class="btn primary">Browse items</a>
+          <a href="#catalog" class="btn primary" @click.prevent="scrollToCatalog">Browse items</a>
           <RouterLink to="/skin" class="btn">Build a player skin</RouterLink>
         </div>
       </div>
@@ -149,7 +159,6 @@ const filtered = computed(() => {
       </ul>
       <p v-if="version" class="muted small">
         Textures from Minecraft {{ version }}<template v-if="look === 'classic'">, with old textures from {{ classicVersion }} where they changed</template>.
-        Looking for things that aren't in the game anymore? See <RouterLink to="/removed">Removed items</RouterLink>.
       </p>
     </section>
   </div>

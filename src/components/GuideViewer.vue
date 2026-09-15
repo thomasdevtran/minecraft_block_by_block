@@ -174,7 +174,8 @@ const showFaces = computed(() => props.model.kind === 'skin')
 
       <div class="preview card">
         <VoxelPreview :model="model" :roles="roles" />
-        <span class="hint muted">Drag to rotate · scroll to zoom · ← → keys change steps</span>
+        <span class="hint muted hint-desktop">Drag to rotate · scroll to zoom · ← → keys change steps</span>
+        <span class="hint muted hint-touch">Swipe sideways to rotate · pinch to zoom</span>
       </div>
     </div>
   </section>
@@ -384,5 +385,33 @@ const showFaces = computed(() => props.model.kind === 'skin')
   font-size: 0.8rem;
   text-align: center;
   padding: 0.4rem;
+}
+
+.hint-touch {
+  display: none;
+}
+
+@media (pointer: coarse) {
+  .hint-desktop {
+    display: none;
+  }
+
+  .hint-touch {
+    display: block;
+  }
+}
+
+@media (max-width: 640px) {
+  .panel {
+    padding: 14px;
+  }
+
+  .totals strong {
+    font-size: 1.3rem;
+  }
+
+  .recipes li {
+    flex-wrap: wrap;
+  }
 }
 </style>

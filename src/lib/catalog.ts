@@ -2,7 +2,7 @@ import type { Look } from './look'
 
 export type Category = 'item' | 'plant' | 'block'
 
-/** The fields every buildable thing has, whether it's in the game today or was removed. */
+/** The fields a guide needs to build something. */
 export interface BuildableItem {
   id: string
   name: string
@@ -14,6 +14,8 @@ export interface BuildableItem {
   flower?: { pottable: boolean }
   /** Pre-1.14 textures, only when they look different from today's. */
   classic?: { texture: string; block?: string }
+  /** Extra background shown on the guide, e.g. for items no longer in the game. */
+  note?: string
 }
 
 export interface CatalogItem extends BuildableItem {
@@ -34,19 +36,6 @@ export interface Catalog {
   items: CatalogItem[]
 }
 
-export interface RemovedItem extends BuildableItem {
-  category: 'item' | 'plant'
-  /** The Minecraft version the texture was taken from. */
-  source: string
-  /** What happened to it. */
-  note: string
-}
-
-export interface RemovedCatalog {
-  pot: string
-  items: RemovedItem[]
-}
-
 function loader<T>(url: string): () => Promise<T> {
   let pending: Promise<T> | null = null
   return () => {
@@ -61,7 +50,6 @@ function loader<T>(url: string): () => Promise<T> {
 
 /** Loads the index written by `npm run extract`. */
 export const loadCatalog = loader<Catalog>('/data/items.json')
-export const loadRemoved = loader<RemovedCatalog>('/data/removed.json')
 
 const useClassic = (item: BuildableItem, look: Look) => look === 'classic' && !!item.classic
 

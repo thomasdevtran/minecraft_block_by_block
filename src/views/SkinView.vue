@@ -4,28 +4,37 @@ import { RouterLink, useRouter } from 'vue-router'
 import { loadPixels } from '../engine/pixels'
 import { validateSkin } from '../engine/skin'
 import { blobToDataUrl, currentSkin, fetchSkinByUsername, setSkin, type LoadedSkin } from '../lib/skinStore'
+import { showToast } from '../lib/toast'
 
 const router = useRouter()
 const username = ref('')
 const loading = ref(false)
+const uploading = ref(false)
 const error = ref('')
 const dragging = ref(false)
+const fileInput = ref<HTMLInputElement>()
 
 async function useSkin(skin: LoadedSkin) {
   const problem = validateSkin(await loadPixels(skin.dataUrl))
   if (problem) throw new Error(problem)
   setSkin(skin)
+  showToast(`Loaded ${skin.label}'s skin.`)
   router.push('/skin/guide')
 }
 
 async function lookup() {
-  if (!username.value.trim()) return
+  const name = username.value.trim()
+  if (!name) {
+    error.value = 'Type a Minecraft username first.'
+    return
+  }
   loading.value = true
   error.value = ''
   try {
-    await useSkin(await fetchSkinByUsername(username.value))
+    await useSkin(await fetchSkinByUsername(name))
   } catch (e) {
-    error.value = (e as Error).message
+    // fetch() itself only throws when the request never reached the server.
+    error.value = e instanceof TypeError ? "Couldn't reach the skin server. Check your connection and try again." : (e as Error).message
   } finally {
     loading.value = false
   }
@@ -34,18 +43,25 @@ async function lookup() {
 async function upload(file: File | undefined) {
   if (!file) return
   error.value = ''
-  if (file.type !== 'image/png') {
-    error.value = 'Skins are PNG files. Please choose a .png image.'
+  if (file.type !== 'image/png' && !file.name.toLowerCase().endsWith('.png')) {
+    error.value = `“${file.name}” isn't a PNG. Minecraft skins are .png files.`
     return
   }
+  uploading.value = true
   try {
     const dataUrl = await blobToDataUrl(file)
-    const pixels = await loadPixels(dataUrl)
+    const pixels = await loadPixels(dataUrl).catch(() => {
+      throw new Error(`“${file.name}” couldn't be opened as an image. It may be damaged.`)
+    })
     // Slim skins leave the 4th column of each arm's front texture empty.
     const slim = pixels.height === 64 && pixels.data[(20 * 64 + 54) * 4 + 3] === 0
     await useSkin({ dataUrl, model: slim ? 'slim' : 'classic', label: file.name.replace(/\.png$/i, '') })
   } catch (e) {
     error.value = (e as Error).message
+  } finally {
+    uploading.value = false
+    // Clear the input so picking the same file again still triggers a change.
+    if (fileInput.value) fileInput.value.value = ''
   }
 }
 
@@ -74,26 +90,38 @@ function onDrop(e: DragEvent) {
             placeholder="Username, e.g. jeb_"
             maxlength="16"
             autocomplete="off"
+            autocapitalize="off"
             spellcheck="false"
+            enterkeyhint="search"
             aria-label="Minecraft username"
           />
-          <button class="btn primary" :disabled="loading || !username.trim()">
+          <button class="btn primary" :disabled="loading">
             {{ loading ? 'Looking up…' : 'Get skin' }}
           </button>
         </div>
       </form>
 
-      <label
+      <div
         :class="['card', 'option', 'drop', { dragging }]"
         @dragover.prevent="dragging = true"
         @dragleave="dragging = false"
         @drop.prevent="onDrop"
       >
         <h2>Upload a skin file</h2>
-        <p class="muted">Drop a 64×64 skin PNG here, or click to choose one.</p>
-        <span class="btn">Choose PNG…</span>
-        <input type="file" accept="image/png" class="visually-hidden" @change="upload(($event.target as HTMLInputElement).files?.[0])" />
-      </label>
+        <p class="muted">Drop a 64×64 skin PNG here, or choose one from your device.</p>
+        <button type="button" class="btn" :disabled="uploading" @click="fileInput?.click()">
+          {{ uploading ? 'Opening…' : 'Choose PNG…' }}
+        </button>
+        <input
+          ref="fileInput"
+          type="file"
+          accept="image/png,.png"
+          class="visually-hidden"
+          tabindex="-1"
+          aria-hidden="true"
+          @change="upload(($event.target as HTMLInputElement).files?.[0])"
+        />
+      </div>
     </div>
 
     <p v-if="error" class="notice error-box" role="alert">{{ error }}</p>
@@ -149,8 +177,13 @@ function onDrop(e: DragEvent) {
   flex: 1;
 }
 
+@media (max-width: 420px) {
+  .row {
+    flex-direction: column;
+  }
+}
+
 .drop {
-  cursor: pointer;
   border-style: dashed;
 }
 
@@ -169,10 +202,7 @@ function onDrop(e: DragEvent) {
   height: 1px;
   opacity: 0;
   pointer-events: none;
-}
-
-.error-box {
-  border-color: var(--error);
+  overflow: hidden;
 }
 
 .resume {

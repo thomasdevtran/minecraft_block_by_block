@@ -29,8 +29,6 @@ export interface ColorOptions {
   simplePaint: boolean
 }
 
-export const DEFAULT_COLOR_OPTIONS: ColorOptions = { maxPaints: 12, simplePaint: false }
-
 /** Hides covered faces, reduces colors to a paint palette and applies the simple-paint option. */
 export function finalizeModel(
   kind: BuildModel['kind'],
