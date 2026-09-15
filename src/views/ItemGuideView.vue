@@ -122,10 +122,10 @@ watch(() => props.id, loadItem, { immediate: true })
 watch([item, activeLook], loadTextures)
 
 const lookModel = computed({ get: () => look.value, set: (v) => (look.value = v) })
-const LOOKS = computed(() => [
-  { value: 'current' as const, label: 'New', hint: 'Today’s textures' },
-  { value: 'classic' as const, label: 'Old', hint: `Classic (${classicVersion.value})` },
-])
+const LOOKS = [
+  { value: 'current' as const, label: 'New textures', hint: '' },
+  { value: 'classic' as const, label: 'Old textures', hint: '' },
+]
 
 const model = computed(() => {
   const sprite = flatPixels.value
@@ -193,7 +193,14 @@ const description = computed(() => {
         </div>
         <div v-if="has3d || item.classic" class="style-controls">
           <ViewToggle v-if="has3d" v-model="view" :options="VIEWS" />
-          <ViewToggle v-if="item.classic" v-model="lookModel" :options="LOOKS" />
+          <ViewToggle
+            v-if="item.classic"
+            v-model="lookModel"
+            :options="LOOKS"
+            label="Textures"
+            compact
+            :title="`Old textures come from Minecraft ${classicVersion}`"
+          />
           <button v-if="canPot" :class="['pot-toggle', { active: potted }]" :aria-pressed="potted" @click="togglePot">
             <span class="switch" aria-hidden="true"></span>
             In a pot
@@ -274,8 +281,9 @@ const description = computed(() => {
 
 .style-controls {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
   gap: 8px;
 }
 
@@ -283,9 +291,9 @@ const description = computed(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.6rem;
-  font: 600 0.95rem var(--sans);
-  padding: 0.5rem 0.9rem;
+  gap: 0.5rem;
+  font: 600 0.9rem var(--sans);
+  padding: 0.45rem 0.8rem;
   border-radius: var(--radius);
   border: 2px solid var(--line);
   background: var(--surface);

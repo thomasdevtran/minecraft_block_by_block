@@ -33,6 +33,11 @@ function selectCategory(value: Category | 'all') {
   group.value = null
 }
 
+function resetFilters() {
+  query.value = ''
+  selectCategory('all')
+}
+
 onMounted(async () => {
   try {
     const catalog = await loadCatalog()
@@ -108,16 +113,18 @@ const filtered = computed(() => {
 
     <section id="catalog">
       <div class="toolbar">
-        <h2>Items</h2>
-        <div class="filters">
+        <div class="toolbar-top">
+          <h2>Items</h2>
           <input v-model="query" type="search" :placeholder="`Search ${items.length ? items.length.toLocaleString() : ''} items…`" aria-label="Search items" />
           <ViewToggle v-model="look" :options="LOOKS" label="Textures" compact :title="`Old textures come from Minecraft ${classicVersion}`" />
-          <div class="tabs" role="tablist">
+        </div>
+        <div class="filters">
+          <div class="tabs" role="group" aria-label="Filter by kind">
             <button
               v-for="[value, label] in TABS"
               :key="value"
-              role="tab"
-              :aria-selected="category === value"
+              type="button"
+              :aria-pressed="category === value"
               :class="['tab', { active: category === value }]"
               @click="selectCategory(value)"
             >
@@ -143,14 +150,19 @@ const filtered = computed(() => {
       </div>
 
       <p v-if="error" class="notice">{{ error }}</p>
-      <p v-else-if="items.length && !filtered.length" class="muted">No items match “{{ query }}”.</p>
+
+      <div v-else-if="items.length && !filtered.length" class="empty card">
+        <p>
+          Nothing matches <strong>“{{ query }}”</strong><template v-if="category !== 'all'"> in {{ TAB_LABELS[category] }}</template>.
+        </p>
+        <p class="muted">Try a shorter word, or check another kind of item.</p>
+        <button type="button" class="btn" @click="resetFilters">Clear search and filters</button>
+      </div>
 
       <ul class="grid">
         <li v-for="item in filtered" :key="item.id">
           <RouterLink :to="`/item/${item.id}`" class="tile card">
-            <span v-if="buildStyles(item)" class="badge" title="Build styles you can pick on the guide page">
-              {{ buildStyles(item) }}
-            </span>
+            <span v-if="item.block || item.flower" class="badge" :title="`${item.name} can also be built in 3D (${buildStyles(item)})`">3D</span>
             <BlockIcon v-if="item.block" :src="blockUrl(item, look)!" />
             <img v-else :src="textureUrl(item, look)" alt="" class="pixelated" width="48" height="48" loading="lazy" />
             <span>{{ item.name }}</span>
@@ -176,6 +188,12 @@ const filtered = computed(() => {
 @media (max-width: 760px) {
   .hero {
     grid-template-columns: 1fr;
+    gap: 20px;
+    margin-bottom: 28px;
+  }
+
+  .lead {
+    font-size: 1rem;
   }
 }
 
@@ -212,21 +230,33 @@ const filtered = computed(() => {
 }
 
 .feat img {
-  width: 60%;
+  width: 76%;
   height: auto;
 }
 
 .toolbar {
   display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+/* Heading, search and the texture switch share one line; filters sit on the next. */
+.toolbar-top {
+  display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 16px;
+  gap: 10px;
 }
 
 .toolbar h2 {
   margin: 0;
+  margin-right: auto;
+}
+
+.toolbar-top input {
+  flex: 1 1 220px;
+  max-width: 320px;
 }
 
 .filters {
@@ -234,10 +264,6 @@ const filtered = computed(() => {
   flex-wrap: wrap;
   gap: 8px;
   align-items: center;
-}
-
-.filters input {
-  width: min(260px, 100%);
 }
 
 .tabs {
@@ -295,6 +321,20 @@ const filtered = computed(() => {
   margin-left: 0.2em;
 }
 
+.empty {
+  padding: 28px 20px;
+  text-align: center;
+  margin-bottom: 16px;
+}
+
+.empty p {
+  margin: 0 0 0.4rem;
+}
+
+.empty .btn {
+  margin-top: 0.6rem;
+}
+
 .grid {
   list-style: none;
   margin: 0 0 16px;
@@ -322,20 +362,22 @@ const filtered = computed(() => {
   position: relative;
 }
 
+/* Quiet marker: hundreds of tiles carry it, so it must not compete with the item picture. */
 .badge {
   position: absolute;
   top: 6px;
-  right: 6px;
-  font: 700 0.62rem var(--sans);
-  letter-spacing: 0.03em;
-  padding: 0.1em 0.45em;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--ink);
+  right: 8px;
+  font: 600 0.62rem var(--sans);
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
 }
 
 .tile:hover {
   border-color: var(--accent);
+}
+
+.tile:hover .badge {
+  color: var(--accent);
 }
 
 .small {

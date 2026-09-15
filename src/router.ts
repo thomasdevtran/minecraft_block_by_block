@@ -44,6 +44,24 @@ export const router = createRouter({
       meta: { title: 'Skin build guide' },
     },
     {
+      path: '/privacy',
+      name: 'privacy',
+      component: () => import('./views/PrivacyView.vue'),
+      meta: {
+        title: 'Privacy & cookies',
+        description: 'What this site stores on your device, what happens to skins you upload, and why there is no cookie banner.',
+      },
+    },
+    {
+      path: '/terms',
+      name: 'terms',
+      component: () => import('./views/TermsView.vue'),
+      meta: {
+        title: 'Terms of use',
+        description: 'The plain-language terms for using Block by Block, including safety notes and Minecraft trademark information.',
+      },
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('./views/NotFoundView.vue'),

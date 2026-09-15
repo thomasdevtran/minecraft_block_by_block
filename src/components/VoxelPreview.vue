@@ -97,7 +97,8 @@ function buildMeshes() {
     lines(solidEdges, new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18 })),
     lines(focusEdges, new THREE.LineBasicMaterial({ color: 0x000000 })),
   )
-  const ghost = mesh(layers.ghost, new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.16, depthWrite: false }))
+  // Ghosted cubes stay readable enough to give the highlighted ones context instead of leaving them floating.
+  const ghost = mesh(layers.ghost, new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.28, depthWrite: false }))
   ghost.renderOrder = 1
   content.add(ghost)
   scene.add(content)
@@ -182,7 +183,14 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div ref="host" class="voxel-preview" title="Drag to rotate, scroll to zoom"></div>
+  <!-- The canvas is a visual aid; every step is also written out in the panel beside it. -->
+  <div
+    ref="host"
+    class="voxel-preview"
+    role="img"
+    aria-label="3D preview of the build so far. The written steps beside it cover the same information."
+    title="Drag to rotate, scroll to zoom"
+  ></div>
 </template>
 
 <style scoped>

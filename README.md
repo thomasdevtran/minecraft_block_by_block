@@ -37,6 +37,13 @@ Items whose icon is a 3D model and can't be built from a flat sprite yet: Shield
 - **Old/New toggle:** every catalog item is looked up in Minecraft 1.13.2, the last version before the 1.14 texture update, and gets a `classic` texture when it looks different. The set of renamed items lives in `CLASSIC_RENAMES`.
 - **Rose:** the Rose was replaced by the Poppy in 1.7.2. It's listed under Plants → Flowers, using its texture from 1.6.4.
 
+## Privacy and legal
+
+- **No cookies, no analytics, no third-party embeds.** The Pixelify Sans font is self-hosted (`npx tsx scripts/fetch-fonts.ts`, SIL Open Font License) so visitors' IPs never reach Google Fonts. Settings and build progress live in `localStorage` only.
+- **Skin lookups** send only the username, through `/api/skin/:username` to Mojang's public API. Uploaded skin files are read in the browser and never sent anywhere.
+- **`/privacy` and `/terms`** are written from what the site actually does. Before going live, fill in `SITE.operator` in `src/lib/site.ts` (who runs the site and which country's law applies) and have someone qualified check them.
+- **Game assets** belong to Mojang and are used as fan content under the Minecraft usage guidelines.
+
 ## Layout
 
 - `src/engine/`: pure TypeScript. Image → cubes → paint palette → steps. No Vue, unit-tested.

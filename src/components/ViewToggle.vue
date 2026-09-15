@@ -8,12 +8,12 @@ const model = defineModel<T>({ required: true })
 </script>
 
 <template>
-  <div :class="['view-toggle', { compact }]" role="radiogroup" :aria-label="label">
+  <div :class="['view-toggle', { compact }]" role="group" :aria-label="label">
     <button
       v-for="o in options"
       :key="o.value"
-      role="radio"
-      :aria-checked="model === o.value"
+      type="button"
+      :aria-pressed="model === o.value"
       :class="{ active: model === o.value }"
       @click="model = o.value"
     >

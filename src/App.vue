@@ -70,16 +70,20 @@ async function copyDiscord() {
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <div class="footer-links">
-        <a :href="SITE.github" target="_blank" rel="noopener noreferrer">GitHub</a>
-        <a :href="SITE.tiktok.url" target="_blank" rel="noopener noreferrer">TikTok {{ SITE.tiktok.handle }}</a>
-        <button class="link-button" :title="`Copy Discord username ${SITE.discord}`" @click="copyDiscord">
-          Discord: {{ SITE.discord }}
+      <nav class="footer-links" aria-label="Footer">
+        <RouterLink to="/privacy">Privacy &amp; cookies</RouterLink>
+        <RouterLink to="/terms">Terms</RouterLink>
+        <a :href="SITE.github" target="_blank" rel="noopener noreferrer">GitHub<span class="visually-hidden"> (opens in a new tab)</span></a>
+        <a :href="SITE.tiktok.url" target="_blank" rel="noopener noreferrer">
+          TikTok {{ SITE.tiktok.handle }}<span class="visually-hidden"> (opens in a new tab)</span>
+        </a>
+        <button type="button" class="link-button" @click="copyDiscord">
+          Copy Discord username: {{ SITE.discord }}
         </button>
-      </div>
+      </nav>
       <p class="muted">
-        © {{ year }} Block by Block. Not an official Minecraft product. Not approved by or associated with Mojang or
-        Microsoft.
+        © {{ year }} {{ SITE.operator.name }}. Not an official Minecraft product. Not approved by or associated with
+        Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies AB.
       </p>
     </div>
   </footer>

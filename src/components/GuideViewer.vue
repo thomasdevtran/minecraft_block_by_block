@@ -67,12 +67,21 @@ const showFaces = computed(() => props.model.kind === 'skin')
 
 <template>
   <section class="guide">
-    <div class="progress" role="progressbar" :aria-valuenow="index" :aria-valuemax="total - 1">
+    <div
+      class="progress"
+      role="progressbar"
+      aria-label="Build progress"
+      :aria-valuenow="index"
+      :aria-valuemin="0"
+      :aria-valuemax="total - 1"
+      :aria-valuetext="`Step ${index} of ${total - 1}`"
+    >
       <div class="bar" :style="{ width: `${(index / (total - 1)) * 100}%` }"></div>
     </div>
 
     <div class="layout">
-      <div class="panel card">
+      <!-- Screen readers announce each new step as it appears. -->
+      <div class="panel card" role="region" aria-label="Current step" aria-live="polite">
         <div class="step-meta">
           <span class="stage">{{ stageLabel }}</span>
           <span class="muted">Step {{ index }} of {{ total - 1 }}</span>
@@ -119,7 +128,8 @@ const showFaces = computed(() => props.model.kind === 'skin')
             </tbody>
           </table>
           <p class="muted small">
-            Hex codes are the exact game colors. Mix or pick the closest paint you have.
+            Hex codes come from the game's pixels, blended where close shades were merged into one paint. Screens and
+            paint don't match exactly, so treat them as a starting point and pick the nearest paint you have.
           </p>
         </template>
 

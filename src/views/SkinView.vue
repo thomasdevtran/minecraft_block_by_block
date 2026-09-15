@@ -75,14 +75,17 @@ function onDrop(e: DragEvent) {
   <div class="container narrow">
     <h1>Build a player skin</h1>
     <p class="lead muted">
-      Turn any Minecraft skin into a cube figure: 16 cubes wide and 32 tall. You get the paint list, then build each
+      Turn a Minecraft skin file (64×64 or 64×32) into a cube figure: 16 cubes wide and 32 tall. You get the paint list, then build each
       body part layer by layer and put the character together.
     </p>
 
     <div class="options">
       <form class="card option" @submit.prevent="lookup">
         <h2>Look up a player</h2>
-        <p class="muted">Use the skin of any Java Edition player.</p>
+        <p class="muted">
+          Build the skin of a Java Edition player. The username is sent to Mojang to fetch their skin, and nothing is
+          saved on our servers. <RouterLink to="/privacy">Privacy</RouterLink>
+        </p>
         <div class="row">
           <input
             v-model="username"
