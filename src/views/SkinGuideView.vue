@@ -6,7 +6,7 @@ import PaintControls from '../components/PaintControls.vue'
 import ViewToggle from '../components/ViewToggle.vue'
 import { itemToModel } from '../engine/item'
 import { loadPixels, pixelsToDataUrl, type PixelImage } from '../engine/pixels'
-import { skinFace, skinToModel, type SkinOptions } from '../engine/skin'
+import { skinFront, skinToModel, type SkinOptions } from '../engine/skin'
 import { buildGuide } from '../engine/steps'
 import { currentSkin, setSkin } from '../lib/skinStore'
 import { hashString, readStored, writeStored } from '../lib/storage'
@@ -35,20 +35,20 @@ const route = useRoute()
 const router = useRouter()
 
 const VIEWS = [
-  { value: '2d' as const, label: '2D', hint: 'Just the face' },
-  { value: '3d' as const, label: '3D', hint: 'Whole character' },
+  { value: '2d' as const, label: '2D', hint: 'Flat, from the front' },
+  { value: '3d' as const, label: '3D', hint: 'Standing figure' },
 ]
-/** The whole figure by default; `?view=2d` builds only the face. */
+/** The 3D figure by default; `?view=2d` builds the character flat, seen from the front. */
 const view = computed<'2d' | '3d'>({
   get: () => (route.query.view === '2d' ? '2d' : '3d'),
   set: (v) => router.replace({ query: { ...route.query, view: v } }),
 })
 
 const options = computed<SkinOptions>(() => ({ ...prefs, model: armModel.value }))
-const face = computed(() => (pixels.value ? skinFace(pixels.value, prefs.overlay) : null))
-const faceUrl = computed(() => (face.value ? pixelsToDataUrl(face.value) : ''))
+const front = computed(() => (pixels.value ? skinFront(pixels.value, options.value) : null))
+const frontUrl = computed(() => (front.value ? pixelsToDataUrl(front.value) : ''))
 const model = computed(() => {
-  if (view.value === '2d') return face.value ? itemToModel(face.value, { maxPaints: prefs.maxPaints, simplePaint: false }) : null
+  if (view.value === '2d') return front.value ? itemToModel(front.value, { maxPaints: prefs.maxPaints, simplePaint: false }) : null
   return pixels.value ? skinToModel(pixels.value, options.value) : null
 })
 const guide = computed(() => (model.value ? buildGuide(model.value) : null))
@@ -56,7 +56,7 @@ const storageKey = computed(() => {
   if (!currentSkin.value) return ''
   const skin = `skin:${hashString(currentSkin.value.dataUrl)}`
   return view.value === '2d'
-    ? `${skin}:face:${prefs.overlay}:${prefs.maxPaints}`
+    ? `${skin}:flat:${armModel.value}:${prefs.overlay}:${prefs.maxPaints}`
     : `${skin}:${hashString(JSON.stringify(options.value))}`
 })
 </script>
@@ -71,12 +71,13 @@ const storageKey = computed(() => {
 
     <template v-else>
       <header class="head">
-        <img v-if="view === '2d' && faceUrl" :src="faceUrl" alt="Face" class="pixelated face" width="96" height="96" />
+        <img v-if="view === '2d' && frontUrl" :src="frontUrl" alt="Character, front view" class="pixelated" width="48" height="96" />
         <img v-else :src="currentSkin.dataUrl" alt="Skin file" class="pixelated" width="96" height="96" />
         <div class="head-text">
-          <h1>{{ currentSkin.label }}{{ view === '2d' ? "'s face" : '' }}</h1>
+          <h1>{{ currentSkin.label }}</h1>
           <p v-if="view === '2d'" class="muted">
-            The front of the head as a flat 8×8 picture: 64 cubes. Lay them flat and glue each row to the one below it.
+            The whole character laid flat, seen from the front: 16 cubes wide and 32 tall. Lay the cubes on the table
+            and glue each row to the one below it, starting at the feet.
           </p>
           <p v-else class="muted">
             Paint the cubes first, then build each body part from the bottom up. The grid is a top-down view of each
@@ -94,14 +95,14 @@ const storageKey = computed(() => {
           </label>
           <label class="toggle">
             <input v-model="prefs.overlay" type="checkbox" />
-            {{ view === '2d' ? 'Include the hat layer' : 'Include hat, jacket and sleeve layer' }}
+            Include hat, jacket and sleeve layer
           </label>
           <label v-if="view === '3d'" class="toggle">
             <input v-model="prefs.simplePaint" type="checkbox" />
             One color per cube (easier; corners less exact)
           </label>
         </div>
-        <div v-if="view === '3d'" class="toggles">
+        <div class="toggles">
           <span class="muted small">Arm style</span>
           <label class="toggle">
             <input v-model="armModel" type="radio" value="classic" />

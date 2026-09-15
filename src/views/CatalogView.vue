@@ -2,11 +2,20 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import BlockIcon from '../components/BlockIcon.vue'
+import ViewToggle from '../components/ViewToggle.vue'
 import { blockUrl, buildStyles, loadCatalog, textureUrl, type Catalog, type CatalogItem, type Category } from '../lib/catalog'
+import { look as sharedLook } from '../lib/look'
+
+const look = computed({ get: () => sharedLook.value, set: (v) => (sharedLook.value = v) })
+const LOOKS = [
+  { value: 'current' as const, label: 'New textures', hint: '' },
+  { value: 'classic' as const, label: 'Old textures', hint: '' },
+]
 
 const items = ref<CatalogItem[]>([])
 const groupOrder = ref<Catalog['groups']>({})
 const version = ref('')
+const classicVersion = ref('')
 const error = ref('')
 const query = ref('')
 const TABS: [Category | 'all', string][] = [
@@ -30,6 +39,7 @@ onMounted(async () => {
     items.value = catalog.items
     groupOrder.value = catalog.groups ?? {}
     version.value = catalog.version
+    classicVersion.value = catalog.classicVersion
   } catch (e) {
     error.value = (e as Error).message
   }
@@ -80,8 +90,8 @@ const filtered = computed(() => {
       </div>
       <div v-if="featured.length" class="featured">
         <RouterLink v-for="item in featured" :key="item.id" :to="`/item/${item.id}`" class="feat" :title="item.name">
-          <BlockIcon v-if="item.block" :src="blockUrl(item)!" :size="40" />
-          <img v-else :src="textureUrl(item)" :alt="item.name" class="pixelated" width="64" height="64" />
+          <BlockIcon v-if="item.block" :src="blockUrl(item, look)!" :size="40" />
+          <img v-else :src="textureUrl(item, look)" :alt="item.name" class="pixelated" width="64" height="64" />
         </RouterLink>
       </div>
     </section>
@@ -91,6 +101,7 @@ const filtered = computed(() => {
         <h2>Items</h2>
         <div class="filters">
           <input v-model="query" type="search" :placeholder="`Search ${items.length ? items.length.toLocaleString() : ''} items…`" aria-label="Search items" />
+          <ViewToggle v-model="look" :options="LOOKS" label="Textures" compact :title="`Old textures come from Minecraft ${classicVersion}`" />
           <div class="tabs" role="tablist">
             <button
               v-for="[value, label] in TABS"
@@ -130,13 +141,16 @@ const filtered = computed(() => {
             <span v-if="buildStyles(item)" class="badge" title="Build styles you can pick on the guide page">
               {{ buildStyles(item) }}
             </span>
-            <BlockIcon v-if="item.block" :src="blockUrl(item)!" />
-            <img v-else :src="textureUrl(item)" alt="" class="pixelated" width="48" height="48" loading="lazy" />
+            <BlockIcon v-if="item.block" :src="blockUrl(item, look)!" />
+            <img v-else :src="textureUrl(item, look)" alt="" class="pixelated" width="48" height="48" loading="lazy" />
             <span>{{ item.name }}</span>
           </RouterLink>
         </li>
       </ul>
-      <p v-if="version" class="muted small">Textures from Minecraft {{ version }}.</p>
+      <p v-if="version" class="muted small">
+        Textures from Minecraft {{ version }}<template v-if="look === 'classic'">, with old textures from {{ classicVersion }} where they changed</template>.
+        Looking for things that aren't in the game anymore? See <RouterLink to="/removed">Removed items</RouterLink>.
+      </p>
     </section>
   </div>
 </template>

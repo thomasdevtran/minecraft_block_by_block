@@ -5,7 +5,7 @@
  *   npm run extract -- 1.21.8  # a specific version
  */
 import AdmZip from 'adm-zip'
-import { existsSync, mkdirSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
@@ -31,6 +31,10 @@ interface CatalogItem {
   block?: string
   /** Flowers can also be built as a 3D crossed plant. */
   flower?: { pottable: boolean }
+  /** Pre-1.14 look, only when it differs from today's. */
+  classic?: { texture: string; block?: string }
+  /** Extra background shown on the guide, e.g. for items no longer in the game. */
+  note?: string
 }
 
 const OUT_POT = join(ROOT, 'public', 'textures', 'pot.png')
@@ -157,7 +161,16 @@ async function downloadJar(requested?: string): Promise<{ version: string; jar: 
 
 const strip = (id: string) => id.replace(/^minecraft:/, '')
 
-function main(jar: AdmZip): CatalogItem[] {
+interface JarReader {
+  read(path: string): Buffer | null
+  readJson(path: string): Json | null
+  /** A 16-wide texture by model reference, e.g. "block/dirt". */
+  readTexture(ref: string): PNG | null
+  resolveModel(ref: string): Resolved | null
+}
+
+/** Reads models and textures out of one client jar (1.13 or newer layout). */
+function jarReader(jar: AdmZip): JarReader {
   const read = (path: string): Buffer | null => jar.getEntry(path)?.getData() ?? null
   const readJson = (path: string): Json | null => {
     const buf = read(path)
@@ -170,7 +183,6 @@ function main(jar: AdmZip): CatalogItem[] {
     // Animated textures stack frames vertically; composite() only reads the first 16×16.
     return png.width === 16 ? png : null
   }
-  const lang = readJson('assets/minecraft/lang/en_us.json') ?? {}
 
   /** Follows `parent` links to either a flat sprite model or a single full-size cube. */
   const resolveModel = (ref: string): Resolved | null => {
@@ -208,6 +220,60 @@ function main(jar: AdmZip): CatalogItem[] {
     return { kind: 'cube', faces, orientable: 'front' in textures }
   }
 
+  return { read, readJson, readTexture, resolveModel }
+}
+
+/** Draws a flat item: each `layerN` texture on top of the last, tinted by `tints[N]`. Null if nothing shows. */
+function renderFlat(reader: JarReader, textures: Record<string, string>, tints: Json[]): PNG | null {
+  const out = new PNG({ width: 16, height: 16 })
+  for (let layer = 0; textures[`layer${layer}`]; layer++) {
+    const png = reader.readTexture(textures[`layer${layer}`])
+    if (!png) break
+    composite(out, png, tintColor(tints[layer]))
+  }
+  return out.data.some((_, i) => i % 4 === 3 && out.data[i] > 0) ? out : null
+}
+
+/** Draws the six faces of a full block, turned so its front faces the viewer, as a strip plus the front face alone. */
+function renderCube(reader: JarReader, resolved: Extract<Resolved, { kind: 'cube' }>, tints: Json[]): { strip: PNG; front: PNG } {
+  const faceImages = Object.fromEntries(
+    MC_FACES.map((face) => {
+      const out = new PNG({ width: 16, height: 16 })
+      for (const layer of resolved.faces[face]) {
+        const png = reader.readTexture(layer.texture)
+        if (png) composite(out, rotateClockwise(png, layer.rotation), layer.tint >= 0 ? tintColor(tints[layer.tint]) : null)
+      }
+      fillTransparent(out)
+      return [face, out]
+    }),
+  ) as Record<McFace, PNG>
+
+  // Orientable blocks (furnace, carved pumpkin…) face north in the model. Turn them to face the viewer.
+  if (resolved.orientable) {
+    ;[faceImages.north, faceImages.south] = [faceImages.south, faceImages.north]
+    ;[faceImages.west, faceImages.east] = [faceImages.east, faceImages.west]
+    rotate180(faceImages.up)
+    rotate180(faceImages.down)
+  }
+
+  const stripPng = new PNG({ width: 16 * STRIP_ORDER.length, height: 16 })
+  STRIP_ORDER.forEach((face, i) => PNG.bitblt(faceImages[face], stripPng, 0, 0, 16, 16, i * 16, 0))
+  return { strip: stripPng, front: faceImages.south }
+}
+
+/** Flower pot + dirt textures side by side, as src/engine/flower.ts expects. */
+function renderPot(potTexture: PNG | null, dirtTexture: PNG | null): PNG {
+  if (!potTexture || !dirtTexture) throw new Error('Missing flower pot or dirt texture')
+  const pot = new PNG({ width: 32, height: 16 })
+  PNG.bitblt(potTexture, pot, 0, 0, 16, 16, 0, 0)
+  PNG.bitblt(dirtTexture, pot, 0, 0, 16, 16, 16, 0)
+  return pot
+}
+
+function main(reader: JarReader, jar: AdmZip): { items: CatalogItem[]; tints: Map<string, Json[]> } {
+  const { read, readJson } = reader
+  const lang = readJson('assets/minecraft/lang/en_us.json') ?? {}
+
   /** Finds the model the inventory shows inside an item definition (skipping in-hand and in-use variants). */
   const findModel = (node: Json): Json | null => {
     if (!node || typeof node !== 'object') return null
@@ -241,6 +307,7 @@ function main(jar: AdmZip): CatalogItem[] {
   const excluded = new Map<string, string[]>()
   /** Full blocks picked up automatically (not in a pinned list), as "category|group|name". */
   const autoAdded: string[] = []
+  const tintsById = new Map<string, Json[]>()
   for (const id of ids) {
     const reason = excludeReason(id)
     if (reason) {
@@ -248,20 +315,16 @@ function main(jar: AdmZip): CatalogItem[] {
       continue
     }
     const model = findModel(readJson(`${prefix}${id}.json`)!.model)
-    const resolved = model && resolveModel(model.model)
+    const resolved = model && reader.resolveModel(model.model)
     const tints: Json[] = model?.tints ?? []
+    tintsById.set(id, tints)
     const name = lang[`item.minecraft.${id}`] ?? lang[`block.minecraft.${id}`] ?? id
     const plantGroup = PLANT_GROUP_OF.get(id)
     const blockGroup = BLOCK_GROUP_OF.get(id)
 
     if (resolved?.kind === 'flat' && resolved.textures.layer0) {
-      const out = new PNG({ width: 16, height: 16 })
-      for (let layer = 0; resolved.textures[`layer${layer}`]; layer++) {
-        const png = readTexture(resolved.textures[`layer${layer}`])
-        if (!png) break
-        composite(out, png, tintColor(tints[layer]))
-      }
-      if (!out.data.some((_, i) => i % 4 === 3 && out.data[i] > 0)) {
+      const out = renderFlat(reader, resolved.textures, tints)
+      if (!out) {
         skipped++
         continue
       }
@@ -282,30 +345,9 @@ function main(jar: AdmZip): CatalogItem[] {
         plantGroup ?? autoPlant ?? blockGroup ?? AUTO_BLOCK_GROUPS.find(([, re]) => re.test(id))?.[0] ?? 'Other'
       const isPlant = !!(plantGroup ?? autoPlant)
       if (!plantGroup && !blockGroup) autoAdded.push(`${isPlant ? 'plant' : 'block'}|${group}|${name}`)
-      const faceImages = Object.fromEntries(
-        MC_FACES.map((face) => {
-          const out = new PNG({ width: 16, height: 16 })
-          for (const layer of resolved.faces[face]) {
-            const png = readTexture(layer.texture)
-            if (png) composite(out, rotateClockwise(png, layer.rotation), layer.tint >= 0 ? tintColor(tints[layer.tint]) : null)
-          }
-          fillTransparent(out)
-          return [face, out]
-        }),
-      ) as Record<McFace, PNG>
-
-      // Orientable blocks (furnace, carved pumpkin…) face north in the model. Turn them to face the viewer.
-      if (resolved.orientable) {
-        ;[faceImages.north, faceImages.south] = [faceImages.south, faceImages.north]
-        ;[faceImages.west, faceImages.east] = [faceImages.east, faceImages.west]
-        rotate180(faceImages.up)
-        rotate180(faceImages.down)
-      }
-
-      const stripPng = new PNG({ width: 16 * STRIP_ORDER.length, height: 16 })
-      STRIP_ORDER.forEach((face, i) => PNG.bitblt(faceImages[face], stripPng, 0, 0, 16, 16, i * 16, 0))
+      const { strip: stripPng, front } = renderCube(reader, resolved, tints)
       writeFileSync(join(OUT_BLOCKS, `${id}.png`), PNG.sync.write(stripPng))
-      writeFileSync(join(OUT_ITEMS, `${id}.png`), PNG.sync.write(faceImages.south))
+      writeFileSync(join(OUT_ITEMS, `${id}.png`), PNG.sync.write(front))
       cubes++
       items.push({
         id,
@@ -319,20 +361,83 @@ function main(jar: AdmZip): CatalogItem[] {
       skipped++
     }
   }
-  // Pot textures for potted flowers: flower_pot.png then dirt.png (see src/engine/flower.ts).
-  const pot = new PNG({ width: 32, height: 16 })
-  ;(['block/flower_pot', 'block/dirt'] as const).forEach((ref, i) => {
-    const png = readTexture(ref)
-    if (!png) throw new Error(`Missing texture ${ref}`)
-    PNG.bitblt(png, pot, 0, 0, 16, 16, i * 16, 0)
-  })
-  writeFileSync(OUT_POT, PNG.sync.write(pot))
+  writeFileSync(OUT_POT, PNG.sync.write(renderPot(reader.readTexture('block/flower_pot'), reader.readTexture('block/dirt'))))
 
   for (const [reason, list] of excluded) console.log(`Excluded ${list.length} × ${reason}: ${list.join(', ')}`)
   writeFileSync(join(CACHE, 'auto-added-blocks.txt'), autoAdded.sort().join('\n'))
   console.log(`Auto-added ${autoAdded.length} full blocks (list in scripts/.cache/auto-added-blocks.txt).`)
   console.log(`Wrote ${items.length - cubes} flat items and ${cubes} 3D blocks. Skipped ${skipped} other models.`)
-  return items
+  return { items, tints: tintsById }
+}
+
+/**
+ * Classic look: the last textures before the 1.14 texture update. 1.13.2 already uses today's
+ * names, so each current item is looked up by id (plus a few renames) and kept only if it looks different.
+ */
+const CLASSIC_VERSION = '1.13.2'
+const CLASSIC_RENAMES: Record<string, string> = {
+  short_grass: 'grass',
+  turtle_scute: 'scute',
+  oak_sign: 'sign',
+  red_dye: 'rose_red',
+  green_dye: 'cactus_green',
+  yellow_dye: 'dandelion_yellow',
+}
+const OUT_CLASSIC = join(ROOT, 'public', 'textures', 'classic')
+
+function addClassicTextures(items: CatalogItem[], tintsById: Map<string, Json[]>, classic: JarReader): number {
+  mkdirSync(join(OUT_CLASSIC, 'items'), { recursive: true })
+  mkdirSync(join(OUT_CLASSIC, 'blocks'), { recursive: true })
+  const samePng = (a: PNG, file: string) => Buffer.compare(a.data, PNG.sync.read(readFileSync(join(ROOT, 'public', file))).data) === 0
+  let count = 0
+
+  for (const item of items) {
+    // Spawn eggs were tinted in code before 1.14, so their old models are plain gray.
+    if (item.id.endsWith('_spawn_egg')) continue
+    const resolved = classic.resolveModel(`item/${CLASSIC_RENAMES[item.id] ?? item.id}`)
+    const tints = tintsById.get(item.id) ?? []
+
+    if (item.block && resolved?.kind === 'cube') {
+      const { strip: stripPng, front } = renderCube(classic, resolved, tints)
+      if (samePng(stripPng, item.block)) continue
+      writeFileSync(join(OUT_CLASSIC, 'blocks', `${item.id}.png`), PNG.sync.write(stripPng))
+      writeFileSync(join(OUT_CLASSIC, 'items', `${item.id}.png`), PNG.sync.write(front))
+      item.classic = { texture: `textures/classic/items/${item.id}.png`, block: `textures/classic/blocks/${item.id}.png` }
+      count++
+    } else if (!item.block && resolved?.kind === 'flat') {
+      const out = renderFlat(classic, resolved.textures, tints)
+      if (!out || samePng(out, item.texture)) continue
+      writeFileSync(join(OUT_CLASSIC, 'items', `${item.id}.png`), PNG.sync.write(out))
+      item.classic = { texture: `textures/classic/items/${item.id}.png` }
+      count++
+    }
+  }
+  writeFileSync(join(OUT_CLASSIC, 'pot.png'), PNG.sync.write(renderPot(classic.readTexture('block/flower_pot'), classic.readTexture('block/dirt'))))
+  return count
+}
+
+/**
+ * The Rose: the red flower until 1.7.2 replaced it with the Poppy. It's no longer in the game, so its texture
+ * comes from 1.6.4, the last version that had it, and it's listed with the other flowers.
+ */
+const ROSE = { version: '1.6.4', path: 'assets/minecraft/textures/blocks/flower_rose.png' }
+
+async function addRose(items: CatalogItem[]): Promise<void> {
+  const buf = (await downloadJar(ROSE.version)).jar.getEntry(ROSE.path)?.getData()
+  if (!buf) throw new Error(`The Rose texture is missing from ${ROSE.version}`)
+  const out = new PNG({ width: 16, height: 16 })
+  composite(out, PNG.sync.read(buf), null)
+  writeFileSync(join(OUT_ITEMS, 'rose.png'), PNG.sync.write(out))
+  items.push({
+    id: 'rose',
+    name: 'Rose',
+    category: 'plant',
+    group: 'Flowers',
+    texture: 'textures/items/rose.png',
+    flower: { pottable: true },
+    note: `Removed from the game in 1.7.2, when the Poppy replaced it. Texture from Minecraft ${ROSE.version}.`,
+  })
+  items.sort((a, b) => a.id.localeCompare(b.id))
 }
 
 function tintColor(tint: Json | undefined): number | null {
@@ -407,12 +512,17 @@ function rotate180(png: PNG): void {
 }
 
 const { version, jar } = await downloadJar(process.argv[2])
-for (const dir of [OUT_ITEMS, OUT_BLOCKS]) {
+for (const dir of [OUT_ITEMS, OUT_BLOCKS, OUT_CLASSIC]) {
   rmSync(dir, { recursive: true, force: true })
   mkdirSync(dir, { recursive: true })
 }
 mkdirSync(dirname(OUT_INDEX), { recursive: true })
-const items = main(jar)
+const { items, tints } = main(jarReader(jar), jar)
+
+const classicCount = addClassicTextures(items, tints, jarReader((await downloadJar(CLASSIC_VERSION)).jar))
+console.log(`Classic (${CLASSIC_VERSION}) textures for ${classicCount} items that looked different.`)
+
+await addRose(items)
 
 const found = new Set(items.map((i) => i.id))
 for (const [label, index] of [['plants', PLANT_GROUP_OF], ['blocks', BLOCK_GROUP_OF]] as const) {
@@ -425,6 +535,8 @@ writeFileSync(
     version,
     groups: { plant: Object.keys(PLANT_GROUPS), block: BLOCK_GROUP_ORDER },
     pot: 'textures/pot.png',
+    classicPot: 'textures/classic/pot.png',
+    classicVersion: CLASSIC_VERSION,
     items,
   }),
 )

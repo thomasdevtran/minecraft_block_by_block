@@ -1,5 +1,5 @@
 import { finalizeModel, type BuildModel, type ColorOptions, type PartInfo } from './model'
-import { ALPHA_CUTOFF, getPixel, toHex, type PixelImage } from './pixels'
+import { ALPHA_CUTOFF, getPixel, toHex, type PixelImage, type Rgba } from './pixels'
 import { emptyFaces, faceTexel, type Face, type Voxel } from './voxels'
 
 export type SkinModelType = 'classic' | 'slim'
@@ -86,42 +86,47 @@ export function validateSkin(img: PixelImage): string | null {
   return null
 }
 
+type Sampler = (face: Face, lx: number, ly: number, lz: number) => Rgba
+
+/** Reads the color of one outside face of a body part, handling the second layer and legacy mirrored limbs. */
+function partSampler(img: PixelImage, part: PartSpec, specs: PartSpec[], overlay: boolean): Sampler {
+  const legacy = isLegacySkin(img)
+  const mirror = legacy && part.legacyMirrorOf ? specs.find((s) => s.id === part.legacyMirrorOf)! : null
+  const source = mirror ?? part
+  const overlayUv = !overlay
+    ? null
+    : legacy
+      ? source.id === 'head' && hatVisible(img, overlay)
+        ? source.overlayUv
+        : null
+      : source.overlayUv
+
+  return (face, lx, ly, lz) => {
+    let f = face
+    let x = lx
+    if (mirror) {
+      f = MIRRORED_FACE[face]
+      x = part.w - 1 - lx
+    }
+    const [u, v] = faceUv(f, x, ly, lz, source.w, source.h, source.d)
+    if (overlayUv) {
+      const top = getPixel(img, overlayUv[0] + u, overlayUv[1] + v)
+      if (top.a >= ALPHA_CUTOFF) return top
+    }
+    // The base layer is always drawn fully opaque in game.
+    return { ...getPixel(img, source.uv[0] + u, source.uv[1] + v), a: 255 }
+  }
+}
+
 export function skinToModel(img: PixelImage, options: SkinOptions): BuildModel {
   const error = validateSkin(img)
   if (error) throw new Error(error)
-  const legacy = isLegacySkin(img)
   const specs = partSpecs(options.model)
-  const byId = new Map(specs.map((s) => [s.id, s]))
-
-  const useHat = hatVisible(img, options.overlay)
 
   const raw: Voxel<string>[] = []
   for (const part of specs) {
-    const mirror = legacy && part.legacyMirrorOf ? byId.get(part.legacyMirrorOf)! : null
-    const source = mirror ?? part
-    const overlayUv = !options.overlay
-      ? null
-      : legacy
-        ? source.id === 'head' && useHat
-          ? source.overlayUv
-          : null
-        : source.overlayUv
-
-    const sample = (face: Face, lx: number, ly: number, lz: number): string => {
-      let f = face
-      let x = lx
-      if (mirror) {
-        f = MIRRORED_FACE[face]
-        x = part.w - 1 - lx
-      }
-      const [u, v] = faceUv(f, x, ly, lz, source.w, source.h, source.d)
-      if (overlayUv) {
-        const top = getPixel(img, overlayUv[0] + u, overlayUv[1] + v)
-        if (top.a >= ALPHA_CUTOFF) return toHex(top)
-      }
-      // The base layer is always drawn fully opaque in game.
-      return toHex(getPixel(img, source.uv[0] + u, source.uv[1] + v))
-    }
+    const sampler = partSampler(img, part, specs, options.overlay)
+    const sample = (face: Face, lx: number, ly: number, lz: number) => toHex(sampler(face, lx, ly, lz))
 
     for (let ly = 0; ly < part.h; ly++) {
       for (let lz = 0; lz < part.d; lz++) {
@@ -166,22 +171,31 @@ function hatVisible(img: PixelImage, overlay: boolean): boolean {
   return overlay && !(isLegacySkin(img) && regionIsOpaque(img, 32, 0, 32, 16))
 }
 
-/** The front of the head as an 8×8 picture, with the hat layer drawn over it when `overlay` is on. */
-export function skinFace(img: PixelImage, overlay: boolean): PixelImage {
+/** Size of the flat front view: the figure is 16 cubes wide and 32 tall. */
+export const SKIN_FRONT_SIZE = { width: 16, height: 32 }
+
+/**
+ * The whole character seen from the front as a flat 16×32 picture, using the same colors as the 3D figure.
+ * Slim skins leave an empty column on the outside of each arm.
+ */
+export function skinFront(img: PixelImage, options: Pick<SkinOptions, 'model' | 'overlay'>): PixelImage {
   const error = validateSkin(img)
   if (error) throw new Error(error)
-  const size = 8
-  const hat = hatVisible(img, overlay)
-  const data = new Uint8ClampedArray(size * size * 4)
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      const top = getPixel(img, 40 + x, 8 + y)
-      const px = hat && top.a >= ALPHA_CUTOFF ? top : getPixel(img, 8 + x, 8 + y)
-      // The base layer is always drawn fully opaque in game.
-      data.set([px.r, px.g, px.b, 255], (y * size + x) * 4)
+  const { width, height } = SKIN_FRONT_SIZE
+  const data = new Uint8ClampedArray(width * height * 4)
+  const specs = partSpecs(options.model)
+  for (const part of specs) {
+    const sample = partSampler(img, part, specs, options.overlay)
+    for (let ly = 0; ly < part.h; ly++) {
+      for (let lx = 0; lx < part.w; lx++) {
+        const px = sample('front', lx, ly, part.d - 1)
+        const x = part.origin[0] + lx
+        const y = height - 1 - (part.origin[1] + ly)
+        data.set([px.r, px.g, px.b, 255], (y * width + x) * 4)
+      }
     }
   }
-  return { width: size, height: size, data }
+  return { width, height, data }
 }
 
 function regionIsOpaque(img: PixelImage, x: number, y: number, w: number, h: number): boolean {

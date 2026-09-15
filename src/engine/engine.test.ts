@@ -5,7 +5,7 @@ import { flowerToModel, pottedSprite } from './flower'
 import { itemToModel } from './item'
 import { buildPalette } from './palette'
 import { fromHex, getPixel, type PixelImage } from './pixels'
-import { faceUv, skinFace, skinToModel, type SkinOptions } from './skin'
+import { faceUv, skinFront, skinToModel, type SkinOptions } from './skin'
 import { buildGuide, recipeCode } from './steps'
 import { FACES } from './voxels'
 
@@ -138,19 +138,30 @@ describe('skin UV mapping', () => {
     expect(armInner.faces.right).toBeNull()
   })
 
-  it('builds the face as a flat 8×8 picture, with the hat on top when enabled', () => {
+  it('lays the whole character out flat from the front, matching the 3D figure', () => {
     const img = graySkin()
     fill(img, 8, 8, 8, 8, '#d32f2f') // head front
-    fill(img, 40, 8, 8, 2, '#f5d90a') // hat brim over the top two rows
-    const withHat = skinFace(img, true)
-    expect([withHat.width, withHat.height]).toEqual([8, 8])
-    expect(getPixel(withHat, 3, 0)).toEqual({ r: 0xf5, g: 0xd9, b: 0x0a, a: 255 })
-    expect(getPixel(withHat, 3, 5)).toEqual({ r: 0xd3, g: 0x2f, b: 0x2f, a: 255 })
-    expect(getPixel(skinFace(img, false), 3, 0)).toEqual({ r: 0xd3, g: 0x2f, b: 0x2f, a: 255 })
+    fill(img, 40, 8, 8, 2, '#f5d90a') // hat brim over the top two rows of the face
+    fill(img, 44, 20, 4, 12, '#3f9b35') // right arm front
+    fill(img, 4, 20, 4, 12, '#2f6ad0') // right leg front
 
-    const face = itemToModel(withHat, { maxPaints: 12, simplePaint: false })
-    expect(face.voxels).toHaveLength(64)
-    expect(buildGuide(face).steps.filter((s) => s.kind === 'build')).toHaveLength(8)
+    const red = { r: 0xd3, g: 0x2f, b: 0x2f, a: 255 }
+    const flat = skinFront(img, { model: 'classic', overlay: true })
+    expect([flat.width, flat.height]).toEqual([16, 32])
+    expect(getPixel(flat, 6, 0)).toEqual({ r: 0xf5, g: 0xd9, b: 0x0a, a: 255 }) // hat over the head
+    expect(getPixel(flat, 6, 5)).toEqual(red) // face
+    expect(getPixel(skinFront(img, { model: 'classic', overlay: false }), 6, 0)).toEqual(red)
+    expect(getPixel(flat, 1, 12).g).toBe(0x9b) // right arm is on the viewer's left
+    expect(getPixel(flat, 5, 25).b).toBe(0xd0) // right leg too
+
+    const figure = itemToModel(flat, { maxPaints: 12, simplePaint: false })
+    expect(figure.voxels).toHaveLength(64 + 96 + 2 * 48 + 2 * 48)
+    expect(buildGuide(figure).steps.filter((s) => s.kind === 'build')).toHaveLength(32)
+
+    // Slim arms are 3 wide, leaving the outer column of each arm empty.
+    const slim = skinFront(img, { model: 'slim', overlay: true })
+    expect(getPixel(slim, 0, 12).a).toBe(0)
+    expect(itemToModel(slim, { maxPaints: 12, simplePaint: false }).voxels).toHaveLength(64 + 96 + 2 * 36 + 2 * 48)
   })
 
   it('mirrors the right limbs for legacy 64×32 skins', () => {

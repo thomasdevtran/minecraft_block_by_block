@@ -30,6 +30,13 @@ Left out on purpose (38 items that would otherwise show up):
 
 Items whose icon is a 3D model and can't be built from a flat sprite yet: Shield and Straw Bed, plus 3D blocks like stairs, beds and chests.
 
+## Old textures and removed items
+
+`npm run extract` also downloads older official clients into `scripts/.cache/`:
+
+- **Old/New toggle:** every catalog item is looked up in Minecraft 1.13.2, the last version before the 1.14 texture update, and gets a `classic` texture when it looks different. The set of renamed items lives in `CLASSIC_RENAMES`.
+- **Removed page (`/removed`):** `REMOVED_ITEMS` lists things that are gone from the game, each with the version its texture comes from: Rose (1.6.4), Rose Red, Cactus Green and Dandelion Yellow (1.13.2), and the unused Quiver (1.7.2) and Ruby (1.14) textures.
+
 ## Layout
 
 - `src/engine/`: pure TypeScript. Image → cubes → paint palette → steps. No Vue, unit-tested.

@@ -1,11 +1,14 @@
 <script setup lang="ts" generic="T extends string">
 /** Segmented 2D / 3D style picker used on the guide pages. */
-defineProps<{ options: { value: T; label: string; hint: string }[] }>()
+withDefaults(
+  defineProps<{ options: { value: T; label: string; hint: string }[]; label?: string; compact?: boolean }>(),
+  { label: 'Build style', compact: false },
+)
 const model = defineModel<T>({ required: true })
 </script>
 
 <template>
-  <div class="view-toggle" role="radiogroup" aria-label="Build style">
+  <div :class="['view-toggle', { compact }]" role="radiogroup" :aria-label="label">
     <button
       v-for="o in options"
       :key="o.value"
@@ -15,7 +18,7 @@ const model = defineModel<T>({ required: true })
       @click="model = o.value"
     >
       <strong>{{ o.label }}</strong>
-      <small>{{ o.hint }}</small>
+      <small v-if="!compact">{{ o.hint }}</small>
     </button>
   </div>
 </template>
@@ -55,6 +58,19 @@ button small {
 button.active {
   background: var(--accent);
   color: var(--accent-ink);
+}
+
+.compact {
+  padding: 3px;
+}
+
+.compact button {
+  min-width: 0;
+  padding: 0.3rem 0.8rem;
+}
+
+.compact button strong {
+  font: 600 0.9rem var(--sans);
 }
 
 button:focus-visible {

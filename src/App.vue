@@ -10,7 +10,8 @@ import { RouterLink, RouterView } from 'vue-router'
         Block by Block
       </RouterLink>
       <nav>
-        <RouterLink to="/" class="nav-link" exact-active-class="active">Items</RouterLink>
+        <RouterLink to="/" class="nav-link" :class="{ active: $route.name === 'item' }" exact-active-class="active">Items</RouterLink>
+        <RouterLink to="/removed" class="nav-link" active-class="active">Removed</RouterLink>
         <RouterLink to="/skin" class="nav-link" active-class="active">Skins</RouterLink>
       </nav>
     </div>
