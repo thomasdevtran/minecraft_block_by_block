@@ -25,3 +25,4 @@ dist-ssr
 
 # Downloaded Minecraft client jars
 scripts/.cache
+public/textures/**
