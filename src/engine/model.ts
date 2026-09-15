@@ -10,10 +10,13 @@ export interface PartInfo {
   d: number
   /** Where the part's back-bottom-left corner sits in the finished build. */
   origin: [number, number, number]
+  /** Extra instruction shown on the part's first build layer. */
+  firstLayerNote?: string
 }
 
 export interface BuildModel {
-  kind: 'item' | 'skin'
+  /** item = flat sprite, skin = player figure, block = full cube, plant = crossed flower (maybe potted). */
+  kind: 'item' | 'skin' | 'block' | 'plant'
   voxels: Voxel<number>[]
   palette: PaletteEntry[]
   parts: PartInfo[]

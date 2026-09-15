@@ -15,6 +15,21 @@ npm run build
 
 `npm run extract -- 1.21.8` pins a specific Minecraft version. The jar is cached in `scripts/.cache/` (git-ignored).
 
+## Catalog review
+
+Every item in Minecraft 26.3 was checked. The catalog includes an item when its inventory icon is a flat sprite or a full cube. Well-known blocks are pinned to a group in `BLOCK_GROUPS`, and all other full blocks are sorted by `AUTO_BLOCK_GROUPS`. `npm run extract` writes the auto-sorted ones to `scripts/.cache/auto-added-blocks.txt`. Rules live in `EXCLUDE_RULES` in `scripts/extract-assets.ts`, and `npm run extract` prints each excluded item.
+
+Left out on purpose (38 items that would otherwise show up):
+
+- **Explorer maps (16):** Abandoned Camp, Buried Ancient City, Buried Mineshaft, Buried Treasure, Buried Trial Chambers, Desert Pyramid, Desert Village, Jungle Pyramid, Ocean Monument, Plains Village, Savanna Village, Snowy Village, Swamp Hut, Taiga Village, Warm Ocean Ruins and Woodland Mansion. They're the regular Map with different marking colors. Map and Empty Map stay.
+- **Waxed copper (16):** waxed bars, chains, doors and lanterns in all 4 oxidation stages. Their sprites are identical to the unwaxed versions, which stay.
+- **Enchanted Golden Apple (1):** same sprite as Golden Apple.
+- **Infested blocks (7):** they look exactly like normal stone, cobblestone, deepslate and stone bricks.
+- **Glass panes (17):** Glass Pane and the 16 stained glass panes. They're mostly see-through, so cubes would only make a thin frame.
+- **Technical (8):** Light, Structure Void, Debug Stick, Knowledge Book, Structure Block, Jigsaw Block, Test Block, Test Instance Block. Barrier and the command blocks stay in by request.
+
+Items whose icon is a 3D model and can't be built from a flat sprite yet: Shield and Straw Bed, plus 3D blocks like stairs, beds and chests.
+
 ## Layout
 
 - `src/engine/`: pure TypeScript. Image → cubes → paint palette → steps. No Vue, unit-tested.

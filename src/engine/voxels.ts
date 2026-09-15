@@ -33,6 +33,37 @@ export interface Voxel<T = number> {
   interior: boolean
 }
 
+/**
+ * Which pixel (column, row) of a face's own texture covers the cube at (lx, ly, lz) in a w×h×d box.
+ * Follows Minecraft's conventions, so it works for both skins and block textures:
+ * side faces are upright, the top's bottom row meets the front, and the bottom's top row meets the front.
+ */
+export function faceTexel(
+  face: Face,
+  lx: number,
+  ly: number,
+  lz: number,
+  w: number,
+  h: number,
+  d: number,
+): [number, number] {
+  const row = h - 1 - ly
+  switch (face) {
+    case 'top':
+      return [lx, lz]
+    case 'bottom':
+      return [lx, d - 1 - lz]
+    case 'left':
+      return [lz, row]
+    case 'front':
+      return [lx, row]
+    case 'right':
+      return [d - 1 - lz, row]
+    case 'back':
+      return [w - 1 - lx, row]
+  }
+}
+
 export function emptyFaces<T>(): FaceColors<T> {
   return { top: null, bottom: null, front: null, back: null, left: null, right: null }
 }

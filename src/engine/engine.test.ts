@@ -1,9 +1,11 @@
 import { describe, expect, it } from 'vitest'
+import { blockToModel } from './block'
 import { checkConnectivity } from './connectivity'
+import { flowerToModel, pottedSprite } from './flower'
 import { itemToModel } from './item'
 import { buildPalette } from './palette'
-import { fromHex, type PixelImage } from './pixels'
-import { faceUv, skinToModel, type SkinOptions } from './skin'
+import { fromHex, getPixel, type PixelImage } from './pixels'
+import { faceUv, skinFace, skinToModel, type SkinOptions } from './skin'
 import { buildGuide, recipeCode } from './steps'
 import { FACES } from './voxels'
 
@@ -136,6 +138,21 @@ describe('skin UV mapping', () => {
     expect(armInner.faces.right).toBeNull()
   })
 
+  it('builds the face as a flat 8×8 picture, with the hat on top when enabled', () => {
+    const img = graySkin()
+    fill(img, 8, 8, 8, 8, '#d32f2f') // head front
+    fill(img, 40, 8, 8, 2, '#f5d90a') // hat brim over the top two rows
+    const withHat = skinFace(img, true)
+    expect([withHat.width, withHat.height]).toEqual([8, 8])
+    expect(getPixel(withHat, 3, 0)).toEqual({ r: 0xf5, g: 0xd9, b: 0x0a, a: 255 })
+    expect(getPixel(withHat, 3, 5)).toEqual({ r: 0xd3, g: 0x2f, b: 0x2f, a: 255 })
+    expect(getPixel(skinFace(img, false), 3, 0)).toEqual({ r: 0xd3, g: 0x2f, b: 0x2f, a: 255 })
+
+    const face = itemToModel(withHat, { maxPaints: 12, simplePaint: false })
+    expect(face.voxels).toHaveLength(64)
+    expect(buildGuide(face).steps.filter((s) => s.kind === 'build')).toHaveLength(8)
+  })
+
   it('mirrors the right limbs for legacy 64×32 skins', () => {
     const img = blank(64, 32)
     fill(img, 0, 0, 64, 32, '#808080')
@@ -143,6 +160,98 @@ describe('skin UV mapping', () => {
     const model = skinToModel(img, skinOpts)
     const leftOuter = model.voxels.find((v) => v.part === 'leftArm' && v.lx === 3 && v.ly === 5 && v.lz === 1)!
     expect(model.palette[leftOuter.faces.right!].name).toBe('Green')
+  })
+})
+
+describe('3D blocks', () => {
+  const FACE_COLORS = ['#2f6ad0', '#7b4a24', '#d32f2f', '#f5d90a', '#3f9b35', '#7e3fb3'] // top, bottom, front, back, left, right
+
+  function faceStrip(): PixelImage {
+    const img = blank(96, 16)
+    FACE_COLORS.forEach((hex, i) => fill(img, i * 16, 0, 16, 16, hex))
+    return img
+  }
+
+  it.each([
+    [true, 1352],
+    [false, 4096],
+  ])('hollow=%s uses %i cubes, each placed exactly once', (hollow, cubes) => {
+    const model = blockToModel(faceStrip(), { hollow, maxPaints: 12, simplePaint: false })
+    expect(model.voxels).toHaveLength(cubes)
+    const guide = buildGuide(model)
+    const build = guide.steps.filter((s) => s.kind === 'build')
+    expect(build).toHaveLength(16)
+    expect(build.reduce((n, s) => n + (s.kind === 'build' ? s.grid.cells.length : 0), 0)).toBe(cubes)
+    expect(guide.steps.some((s) => s.kind === 'assemble')).toBe(false)
+  })
+
+  it('puts each face texture on the matching side of the cube', () => {
+    const model = blockToModel(faceStrip(), { hollow: true, maxPaints: 12, simplePaint: false })
+    const colorOf = (i: number | null) => (i === null ? null : model.palette[i].name)
+    const corner = model.voxels.find((v) => v.lx === 15 && v.ly === 15 && v.lz === 15)!
+    expect([colorOf(corner.faces.top), colorOf(corner.faces.front), colorOf(corner.faces.right)]).toEqual(['Blue', 'Red', 'Purple'])
+    const opposite = model.voxels.find((v) => v.lx === 0 && v.ly === 0 && v.lz === 0)!
+    expect([colorOf(opposite.faces.bottom), colorOf(opposite.faces.back), colorOf(opposite.faces.left)]).toEqual(['Brown', 'Yellow', 'Green'])
+  })
+
+  it('reads the top-left pixel of the front texture at the front top-left cube', () => {
+    const img = faceStrip()
+    fill(img, 32, 0, 1, 1, '#ffffff') // front face, column 0, row 0
+    const model = blockToModel(img, { hollow: true, maxPaints: 12, simplePaint: false })
+    const cube = model.voxels.find((v) => v.lx === 0 && v.ly === 15 && v.lz === 15)!
+    expect(model.palette[cube.faces.front!].name).toBe('White')
+  })
+})
+
+describe('flowers', () => {
+  function stemSprite(): PixelImage {
+    const img = blank(16, 16)
+    fill(img, 7, 4, 2, 12, '#3f9b35') // 2 wide × 12 tall
+    return img
+  }
+
+  function potTextures(): PixelImage {
+    const img = blank(32, 16)
+    fill(img, 0, 0, 16, 16, '#d32f2f') // flower_pot.png
+    fill(img, 16, 0, 16, 16, '#4a2c17') // dirt.png
+    return img
+  }
+
+  const colorOpts = { maxPaints: 12, simplePaint: false }
+
+  it('builds two crossing planes that share the center column', () => {
+    const model = flowerToModel(stemSprite(), { ...colorOpts, pot: null })
+    // 24 pixels per plane, 12 of them in the shared column.
+    expect(model.voxels).toHaveLength(24 * 2 - 12)
+    expect(model.voxels.every((v) => v.x === 7 || v.z === 7)).toBe(true)
+    expect(checkConnectivity(model.voxels).pieces).toBe(1)
+  })
+
+  it('plants the flower on the dirt inside a 6×6×6 pot', () => {
+    const model = flowerToModel(stemSprite(), { ...colorOpts, pot: potTextures() })
+    const pot = model.voxels.filter((v) => v.part === 'pot')
+    expect(pot).toHaveLength(6 * 6 * 6 - 4 * 4 * 2)
+    expect(model.voxels).toHaveLength(pot.length + 36)
+    expect(Math.min(...model.voxels.filter((v) => v.part === 'plant').map((v) => v.y))).toBe(4)
+
+    const dirt = pot.find((v) => v.lx === 1 && v.ly === 3 && v.lz === 4)! // beside the stem
+    expect(model.palette[dirt.faces.top!].name).toBe('Dark Brown')
+    const rim = pot.find((v) => v.lx === 0 && v.ly === 5 && v.lz === 0)!
+    expect(model.palette[rim.faces.top!].name).toBe('Red')
+
+    const guide = buildGuide(model)
+    const build = guide.steps.filter((s) => s.kind === 'build')
+    expect(build.filter((s) => s.kind === 'build' && s.part === 'pot')).toHaveLength(6)
+    expect(build.filter((s) => s.kind === 'build' && s.part === 'plant')).toHaveLength(12)
+    expect(build.reduce((n, s) => n + (s.kind === 'build' ? s.grid.cells.length : 0), 0)).toBe(model.voxels.length)
+  })
+
+  it('draws the pot in front of the stem in the flat potted picture', () => {
+    const flat = pottedSprite(stemSprite(), potTextures())
+    expect([flat.width, flat.height]).toEqual([16, 20])
+    expect(getPixel(flat, 7, 19)).toEqual({ r: 0xd3, g: 0x2f, b: 0x2f, a: 255 }) // pot covers the stem
+    expect(getPixel(flat, 7, 10).g).toBe(0x9b) // stem above the pot
+    expect(getPixel(flat, 2, 19).a).toBe(0) // empty beside the pot
   })
 })
 

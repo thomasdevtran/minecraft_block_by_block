@@ -116,7 +116,12 @@ function frameModel() {
   const center = min.clone().add(max).multiplyScalar(0.5)
   const radius = max.distanceTo(min) / 2
   const distance = radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.05
-  const dir = props.model.kind === 'item' ? new THREE.Vector3(0.25, 0.15, 1) : new THREE.Vector3(0.6, 0.35, 1)
+  const dir = {
+    item: new THREE.Vector3(0.25, 0.15, 1),
+    skin: new THREE.Vector3(0.6, 0.35, 1),
+    block: new THREE.Vector3(0.75, 0.65, 1),
+    plant: new THREE.Vector3(0.8, 0.45, 1),
+  }[props.model.kind]
   camera.position.copy(center).add(dir.normalize().multiplyScalar(distance))
   camera.near = distance / 100
   camera.far = distance * 10

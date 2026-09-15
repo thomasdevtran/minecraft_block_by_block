@@ -1,6 +1,6 @@
 import { finalizeModel, type BuildModel, type ColorOptions, type PartInfo } from './model'
 import { ALPHA_CUTOFF, getPixel, toHex, type PixelImage } from './pixels'
-import { emptyFaces, type Face, type Voxel } from './voxels'
+import { emptyFaces, faceTexel, type Face, type Voxel } from './voxels'
 
 export type SkinModelType = 'classic' | 'slim'
 
@@ -54,21 +54,16 @@ export function faceUv(
   h: number,
   d: number,
 ): [number, number] {
-  const row = d + (h - 1 - ly)
-  switch (face) {
-    case 'top':
-      return [d + lx, lz]
-    case 'bottom':
-      return [d + w + lx, d - 1 - lz]
-    case 'left':
-      return [lz, row]
-    case 'front':
-      return [d + lx, row]
-    case 'right':
-      return [d + w + (d - 1 - lz), row]
-    case 'back':
-      return [2 * d + w + (w - 1 - lx), row]
+  const offsets: Record<Face, [number, number]> = {
+    top: [d, 0],
+    bottom: [d + w, 0],
+    left: [0, d],
+    front: [d, d],
+    right: [d + w, d],
+    back: [2 * d + w, d],
   }
+  const [col, row] = faceTexel(face, lx, ly, lz, w, h, d)
+  return [offsets[face][0] + col, offsets[face][1] + row]
 }
 
 const MIRRORED_FACE: Record<Face, Face> = {
@@ -98,8 +93,7 @@ export function skinToModel(img: PixelImage, options: SkinOptions): BuildModel {
   const specs = partSpecs(options.model)
   const byId = new Map(specs.map((s) => [s.id, s]))
 
-  // Old skins often fill the hat area with a solid color, which the game ignores.
-  const useHat = options.overlay && !(legacy && regionIsOpaque(img, 32, 0, 32, 16))
+  const useHat = hatVisible(img, options.overlay)
 
   const raw: Voxel<string>[] = []
   for (const part of specs) {
@@ -165,6 +159,29 @@ export function skinToModel(img: PixelImage, options: SkinOptions): BuildModel {
 
   const parts: PartInfo[] = specs.map(({ id, name, w, h, d, origin }) => ({ id, name, w, h, d, origin }))
   return finalizeModel('skin', raw, parts, options)
+}
+
+/** Old skins often fill the hat area with a solid color, which the game ignores. */
+function hatVisible(img: PixelImage, overlay: boolean): boolean {
+  return overlay && !(isLegacySkin(img) && regionIsOpaque(img, 32, 0, 32, 16))
+}
+
+/** The front of the head as an 8×8 picture, with the hat layer drawn over it when `overlay` is on. */
+export function skinFace(img: PixelImage, overlay: boolean): PixelImage {
+  const error = validateSkin(img)
+  if (error) throw new Error(error)
+  const size = 8
+  const hat = hatVisible(img, overlay)
+  const data = new Uint8ClampedArray(size * size * 4)
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const top = getPixel(img, 40 + x, 8 + y)
+      const px = hat && top.a >= ALPHA_CUTOFF ? top : getPixel(img, 8 + x, 8 + y)
+      // The base layer is always drawn fully opaque in game.
+      data.set([px.r, px.g, px.b, 255], (y * size + x) * 4)
+    }
+  }
+  return { width: size, height: size, data }
 }
 
 function regionIsOpaque(img: PixelImage, x: number, y: number, w: number, h: number): boolean {

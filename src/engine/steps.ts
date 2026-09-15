@@ -120,7 +120,7 @@ export function buildGuide(model: BuildModel): Guide {
 
   const steps: Step[] = [...paintSteps(model, recipes)]
   if (model.kind === 'item') steps.push(...itemBuildSteps(model, recipeOf))
-  else steps.push(...skinBuildSteps(model, recipeOf))
+  else steps.push(...layerBuildSteps(model, recipeOf))
 
   return { materials, recipes, recipeOf, steps }
 }
@@ -207,17 +207,18 @@ function describeRun(positions: number[], labels: string[]): string {
   return parts.join(', ')
 }
 
-export const SKIN_BUILD_ORDER =['rightLeg', 'leftLeg', 'body', 'rightArm', 'leftArm', 'head']
-
-function skinBuildSteps(model: BuildModel, recipeOf: Map<Voxel<number>, Recipe>): Step[] {
+/** Builds each part (in `model.parts` order) one horizontal layer at a time, from the bottom up. */
+function layerBuildSteps(model: BuildModel, recipeOf: Map<Voxel<number>, Recipe>): Step[] {
   const steps: Step[] = []
-  const parts = new Map(model.parts.map((p) => [p.id, p]))
+  const subject = { skin: 'character', block: 'block', plant: 'plant', item: 'item' }[model.kind]
+  const multiPart = model.parts.length > 1
 
-  for (const partId of SKIN_BUILD_ORDER) {
-    const part = parts.get(partId)
-    if (!part) continue
+  for (const part of model.parts) {
+    const partId = part.id
     const partVoxels = model.voxels.filter((v) => v.part === partId)
-    for (let ly = 0; ly < part.h; ly++) {
+    // Sprites often have empty rows at the top, so only count layers that have cubes.
+    const layers = [...new Set(partVoxels.map((v) => v.ly))].sort((a, b) => a - b)
+    layers.forEach((ly, index) => {
       const layer = partVoxels.filter((v) => v.ly === ly)
       const plain = layer.filter((v) => !recipeOf.has(v)).length
       const cells: GridCell[] = layer.map((v) => ({
@@ -227,21 +228,27 @@ function skinBuildSteps(model: BuildModel, recipeOf: Map<Voxel<number>, Recipe>)
         paint: dominantColor(v.faces),
         state: 'now',
       }))
+      const label = `Layer ${index + 1} of ${layers.length}`
       steps.push({
         kind: 'build',
-        title: `${part.name}: layer ${ly + 1} of ${part.h}`,
+        title: multiPart ? `${part.name}: ${label.toLowerCase()}` : label,
         text:
-          `Place ${layer.length} cubes in a ${part.w}×${part.d} layer${ly === 0 ? '' : ' on top of the last one'}. ` +
+          `Place ${layer.length} cube${layer.length === 1 ? '' : 's'} in a ${part.w}×${part.d} layer${index === 0 ? '' : ' on top of the last one'}. ` +
+          (index === 0 && part.firstLayerNote ? `${part.firstLayerNote} ` : '') +
           (plain ? `${plain} of them are plain filler cubes (no paint). ` : '') +
-          'The bottom of the grid is the front of the character.',
+          // A full layer over a hollow middle has nothing to rest on, so it goes on as one glued sheet.
+          (ly > 0 && layer.length === part.w * part.d && partVoxels.filter((v) => v.ly === ly - 1).length < layer.length
+            ? 'The layer below is hollow, so glue this whole layer together flat on the table first, then set it on top like a lid. '
+            : '') +
+          `The bottom of the grid is the front of the ${subject}.`,
         grid: { cols: part.w, rows: part.d, cells, bottomLabel: 'Front' },
         part: partId,
         layer: ly,
       })
-    }
+    })
   }
 
-  steps.push(...assemblySteps(parts))
+  if (model.kind === 'skin') steps.push(...assemblySteps(new Map(model.parts.map((p) => [p.id, p]))))
   return steps
 }
 

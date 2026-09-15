@@ -29,6 +29,15 @@ export function fromHex(hex: string): { r: number; g: number; b: number } {
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 }
 }
 
+/** Browser only: encode pixels as a PNG data URL, e.g. for an <img>. */
+export function pixelsToDataUrl(img: PixelImage): string {
+  const canvas = document.createElement('canvas')
+  canvas.width = img.width
+  canvas.height = img.height
+  canvas.getContext('2d')!.putImageData(new ImageData(new Uint8ClampedArray(img.data), img.width, img.height), 0, 0)
+  return canvas.toDataURL('image/png')
+}
+
 /** Browser only: decode an image URL or uploaded file into raw pixels. */
 export async function loadPixels(src: string | Blob): Promise<PixelImage> {
   const url = typeof src === 'string' ? src : URL.createObjectURL(src)
