@@ -1,12 +1,16 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { BuildModel } from '../engine/model'
 import type { Guide, Recipe } from '../engine/steps'
 import type { Face } from '../engine/voxels'
 import { rolesForStep } from '../lib/roles'
 import { readStored, writeStored } from '../lib/storage'
+import { useNearViewport } from '../lib/visibility'
 import StepGrid from './StepGrid.vue'
-import VoxelPreview from './VoxelPreview.vue'
+
+// three.js is ~570 KB, far bigger than the rest of the site put together. Loading it lazily lets
+// the written steps — which are the actual instructions — paint without waiting for the 3D.
+const VoxelPreview = defineAsyncComponent(() => import('./VoxelPreview.vue'))
 
 const props = defineProps<{ model: BuildModel; guide: Guide; storageKey: string }>()
 
@@ -20,7 +24,8 @@ const recipesById = computed(() => new Map(props.guide.recipes.map((r) => [r.id,
 watch(
   () => props.storageKey,
   (key) => {
-    index.value = Math.min(readStored(`progress:${key}`, 0), total.value - 1)
+    const saved = readStored<unknown>(`progress:${key}`, 0)
+    index.value = typeof saved === 'number' && Number.isInteger(saved) ? Math.max(0, Math.min(saved, total.value - 1)) : 0
   },
   { immediate: true },
 )
@@ -30,12 +35,39 @@ watch(total, (t) => (index.value = Math.min(index.value, t - 1)))
 const go = (delta: number) => (index.value = Math.max(0, Math.min(total.value - 1, index.value + delta)))
 
 function onKey(e: KeyboardEvent) {
-  if (e.target instanceof HTMLInputElement || e.target instanceof HTMLSelectElement) return
-  if (e.key === 'ArrowRight') go(1)
-  if (e.key === 'ArrowLeft') go(-1)
+  if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
+  if (e.target instanceof HTMLElement && e.target.closest('input, select, textarea, button, a, [contenteditable="true"]')) return
+  if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+    e.preventDefault()
+    go(e.key === 'ArrowRight' ? 1 : -1)
+  }
 }
 onMounted(() => window.addEventListener('keydown', onKey))
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+
+/**
+ * Some browsers and older phones have no usable WebGL. The written steps still work without it.
+ * The probe creates a real GPU context, so it releases it straight away — browsers only allow a
+ * handful at once, and a leaked one here would eventually starve the actual preview.
+ */
+function hasWebGL() {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl2')
+    gl?.getExtension('WEBGL_lose_context')?.loseContext()
+    return !!gl
+  } catch {
+    return false
+  }
+}
+
+const previewCard = ref<HTMLElement | null>(null)
+// On wide screens the card is already on screen, so this resolves straight after the first paint.
+// On phones the preview sits below the steps, so three.js waits until it is scrolled towards.
+const previewNear = useNearViewport(previewCard, '200px')
+/** Probed only once the reader is heading for the preview, so it never runs on pages that scroll past. */
+const webglOk = ref(true)
+watch(previewNear, (near) => near && (webglOk.value = hasWebGL()), { immediate: true })
+const showPreview = computed(() => previewNear.value && webglOk.value)
 
 const stageLabel = computed(() => {
   const s = step.value
@@ -73,10 +105,10 @@ const showFaces = computed(() => props.model.kind === 'skin')
       aria-label="Build progress"
       :aria-valuenow="index"
       :aria-valuemin="0"
-      :aria-valuemax="total - 1"
+      :aria-valuemax="Math.max(1, total - 1)"
       :aria-valuetext="`Step ${index} of ${total - 1}`"
     >
-      <div class="bar" :style="{ width: `${(index / (total - 1)) * 100}%` }"></div>
+      <div class="bar" :style="{ transform: `scaleX(${index / Math.max(1, total - 1)})` }"></div>
     </div>
 
     <div class="layout">
@@ -87,9 +119,16 @@ const showFaces = computed(() => props.model.kind === 'skin')
           <span class="muted">Step {{ index }} of {{ total - 1 }}</span>
         </div>
 
+        <!-- Fades each step in. Enter-only, with no `mode="out-in"`: that holds the old step on
+             screen for the whole leave transition, which would add its duration to every Next
+             click — the one interaction on this page that has to stay instant. Height changes
+             here follow a click, so they're excluded from the layout-shift score. -->
+        <Transition name="step">
+        <div :key="index" class="step-body">
         <!-- Materials overview -->
         <template v-if="!step">
           <h2>What you need</h2>
+          <p class="safety-note muted">Use equal-size craft cubes, suitable paint and glue. Small parts are a choking hazard; keep away from children under three. Children need adult supervision. <a href="/terms#safety">Build safely</a>.</p>
           <div class="totals">
             <div>
               <strong>{{ guide.materials.totalCubes.toLocaleString() }}</strong>
@@ -108,11 +147,12 @@ const showFaces = computed(() => props.model.kind === 'skin')
             {{ guide.materials.plainCubes.toLocaleString() }} of the cubes are hidden inside and don't need paint.
           </p>
           <table class="paints">
+            <caption class="visually-hidden">Paint colors and cube quantities for this build</caption>
             <thead>
               <tr>
-                <th>Paint</th>
-                <th class="num">Cubes</th>
-                <th v-if="showFaces" class="num">Sides</th>
+                <th scope="col">Paint</th>
+                <th scope="col" class="num">Cubes</th>
+                <th v-if="showFaces" scope="col" class="num">Sides</th>
               </tr>
             </thead>
             <tbody>
@@ -173,6 +213,9 @@ const showFaces = computed(() => props.model.kind === 'skin')
           <p>{{ step.text }}</p>
         </template>
 
+        </div>
+        </Transition>
+
         <div class="nav">
           <button class="btn" :disabled="index === 0" @click="go(-1)">← Back</button>
           <button class="btn primary" :disabled="index === total - 1" @click="go(1)">
@@ -182,8 +225,16 @@ const showFaces = computed(() => props.model.kind === 'skin')
         <p v-if="index === total - 1" class="done">🎉 That's the last step. Nice build!</p>
       </div>
 
-      <div class="preview card">
-        <VoxelPreview :model="model" :roles="roles" />
+      <div ref="previewCard" class="preview card">
+        <!-- The stage always exists and always fills the card, so the message, the gap while the
+             3D chunk downloads, and the finished canvas all occupy the same box. Without it the
+             card collapses for those few hundred milliseconds and the hint below jumps twice. -->
+        <div class="preview-stage">
+          <VoxelPreview v-if="showPreview" :model="model" :roles="roles" />
+          <p v-else class="preview-placeholder muted">
+            {{ webglOk ? 'Loading 3D preview…' : "This browser can't show the 3D preview. Every cube is written out in the steps." }}
+          </p>
+        </div>
         <span class="hint muted hint-desktop">Drag to rotate · scroll to zoom · ← → keys change steps</span>
         <span class="hint muted hint-touch">Swipe sideways to rotate · pinch to zoom</span>
       </div>
@@ -192,6 +243,7 @@ const showFaces = computed(() => props.model.kind === 'skin')
 </template>
 
 <style scoped>
+.safety-note { font-size: 0.85rem; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .progress {
   height: 8px;
   border-radius: 4px;
@@ -200,10 +252,14 @@ const showFaces = computed(() => props.model.kind === 'skin')
   margin-bottom: 16px;
 }
 
+/* Scaled rather than resized: animating `width` is a layout change on every step, animating
+   `transform` is not. Starts full width and shrinks to the current fraction from the left. */
 .bar {
+  width: 100%;
   height: 100%;
   background: var(--accent);
-  transition: width 0.2s;
+  transform-origin: left;
+  transition: transform var(--dur-2) var(--ease-out);
 }
 
 .layout {
@@ -224,6 +280,23 @@ const showFaces = computed(() => props.model.kind === 'skin')
   display: flex;
   flex-direction: column;
   min-width: 0;
+}
+
+/* Flex, not block, so the headings and paragraphs inside keep the same non-collapsing margins
+   they had as direct children of .panel. */
+.step-body {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Enter only. With no leave transition defined the outgoing step is removed immediately, so the
+   new one is never waiting behind it and the two never overlap in the layout. */
+.step-enter-active {
+  transition: opacity var(--dur-1) var(--ease-out);
+}
+
+.step-enter-from {
+  opacity: 0;
 }
 
 .step-meta {
@@ -374,21 +447,34 @@ const showFaces = computed(() => props.model.kind === 'skin')
 .preview {
   position: sticky;
   top: 16px;
-  height: min(70vh, 560px);
+  height: var(--guide-h);
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
 
+/* The height itself comes from --guide-h, which shrinks at this same breakpoint in style.css. */
 @media (max-width: 860px) {
   .preview {
     position: static;
-    height: 340px;
   }
 }
 
-.preview > :first-child {
+.preview-stage {
   flex: 1;
+  position: relative;
+}
+
+/* Overlaid rather than in flow, so swapping it for the canvas can't move anything. */
+.preview-placeholder {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.9rem;
 }
 
 .hint {

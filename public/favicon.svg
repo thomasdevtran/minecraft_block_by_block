@@ -1,6 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" shape-rendering="crispEdges">
-  <path fill="#6aa832" d="M8 1 15 4.5 8 8 1 4.5z"/>
-  <path fill="#7a5230" d="M1 4.5 8 8v7L1 11.5z"/>
-  <path fill="#5a3b21" d="M15 4.5 8 8v7l7-3.5z"/>
-  <path fill="#4f8a22" d="M1 4.5 8 8v2L1 6.5zM15 4.5 8 8v2l7-3.5z"/>
+  <path fill="#ecc58a" d="M8 1 15 4.5 8 8 1 4.5z"/>
+  <path fill="#c78350" d="M1 4.5 8 8v7L1 11.5z"/>
+  <path fill="#885c3d" d="M15 4.5 8 8v7l7-3.5z"/>
 </svg>

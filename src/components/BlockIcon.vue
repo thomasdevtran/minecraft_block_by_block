@@ -41,6 +41,13 @@ const vars = computed(() => ({ '--s': `${props.size}px` }))
   position: relative;
   transform-style: preserve-3d;
   transform: rotateX(-30deg) rotateY(-45deg);
+  transition: transform var(--dur-3) var(--ease-out);
+}
+
+/* The cube turns a little when you point at its tile. One element at a time, transform only. */
+a:hover > .block-icon > .cube,
+a:focus-visible > .block-icon > .cube {
+  transform: rotateX(-30deg) rotateY(-60deg);
 }
 
 .face {

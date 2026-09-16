@@ -23,6 +23,15 @@ const cells = computed(() =>
 const width = computed(() => props.grid.cols * CELL)
 const height = computed(() => props.grid.rows * CELL)
 const fontSize = computed(() => (cells.value.some((c) => c.label.length > 1) ? 15 : 19))
+const textRows = computed(() => {
+  const rows = new Map<number, string[]>()
+  for (const cell of [...props.grid.cells].filter((cell) => cell.state === 'now').sort((a, b) => a.row - b.row || a.col - b.col)) {
+    const row = rows.get(cell.row) ?? []
+    row.push(`column ${cell.col + 1}: ${cell.recipe ? `cube ${cell.recipe}` : 'plain filler cube'}`)
+    rows.set(cell.row, row)
+  }
+  return [...rows].map(([row, cubes]) => `Row ${row + 1}: ${cubes.join('; ')}.`)
+})
 </script>
 
 <template>
@@ -59,9 +68,19 @@ const fontSize = computed(() => (cells.value.some((c) => c.label.length > 1) ? 1
     </svg>
     <figcaption>▼ {{ grid.bottomLabel }}</figcaption>
   </figure>
+  <details class="grid-text">
+    <summary>Cube positions (text version)</summary>
+    <p>Rows count from the top of the grid; columns count from the left. Only cubes added in this step are listed. The bottom edge is {{ grid.bottomLabel.toLowerCase() }}.</p>
+    <ul><li v-for="row in textRows" :key="row">{{ row }}</li></ul>
+  </details>
 </template>
 
 <style scoped>
+.grid-text { margin-top: 16px; font-size: 0.88rem; }
+.grid-text summary { cursor: pointer; min-height: 44px; padding: 10px 0; color: var(--accent); font-weight: 600; }
+.grid-text p { margin: 8px 0; }
+.grid-text ul { padding-left: 20px; overflow-wrap: anywhere; }
+.grid-text li { margin-bottom: 8px; }
 .step-grid {
   margin: 0;
   display: flex;

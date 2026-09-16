@@ -97,7 +97,7 @@ import { dismissToast, toasts } from '../lib/toast'
 
 .toast-enter-active,
 .toast-leave-active {
-  transition: opacity 0.2s, transform 0.2s;
+  transition: opacity var(--dur-2) var(--ease-out), transform var(--dur-2) var(--ease-out);
 }
 
 .toast-enter-from,

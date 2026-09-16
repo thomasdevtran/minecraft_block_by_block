@@ -1,14 +1,15 @@
 {
-  "name": "minecraft_block_by_block",
+  "name": "block-by-cube",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build",
+    "build": "tsx scripts/generate-notices.ts && vue-tsc -b && vite build",
     "preview": "vite preview",
     "extract": "tsx scripts/extract-assets.ts",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check:catalog": "tsx scripts/check-catalog.ts"
   },
   "dependencies": {
     "three": "^0.186.0",
@@ -20,7 +21,6 @@
     "@types/node": "^24.13.3",
     "@types/pngjs": "^6.0.5",
     "@types/three": "^0.186.0",
-    "@vercel/node": "^13.0.1",
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",
     "adm-zip": "^0.6.1",

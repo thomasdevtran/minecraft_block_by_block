@@ -23,9 +23,10 @@ async function useSkin(skin: LoadedSkin) {
 }
 
 async function lookup() {
+  if (loading.value || uploading.value) return
   const name = username.value.trim()
-  if (!name) {
-    error.value = 'Type a Minecraft username first.'
+  if (!/^[A-Za-z0-9_]{1,16}$/.test(name)) {
+    error.value = 'Enter a Java Edition username: 1–16 letters, numbers or underscores.'
     return
   }
   loading.value = true
@@ -41,7 +42,7 @@ async function lookup() {
 }
 
 async function upload(file: File | undefined) {
-  if (!file) return
+  if (!file || uploading.value || loading.value) return
   error.value = ''
   if (file.type !== 'image/png' && !file.name.toLowerCase().endsWith('.png')) {
     error.value = `“${file.name}” isn't a PNG. Minecraft skins are .png files.`
@@ -49,6 +50,14 @@ async function upload(file: File | undefined) {
   }
   uploading.value = true
   try {
+    if (file.size > 1024 * 1024) throw new Error('Choose a skin PNG smaller than 1 MB.')
+    const header = new DataView(await file.slice(0, 24).arrayBuffer())
+    if (header.byteLength < 24 || header.getUint32(0) !== 0x89504e47 || header.getUint32(4) !== 0x0d0a1a0a || header.getUint32(12) !== 0x49484452) {
+      throw new Error('This file is not a valid PNG skin.')
+    }
+    if (header.getUint32(16) !== 64 || ![32, 64].includes(header.getUint32(20))) {
+      throw new Error('Use a 64×64 or 64×32 skin PNG. Screenshots and larger images are not supported.')
+    }
     const dataUrl = await blobToDataUrl(file)
     const pixels = await loadPixels(dataUrl).catch(() => {
       throw new Error(`“${file.name}” couldn't be opened as an image. It may be damaged.`)
@@ -83,11 +92,12 @@ function onDrop(e: DragEvent) {
       <form class="card option" @submit.prevent="lookup">
         <h2>Look up a player</h2>
         <p class="muted">
-          Build the skin of a Java Edition player. The username is sent to Mojang to fetch their skin, and nothing is
-          saved on our servers. <RouterLink to="/privacy">Privacy</RouterLink>
+          Build the skin of a Java Edition player. We send the username to Mojang; lookups may be cached and logged by our hosting provider. <RouterLink to="/privacy">Privacy</RouterLink>
         </p>
         <div class="row">
+          <label for="skin-username" class="visually-hidden">Minecraft username</label>
           <input
+            id="skin-username"
             v-model="username"
             type="text"
             placeholder="Username, e.g. jeb_"
@@ -98,7 +108,7 @@ function onDrop(e: DragEvent) {
             enterkeyhint="search"
             aria-label="Minecraft username"
           />
-          <button class="btn primary" :disabled="loading">
+          <button class="btn primary" :disabled="loading || uploading">
             {{ loading ? 'Looking up…' : 'Get skin' }}
           </button>
         </div>
@@ -111,8 +121,8 @@ function onDrop(e: DragEvent) {
         @drop.prevent="onDrop"
       >
         <h2>Upload a skin file</h2>
-        <p class="muted">Drop a 64×64 skin PNG here, or choose one from your device.</p>
-        <button type="button" class="btn" :disabled="uploading" @click="fileInput?.click()">
+        <p class="muted">Choose or drop a 64×64 or 64×32 PNG, up to 1 MB. Your file stays on this device. Only use skins you have permission to use.</p>
+        <button type="button" class="btn" :disabled="uploading || loading" @click="fileInput?.click()">
           {{ uploading ? 'Opening…' : 'Choose PNG…' }}
         </button>
         <input

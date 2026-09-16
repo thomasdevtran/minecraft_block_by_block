@@ -1,5 +1,21 @@
 <script setup lang="ts">
-import * as THREE from 'three'
+import {
+  AmbientLight,
+  BufferGeometry,
+  Color,
+  DirectionalLight,
+  Float32BufferAttribute,
+  Group,
+  LineBasicMaterial,
+  LineSegments,
+  Mesh,
+  MeshLambertMaterial,
+  PerspectiveCamera,
+  Scene,
+  Vector3,
+  WebGLRenderer,
+  type Material,
+} from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { BuildModel } from '../engine/model'
@@ -10,6 +26,7 @@ import { ROLE } from '../lib/roles'
 const props = defineProps<{ model: BuildModel; roles: Uint8Array }>()
 
 const host = ref<HTMLDivElement>()
+const failed = ref(false)
 
 /** Corners of each face, counter-clockwise when seen from outside the cube. */
 const CORNERS: Record<Face, [number, number, number][]> = {
@@ -21,30 +38,31 @@ const CORNERS: Record<Face, [number, number, number][]> = {
   right: [[1, 0, 1], [1, 0, 0], [1, 1, 0], [1, 1, 1]],
 }
 
-let renderer: THREE.WebGLRenderer | null = null
-let scene: THREE.Scene
-let camera: THREE.PerspectiveCamera
+let renderer: WebGLRenderer | null = null
+let scene: Scene
+let camera: PerspectiveCamera
 let controls: OrbitControls
-let content = new THREE.Group()
+let content = new Group()
 let resizeObserver: ResizeObserver | null = null
 
 const render = () => renderer?.render(scene, camera)
 
 function buildMeshes() {
+  if (!renderer) return
   for (const child of content.children) {
-    const obj = child as THREE.Mesh | THREE.LineSegments
+    const obj = child as Mesh | LineSegments
     obj.geometry.dispose()
-    ;(obj.material as THREE.Material).dispose()
+    ;(obj.material as Material).dispose()
   }
   scene.remove(content)
-  content = new THREE.Group()
+  content = new Group()
 
   const { voxels, palette } = props.model
   const roleAt = new Map<string, number>()
   voxels.forEach((v, i) => roleAt.set(voxelKey(v.x, v.y, v.z), props.roles[i]))
 
-  const plain = new THREE.Color(getComputedStyle(host.value!).getPropertyValue('--plain-cube').trim() || '#d8c3a0')
-  const paints = palette.map((p) => new THREE.Color(p.hex))
+  const plain = new Color(getComputedStyle(host.value!).getPropertyValue('--plain-cube').trim() || '#d8c3a0')
+  const paints = palette.map((p) => new Color(p.hex))
 
   const layers = {
     opaque: { pos: [] as number[], col: [] as number[], nrm: [] as number[] },
@@ -79,26 +97,26 @@ function buildMeshes() {
     }
   })
 
-  const mesh = (data: (typeof layers)['opaque'], material: THREE.Material) => {
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(data.pos, 3))
-    geometry.setAttribute('color', new THREE.Float32BufferAttribute(data.col, 3))
-    geometry.setAttribute('normal', new THREE.Float32BufferAttribute(data.nrm, 3))
-    return new THREE.Mesh(geometry, material)
+  const mesh = (data: (typeof layers)['opaque'], material: Material) => {
+    const geometry = new BufferGeometry()
+    geometry.setAttribute('position', new Float32BufferAttribute(data.pos, 3))
+    geometry.setAttribute('color', new Float32BufferAttribute(data.col, 3))
+    geometry.setAttribute('normal', new Float32BufferAttribute(data.nrm, 3))
+    return new Mesh(geometry, material)
   }
-  const lines = (pos: number[], material: THREE.LineBasicMaterial) => {
-    const geometry = new THREE.BufferGeometry()
-    geometry.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3))
-    return new THREE.LineSegments(geometry, material)
+  const lines = (pos: number[], material: LineBasicMaterial) => {
+    const geometry = new BufferGeometry()
+    geometry.setAttribute('position', new Float32BufferAttribute(pos, 3))
+    return new LineSegments(geometry, material)
   }
 
   content.add(
-    mesh(layers.opaque, new THREE.MeshLambertMaterial({ vertexColors: true })),
-    lines(solidEdges, new THREE.LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18 })),
-    lines(focusEdges, new THREE.LineBasicMaterial({ color: 0x000000 })),
+    mesh(layers.opaque, new MeshLambertMaterial({ vertexColors: true })),
+    lines(solidEdges, new LineBasicMaterial({ color: 0x000000, transparent: true, opacity: 0.18 })),
+    lines(focusEdges, new LineBasicMaterial({ color: 0x000000 })),
   )
   // Ghosted cubes stay readable enough to give the highlighted ones context instead of leaving them floating.
-  const ghost = mesh(layers.ghost, new THREE.MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.28, depthWrite: false }))
+  const ghost = mesh(layers.ghost, new MeshLambertMaterial({ vertexColors: true, transparent: true, opacity: 0.28, depthWrite: false }))
   ghost.renderOrder = 1
   content.add(ghost)
   scene.add(content)
@@ -108,20 +126,20 @@ function buildMeshes() {
 function frameModel() {
   const { voxels } = props.model
   if (!voxels.length) return
-  const min = new THREE.Vector3(Infinity, Infinity, Infinity)
-  const max = new THREE.Vector3(-Infinity, -Infinity, -Infinity)
+  const min = new Vector3(Infinity, Infinity, Infinity)
+  const max = new Vector3(-Infinity, -Infinity, -Infinity)
   for (const v of voxels) {
-    min.min(new THREE.Vector3(v.x, v.y, v.z))
-    max.max(new THREE.Vector3(v.x + 1, v.y + 1, v.z + 1))
+    min.min(new Vector3(v.x, v.y, v.z))
+    max.max(new Vector3(v.x + 1, v.y + 1, v.z + 1))
   }
   const center = min.clone().add(max).multiplyScalar(0.5)
   const radius = max.distanceTo(min) / 2
-  const distance = radius / Math.sin(THREE.MathUtils.degToRad(camera.fov / 2)) * 1.05
+  const distance = radius / Math.sin(((camera.fov / 2) * Math.PI) / 180) * 1.05
   const dir = {
-    item: new THREE.Vector3(0.25, 0.15, 1),
-    skin: new THREE.Vector3(0.6, 0.35, 1),
-    block: new THREE.Vector3(0.75, 0.65, 1),
-    plant: new THREE.Vector3(0.8, 0.45, 1),
+    item: new Vector3(0.25, 0.15, 1),
+    skin: new Vector3(0.6, 0.35, 1),
+    block: new Vector3(0.75, 0.65, 1),
+    plant: new Vector3(0.8, 0.45, 1),
   }[props.model.kind]
   camera.position.copy(center).add(dir.normalize().multiplyScalar(distance))
   camera.near = distance / 100
@@ -141,20 +159,21 @@ function resize() {
 }
 
 onMounted(() => {
-  renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true })
+  try { renderer = new WebGLRenderer({ antialias: true, alpha: true }) }
+  catch { failed.value = true; return }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
   host.value!.appendChild(renderer.domElement)
 
-  scene = new THREE.Scene()
-  scene.add(new THREE.AmbientLight(0xffffff, 1.6))
-  const sun = new THREE.DirectionalLight(0xffffff, 1.6)
+  scene = new Scene()
+  scene.add(new AmbientLight(0xffffff, 1.6))
+  const sun = new DirectionalLight(0xffffff, 1.6)
   sun.position.set(0.6, 1, 0.8)
   scene.add(sun)
-  const fill = new THREE.DirectionalLight(0xffffff, 0.5)
+  const fill = new DirectionalLight(0xffffff, 0.5)
   fill.position.set(-0.7, -0.2, -0.6)
   scene.add(fill)
 
-  camera = new THREE.PerspectiveCamera(35, 1, 0.1, 1000)
+  camera = new PerspectiveCamera(35, 1, 0.1, 1000)
   controls = new OrbitControls(camera, renderer.domElement)
   controls.addEventListener('change', render)
   // OrbitControls blocks all touch scrolling. Let vertical swipes scroll the page on phones;
@@ -169,14 +188,32 @@ onMounted(() => {
 })
 
 watch(() => props.model, () => {
+  if (!renderer) return
   frameModel()
   buildMeshes()
 })
-watch(() => props.roles, buildMeshes)
+
+// Rebuilding every cube is the most expensive thing this component does, and it used to run inside
+// the Next/Back click. Two frames later the written step has already painted, so the click stays
+// snappy and the 3D catches up. Holding only the newest request keeps fast clicking cheap.
+let queuedBuild = 0
+watch(() => props.roles, () => {
+  cancelAnimationFrame(queuedBuild)
+  queuedBuild = requestAnimationFrame(() => {
+    queuedBuild = requestAnimationFrame(buildMeshes)
+  })
+})
 
 onBeforeUnmount(() => {
+  cancelAnimationFrame(queuedBuild)
   resizeObserver?.disconnect()
   controls?.dispose()
+  content.traverse((object) => {
+    const mesh = object as Mesh
+    mesh.geometry?.dispose()
+    const materials = Array.isArray(mesh.material) ? mesh.material : [mesh.material]
+    materials.forEach((material) => material?.dispose())
+  })
   renderer?.dispose()
   renderer = null
 })
@@ -190,10 +227,11 @@ onBeforeUnmount(() => {
     role="img"
     aria-label="3D preview of the build so far. The written steps beside it cover the same information."
     title="Drag to rotate, scroll to zoom"
-  ></div>
+  ><p v-if="failed" class="preview-error muted">The 3D preview could not start. You can still follow every written step.</p></div>
 </template>
 
 <style scoped>
+.preview-error { padding: 24px; text-align: center; }
 .voxel-preview {
   position: relative;
   width: 100%;

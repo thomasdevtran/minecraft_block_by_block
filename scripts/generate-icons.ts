@@ -1,5 +1,5 @@
 /**
- * Draws the grass-cube logo from public/favicon.svg as PNG icons (for browsers and phones that don't use SVG).
+ * Draws the original wooden craft-cube mark as PNG icons. No game textures or grass-block branding.
  *
  *   npx tsx scripts/generate-icons.ts
  */
@@ -12,11 +12,9 @@ const PUBLIC = join(dirname(fileURLToPath(import.meta.url)), '..', 'public')
 
 /** Same shapes as favicon.svg, on its 16×16 grid. Later shapes draw on top. */
 const SHAPES: [color: string, points: [number, number][]][] = [
-  ['#6aa832', [[8, 1], [15, 4.5], [8, 8], [1, 4.5]]],
-  ['#7a5230', [[1, 4.5], [8, 8], [8, 15], [1, 11.5]]],
-  ['#5a3b21', [[15, 4.5], [8, 8], [8, 15], [15, 11.5]]],
-  ['#4f8a22', [[1, 4.5], [8, 8], [8, 10], [1, 6.5]]],
-  ['#4f8a22', [[15, 4.5], [8, 8], [8, 10], [15, 6.5]]],
+  ['#ecc58a', [[8, 1], [15, 4.5], [8, 8], [1, 4.5]]],
+  ['#c78350', [[1, 4.5], [8, 8], [8, 15], [1, 11.5]]],
+  ['#885c3d', [[15, 4.5], [8, 8], [8, 15], [15, 11.5]]],
 ]
 
 function inside(x: number, y: number, poly: [number, number][]): boolean {

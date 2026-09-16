@@ -37,6 +37,7 @@ button {
   flex-direction: column;
   align-items: center;
   min-width: 96px;
+  min-height: 44px;
   padding: 0.45rem 0.9rem;
   border: none;
   border-radius: 8px;

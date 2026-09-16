@@ -1,0 +1,34 @@
+# Snapshots the opted-in aggregate total. Repository history is not independent proof of audience size.
+name: Record visitor count
+on:
+  schedule:
+    - cron: '10 3 * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  record:
+    if: ${{ vars.SITE_URL != '' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Read and record the public aggregate
+        env:
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: |
+          set -euo pipefail
+          body=$(curl -fsS --max-time 30 "$SITE_URL/api/stats")
+          total=$(printf '%s' "$body" | jq -er '.total | select(type == "number" and . >= 0 and . == floor)')
+          mkdir -p docs
+          file=docs/consenting-visitors.csv
+          [ -f "$file" ] || echo "date,estimated_opted_in_visitors" > "$file"
+          today=$(date -u +%F)
+          if grep -q "^$today," "$file"; then
+            exit 0
+          fi
+          echo "$today,$total" >> "$file"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add "$file"
+          git commit -m "Record opted-in visitor total for $today"
+          git push

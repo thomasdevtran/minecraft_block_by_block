@@ -1,6 +1,6 @@
 {
-  "name": "Block by Block",
-  "short_name": "Block by Block",
+  "name": "Block by Cube",
+  "short_name": "Block by Cube",
   "description": "Step-by-step guides for building Minecraft items, blocks and skins out of real cubes.",
   "start_url": "/",
   "display": "standalone",

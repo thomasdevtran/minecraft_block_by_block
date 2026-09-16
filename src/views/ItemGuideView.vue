@@ -11,7 +11,7 @@ import { flowerToModel, pottedSprite } from '../engine/flower'
 import { itemToModel } from '../engine/item'
 import { loadPixels, type PixelImage } from '../engine/pixels'
 import { buildGuide } from '../engine/steps'
-import { blockUrl, loadCatalog, textureUrl, type BuildableItem } from '../lib/catalog'
+import { assetUrl, blockUrl, loadCatalog, textureUrl, type BuildableItem } from '../lib/catalog'
 import { look } from '../lib/look'
 import { setPageMeta } from '../lib/meta'
 import { readStored, writeStored } from '../lib/storage'
@@ -74,11 +74,11 @@ async function loadItem(id: string) {
     const catalog = await loadCatalog()
     if (token !== loadToken) return
     const found = catalog.items.find((i) => i.id === id) ?? null
-    potUrls.value = { current: `/${catalog.pot}`, classic: `/${catalog.classicPot}` }
+    potUrls.value = { current: assetUrl(catalog.pot), classic: assetUrl(catalog.classicPot) }
     classicVersion.value = catalog.classicVersion
     if (!found) {
       notFound.value = true
-      setPageMeta('Item not found')
+      setPageMeta('Item not found', undefined, true)
       return
     }
     item.value = found
@@ -176,7 +176,10 @@ const description = computed(() => {
       <span>{{ error }}</span>
       <button class="btn" @click="retry">Try again</button>
     </div>
-    <p v-else-if="loading && !model" class="loading muted" role="status">Loading guide…</p>
+    <!-- Only while there is nothing else to show. Once the item is known the header renders, and
+         the "working it out" message moves into the reserved guide slot below it — a status line
+         above the header would shove the whole page down when it disappeared. -->
+    <p v-else-if="loading && !item" class="loading muted" role="status">Loading guide…</p>
 
     <template v-if="item">
       <header class="head">
@@ -228,7 +231,12 @@ const description = computed(() => {
         {{ connectivity.bridgeSpots.length }} spots where a cube would join two pieces.
       </p>
 
-      <GuideViewer v-if="model && guide" :model="model" :guide="guide" :storage-key="storageKey" />
+      <!-- Holds the guide's height from the first paint, so the steps arriving doesn't shove the
+           footer down the page. -->
+      <div class="guide-slot">
+        <GuideViewer v-if="model && guide" :model="model" :guide="guide" :storage-key="storageKey" />
+        <p v-else-if="loading" class="loading muted" role="status">Working out the steps…</p>
+      </div>
     </template>
   </div>
 </template>
@@ -236,6 +244,12 @@ const description = computed(() => {
 <style scoped>
 .loading {
   margin: 12px 0;
+}
+
+/* Reserves the height the guide settles at, so the page is the same shape before and after.
+   Shares --guide-h with the preview itself rather than repeating its numbers. */
+.guide-slot {
+  min-height: var(--guide-h);
 }
 
 .head {

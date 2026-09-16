@@ -6,7 +6,7 @@ import PaintControls from '../components/PaintControls.vue'
 import ViewToggle from '../components/ViewToggle.vue'
 import { itemToModel } from '../engine/item'
 import { loadPixels, pixelsToDataUrl, type PixelImage } from '../engine/pixels'
-import { skinFront, skinToModel, type SkinOptions } from '../engine/skin'
+import { skinFront, skinToModel, validateSkin, type SkinOptions } from '../engine/skin'
 import { buildGuide } from '../engine/steps'
 import { currentSkin, setSkin } from '../lib/skinStore'
 import { setPageMeta } from '../lib/meta'
@@ -19,15 +19,22 @@ const prefs = reactive(
 watch(prefs, (v) => writeStored('prefs:skin', v))
 
 const loadError = ref('')
+let skinLoad = 0
 
 watch(
   () => currentSkin.value?.dataUrl,
   async (url) => {
+    const token = ++skinLoad
+    pixels.value = null
     loadError.value = ''
-    setPageMeta(currentSkin.value ? `${currentSkin.value.label}'s skin build guide` : 'Skin build guide')
+    setPageMeta(currentSkin.value ? `${currentSkin.value.label}'s skin build guide` : 'Skin build guide', undefined, true)
     try {
-      pixels.value = url ? await loadPixels(url) : null
+      const loaded = url ? await loadPixels(url) : null
+      if (token !== skinLoad) return
+      if (loaded && validateSkin(loaded)) throw new Error('Invalid saved skin')
+      pixels.value = loaded
     } catch {
+      if (token !== skinLoad) return
       pixels.value = null
       loadError.value = "This saved skin couldn't be opened. Look it up or upload it again."
     }
@@ -75,6 +82,7 @@ const storageKey = computed(() => {
     <RouterLink to="/skin" class="back muted">← Choose another skin</RouterLink>
 
     <div v-if="!currentSkin" class="notice">
+      <h1>Choose a skin to begin</h1>
       No skin loaded yet. <RouterLink to="/skin">Look one up or upload a file</RouterLink> to get started.
     </div>
 
@@ -128,12 +136,19 @@ const storageKey = computed(() => {
         </div>
       </PaintControls>
 
-      <GuideViewer v-if="model && guide" :model="model" :guide="guide" :storage-key="storageKey" />
+      <!-- Same reserved box as the item guide, so the steps arriving doesn't shove the page down. -->
+      <div class="guide-slot">
+        <GuideViewer v-if="model && guide" :model="model" :guide="guide" :storage-key="storageKey" />
+      </div>
     </template>
   </div>
 </template>
 
 <style scoped>
+.guide-slot {
+  min-height: var(--guide-h);
+}
+
 .head {
   display: flex;
   gap: 16px;

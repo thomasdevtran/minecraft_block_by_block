@@ -1,3 +1,4 @@
+import { loader } from './loader'
 import type { Look } from './look'
 
 export type Category = 'item' | 'plant' | 'block'
@@ -36,30 +37,36 @@ export interface Catalog {
   items: CatalogItem[]
 }
 
-function loader<T>(url: string): () => Promise<T> {
-  let pending: Promise<T> | null = null
-  return () => {
-    pending ??= fetch(url).then((res) => {
-      if (!res.ok) throw new Error('Item list is missing. Run `npm run extract` first.')
-      return res.json() as Promise<T>
-    })
-    pending.catch(() => (pending = null))
-    return pending
-  }
-}
+const rawCatalog = loader<Catalog>('/data/items.json', 'The build catalog could not be loaded. Check your connection and try again.')
+
+/**
+ * Texture filenames never change, but their contents do when the game version moves, so the paths
+ * carry the version as a query. That lets the CDN cache them forever and still hand out the new
+ * pictures the moment `npm run extract` bumps the version.
+ */
+let assetVersion = ''
 
 /** Loads the index written by `npm run extract`. */
-export const loadCatalog = loader<Catalog>('/data/items.json')
+export const loadCatalog = async (): Promise<Catalog> => {
+  const catalog = await rawCatalog()
+  assetVersion = catalog.version
+  return catalog
+}
+
+/** Turns a path from items.json into a cache-busted absolute URL. */
+export function assetUrl(path: string): string {
+  return assetVersion ? `/${path}?v=${assetVersion}` : `/${path}`
+}
 
 const useClassic = (item: BuildableItem, look: Look) => look === 'classic' && !!item.classic
 
 export function textureUrl(item: BuildableItem, look: Look = 'current'): string {
-  return `/${useClassic(item, look) ? item.classic!.texture : item.texture}`
+  return assetUrl(useClassic(item, look) ? item.classic!.texture : item.texture)
 }
 
 export function blockUrl(item: BuildableItem, look: Look = 'current'): string | null {
   if (!item.block) return null
-  return `/${useClassic(item, look) && item.classic!.block ? item.classic!.block : item.block}`
+  return assetUrl(useClassic(item, look) && item.classic!.block ? item.classic!.block : item.block)
 }
 
 /** Short label of the build styles an item supports, e.g. "2D · 3D · Pot". */

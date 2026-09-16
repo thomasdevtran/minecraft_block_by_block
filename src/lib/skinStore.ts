@@ -12,7 +12,11 @@ export interface LoadedSkin {
 
 const KEY = 'skin:current'
 
-export const currentSkin = ref<LoadedSkin | null>(readStored<LoadedSkin | null>(KEY, null))
+const stored = readStored<LoadedSkin | null>(KEY, null)
+const validStored = stored && typeof stored.label === 'string' && typeof stored.dataUrl === 'string' &&
+  stored.dataUrl.startsWith('data:image/png;base64,') && stored.dataUrl.length <= 1_400_000 &&
+  (stored.model === 'classic' || stored.model === 'slim')
+export const currentSkin = ref<LoadedSkin | null>(validStored ? stored : null)
 
 export function setSkin(skin: LoadedSkin): void {
   currentSkin.value = skin
@@ -29,7 +33,7 @@ export function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 export async function fetchSkinByUsername(username: string): Promise<LoadedSkin> {
-  const res = await fetch(`/api/skin/${encodeURIComponent(username.trim())}`)
+  const res = await fetch(`/api/skin/${encodeURIComponent(username.trim())}`, { signal: AbortSignal.timeout(15000) })
   if (!res.ok) {
     const body = await res.json().catch(() => null)
     throw new Error(body?.error ?? `Lookup failed (${res.status}).`)

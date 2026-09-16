@@ -1,26 +1,50 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import ToastHost from './components/ToastHost.vue'
+import VisitorCount from './components/VisitorCount.vue'
+import PrivacyChoice from './components/PrivacyChoice.vue'
 import { SITE } from './lib/site'
 import { showToast } from './lib/toast'
+import { readStored, writeStored } from './lib/storage'
 
 const route = useRoute()
 const menuOpen = ref(false)
+const menuButton = ref<HTMLButtonElement>()
 const year = new Date().getFullYear()
+const savedTheme = readStored('appearance:theme', 'system')
+const theme = ref(['system', 'light', 'dark'].includes(savedTheme) ? savedTheme : 'system')
+watch(theme, (value) => {
+  if (value === 'system') delete document.documentElement.dataset.theme
+  else document.documentElement.dataset.theme = value
+  writeStored('appearance:theme', value)
+}, { immediate: true })
 
 /** Items stays highlighted on item guides; Skins on the skin pages. */
 const section = computed(() => {
   const name = String(route.name ?? '')
   if (name === 'catalog' || name === 'item') return 'items'
   if (name.startsWith('skin')) return 'skins'
+  if (name === 'support') return 'support'
   return ''
 })
 
-watch(() => route.fullPath, () => (menuOpen.value = false))
+watch(() => route.path, async () => {
+  menuOpen.value = false
+  await nextTick()
+  document.getElementById('main')?.focus({ preventScroll: true })
+})
 
 function onKey(e: KeyboardEvent) {
-  if (e.key === 'Escape') menuOpen.value = false
+  if (e.key === 'Escape' && menuOpen.value) {
+    menuOpen.value = false
+    menuButton.value?.focus()
+  }
+}
+function closeMenu() {
+  if (!menuOpen.value) return
+  menuOpen.value = false
+  menuButton.value?.focus()
 }
 onMounted(() => window.addEventListener('keydown', onKey))
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
@@ -39,12 +63,13 @@ async function copyDiscord() {
   <a href="#main" class="skip-link">Skip to content</a>
   <header class="site-header">
     <div class="container bar">
-      <RouterLink to="/" class="brand" aria-label="Block by Block home">
+      <RouterLink to="/" class="brand" :aria-label="`${SITE.name} home`">
         <img src="/favicon.svg" alt="" width="28" height="28" />
-        <span>Block by Block</span>
+        <span>{{ SITE.name }}</span>
       </RouterLink>
 
       <button
+        ref="menuButton"
         class="menu-button"
         :aria-expanded="menuOpen"
         aria-controls="site-nav"
@@ -57,22 +82,40 @@ async function copyDiscord() {
         </svg>
       </button>
 
-      <nav id="site-nav" :class="{ open: menuOpen }" aria-label="Main">
+      <nav id="site-nav" :class="{ open: menuOpen }" aria-label="Main" @click="closeMenu">
         <RouterLink to="/" :class="['nav-link', { active: section === 'items' }]">Items</RouterLink>
         <RouterLink to="/skin" :class="['nav-link', { active: section === 'skins' }]">Skins</RouterLink>
+        <RouterLink to="/support" :class="['nav-link', { active: section === 'support' }]">Support</RouterLink>
       </nav>
     </div>
   </header>
 
-  <main id="main">
-    <RouterView />
+  <p class="fan-notice">Independent fan project. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</p>
+
+  <main id="main" tabindex="-1">
+    <RouterView v-slot="{ Component }">
+      <!-- Fades new pages in, and nothing else. No leave transition and no `mode="out-in"`, both
+           of which hold the old page on screen and delay the new one painting. No transform
+           either: it would make this element a containing block and break the guide's sticky
+           3D preview. -->
+      <Transition name="page">
+        <component :is="Component" />
+      </Transition>
+    </RouterView>
   </main>
 
   <footer class="site-footer">
     <div class="container footer-inner">
+      <PrivacyChoice v-if="route.name !== 'privacy'" />
+      <VisitorCount />
+      <label class="theme-control">Appearance
+        <select v-model="theme"><option value="system">Use device setting</option><option value="light">Light</option><option value="dark">Dark</option></select>
+      </label>
       <nav class="footer-links" aria-label="Footer">
         <RouterLink to="/privacy">Privacy &amp; cookies</RouterLink>
         <RouterLink to="/terms">Terms</RouterLink>
+        <RouterLink to="/support">Support the site</RouterLink>
+        <a :href="`mailto:${SITE.operator.email}`">Contact {{ SITE.operator.name }}</a>
         <a :href="SITE.github" target="_blank" rel="noopener noreferrer">GitHub<span class="visually-hidden"> (opens in a new tab)</span></a>
         <a :href="SITE.tiktok.url" target="_blank" rel="noopener noreferrer">
           TikTok {{ SITE.tiktok.handle }}<span class="visually-hidden"> (opens in a new tab)</span>
@@ -83,7 +126,10 @@ async function copyDiscord() {
       </nav>
       <p class="muted">
         © {{ year }} {{ SITE.operator.name }}. Not an official Minecraft product. Not approved by or associated with
-        Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies AB.
+        Mojang or Microsoft. Minecraft is a trademark of Mojang Synergies AB. All Minecraft textures and game artwork
+        shown on this site are owned by Mojang Studios and used under the
+        <a href="https://www.minecraft.net/en-us/usage-guidelines" target="_blank" rel="noopener noreferrer">
+          Minecraft Usage Guidelines<span class="visually-hidden"> (opens in a new tab)</span></a>.
       </p>
     </div>
   </footer>
@@ -92,6 +138,9 @@ async function copyDiscord() {
 </template>
 
 <style scoped>
+.theme-control { display: flex; align-items: center; gap: 12px; color: var(--ink-soft); font-size: 0.9rem; }
+.theme-control select { min-height: 44px; max-width: 100%; padding: 6px 10px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
+.fan-notice { margin: 0; padding: 9px 16px; text-align: center; font-size: 0.75rem; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
 .skip-link {
   position: absolute;
   left: 8px;
@@ -134,7 +183,7 @@ async function copyDiscord() {
   min-height: 44px;
 }
 
-nav {
+.site-header nav {
   display: flex;
   gap: 0.25rem;
 }
@@ -186,7 +235,7 @@ nav {
     display: grid;
   }
 
-  nav {
+  .site-header nav {
     display: none;
     position: absolute;
     top: 100%;
@@ -200,7 +249,7 @@ nav {
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
   }
 
-  nav.open {
+  .site-header nav.open {
     display: flex;
   }
 
@@ -210,9 +259,19 @@ nav {
   }
 }
 
+.page-enter-active {
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+
+.page-enter-from {
+  opacity: 0;
+}
+
 main {
   padding: 28px 0 48px;
 }
+
+main:focus { outline: none; }
 
 @media (max-width: 640px) {
   main {
@@ -222,7 +281,8 @@ main {
 
 .site-footer {
   border-top: 2px solid var(--line);
-  padding: 20px 0 28px;
+  padding: 28px 0 32px;
+  background: var(--surface);
   font-size: 0.85rem;
 }
 
@@ -237,6 +297,8 @@ main {
   flex-wrap: wrap;
   gap: 4px 18px;
 }
+
+.footer-links a, .link-button { overflow-wrap: anywhere; }
 
 .footer-links a,
 .link-button {

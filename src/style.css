@@ -18,11 +18,31 @@
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --radius: 10px;
 
+  /* Motion. Everything on the site animates transform or opacity only — both run on the
+     compositor, so they can't cause a layout shift or block a tap. The reduced-motion rule
+     further down switches all of it off. */
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --ease-out: cubic-bezier(0.2, 0.7, 0.3, 1);
+
+  /* How tall the 3D preview stands. Declared here because two things need to agree on it: the
+     preview itself, and the space a guide page reserves before the guide has loaded. If they
+     disagree, the page jumps when the steps arrive. */
+  --guide-h: min(70vh, 560px);
+
   font: 16px/1.5 var(--sans);
   color: var(--ink);
   background: var(--bg);
   color-scheme: light;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Below this the preview stops being sticky and sits under the steps, so it needs less room. */
+@media (max-width: 860px) {
+  :root {
+    --guide-h: 340px;
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -72,6 +92,13 @@ body {
   background: var(--bg);
   min-height: 100vh;
 }
+
+#app { min-height: 100vh; display: flex; flex-direction: column; }
+#main { flex: 1; }
+button, input, select { font: inherit; }
+button, a, input { -webkit-tap-highlight-color: transparent; }
+button { touch-action: manipulation; }
+section[id], h2[id] { scroll-margin-top: 24px; }
 
 h1,
 h2,
@@ -188,6 +215,7 @@ a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 select:focus-visible,
+summary:focus-visible,
 [tabindex]:focus-visible {
   outline: 3px solid var(--accent);
   outline-offset: 2px;
@@ -243,6 +271,10 @@ select:focus-visible,
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Keeps the scrollbar's width reserved even on short pages. Without it, a page that grows past
+     one screen makes the scrollbar appear and nudges everything left — a layout shift on every
+     page that loads its content in. */
+  scrollbar-gutter: stable;
 }
 
 /* Nothing on the page should ever push it wider than the screen. */
@@ -290,18 +322,25 @@ p {
 
 /* Privacy and Terms pages. */
 .legal {
-  max-width: 720px;
+  max-width: 780px;
+  padding-top: 12px;
 }
 
 .legal h2 {
   margin-top: 1.6em;
-  font-size: 1.25rem;
+  font-size: 1.4rem;
 }
 
 .legal p,
 .legal li {
-  line-height: 1.6;
+  line-height: 1.75;
 }
+
+.legal a { text-underline-offset: 3px; overflow-wrap: anywhere; }
+.legal .intro { font-size: 1.1rem; }
+.legal .summary { padding: 20px 24px; margin: 24px 0; background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; }
+.legal .summary p:last-child { margin-bottom: 0; }
+.legal .contents { display: flex; flex-wrap: wrap; gap: 12px 20px; margin: 24px 0; padding-bottom: 20px; border-bottom: 1px solid var(--line); }
 
 .legal ul {
   padding-left: 1.2em;

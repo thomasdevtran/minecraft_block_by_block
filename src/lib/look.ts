@@ -7,5 +7,5 @@ export type Look = 'current' | 'classic'
 const KEY = 'prefs:look'
 
 /** Shared across pages, so switching in the catalog also switches the guides. */
-export const look = ref<Look>(readStored<Look>(KEY, 'current'))
+export const look = ref<Look>(readStored<Look>(KEY, 'current') === 'classic' ? 'classic' : 'current')
 watch(look, (v) => writeStored(KEY, v))

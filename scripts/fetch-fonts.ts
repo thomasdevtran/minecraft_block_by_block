@@ -11,7 +11,9 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const PUBLIC_FONTS = join(dirname(fileURLToPath(import.meta.url)), '..', 'public', 'fonts')
-const CSS_URL = 'https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@500;700&display=swap'
+// Only weight 700 is used anywhere on the site — every `var(--pixel)` rule sets it — and Google
+// serves the same variable file for 500 and 700, so asking for both shipped the same 12 KB twice.
+const CSS_URL = 'https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@700&display=optional'
 // A modern browser UA makes Google Fonts return woff2 files.
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36'
 
@@ -27,8 +29,13 @@ for (const [, subset, body] of faces) {
   const range = body.match(/unicode-range:\s*([^;]+);/)![1]
   const file = `pixelify-sans-${weight}.woff2`
   writeFileSync(join(PUBLIC_FONTS, file), Buffer.from(await (await fetch(url)).arrayBuffer()))
+  // `optional`, not `swap`. The headings sit at the top of every page, so swapping a pixel font in
+  // after first paint reflows everything below them — the site's biggest layout shift. Paired with
+  // the preload in index.html the font almost always arrives inside the block period; when it
+  // doesn't, that one load keeps the fallback instead of shifting, and the font is cached for every
+  // visit after it.
   rules.push(
-    `@font-face {\n  font-family: 'Pixelify Sans';\n  font-style: normal;\n  font-weight: ${weight};\n  font-display: swap;\n  src: url('/fonts/${file}') format('woff2');\n  unicode-range: ${range};\n}`,
+    `@font-face {\n  font-family: 'Pixelify Sans';\n  font-style: normal;\n  font-weight: ${weight};\n  font-display: optional;\n  src: url('/fonts/${file}') format('woff2');\n  unicode-range: ${range};\n}`,
   )
 }
 
