@@ -4,7 +4,7 @@ import { BLOCK_STRIP_ORDER } from '../engine/block'
 import type { Face } from '../engine/voxels'
 
 /** Small 3D cube drawn with CSS from a six-face block strip. */
-const props = withDefaults(defineProps<{ src: string; size?: number }>(), { size: 30 })
+const props = withDefaults(defineProps<{ src: string; size?: number; label?: string }>(), { size: 30 })
 
 const faceStyle = (face: Face) => {
   const index = BLOCK_STRIP_ORDER.indexOf(face)
@@ -17,7 +17,7 @@ const vars = computed(() => ({ '--s': `${props.size}px` }))
 </script>
 
 <template>
-  <div class="block-icon" :style="vars" aria-hidden="true">
+  <div class="block-icon" :style="vars" :role="label ? 'img' : undefined" :aria-label="label" :aria-hidden="label ? undefined : true">
     <div class="cube">
       <div class="face front" :style="faceStyle('front')"></div>
       <div class="face right" :style="faceStyle('right')"></div>

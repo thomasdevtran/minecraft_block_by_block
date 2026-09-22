@@ -17,7 +17,7 @@ describe('local build storage', () => {
     expect(readStored('prefs:block', { hollow: true })).toEqual({ hollow: true })
   })
   it('clears only build data while preserving consent and unrelated storage', () => {
-    for (const key of ['prefs:block', 'progress:item:test', 'skin:current', 'privacy:visitor-count:v1', 'unrelated', 'appearance:theme']) data.set(key, 'true')
+    for (const key of ['prefs:block', 'progress:item:test', 'progress:recent', 'skin:current', 'privacy:visitor-count:v1', 'unrelated', 'appearance:theme']) data.set(key, 'true')
     expect(clearBuildData()).toBe(true)
     expect([...data.keys()]).toEqual(['privacy:visitor-count:v1', 'unrelated', 'appearance:theme'])
   })

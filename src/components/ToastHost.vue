@@ -23,7 +23,7 @@ import { dismissToast, toasts } from '../lib/toast'
 .toasts {
   position: fixed;
   right: 16px;
-  bottom: 16px;
+  bottom: calc(16px + var(--bottom-control-space, 0px));
   left: 16px;
   display: flex;
   flex-direction: column;
@@ -81,8 +81,8 @@ import { dismissToast, toasts } from '../lib/toast'
 
 .close {
   flex: none;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 44px;
+  height: 44px;
   border: none;
   background: none;
   color: var(--ink-soft);

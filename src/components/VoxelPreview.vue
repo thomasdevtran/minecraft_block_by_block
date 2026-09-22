@@ -12,6 +12,7 @@ import {
   MeshLambertMaterial,
   PerspectiveCamera,
   Scene,
+  Spherical,
   Vector3,
   WebGLRenderer,
   type Material,
@@ -23,7 +24,7 @@ import { dominantColor, FACE_NORMALS, FACES, voxelKey, type Face } from '../engi
 import { ROLE } from '../lib/roles'
 
 /** `roles` holds one ROLE value per voxel, in the same order as `model.voxels`. */
-const props = defineProps<{ model: BuildModel; roles: Uint8Array }>()
+const props = defineProps<{ model: BuildModel; roles: Uint8Array; description: string }>()
 
 const host = ref<HTMLDivElement>()
 const failed = ref(false)
@@ -146,6 +147,19 @@ function frameModel() {
   camera.far = distance * 10
   camera.updateProjectionMatrix()
   controls.target.copy(center)
+  controls.minDistance = distance * 0.2
+  controls.maxDistance = distance * 5
+  controls.update()
+}
+
+/** Button controls provide the same camera actions without requiring a drag or pinch. */
+function moveCamera(turn = 0, tilt = 0, zoom = 1) {
+  if (!renderer) return
+  const offset = new Spherical().setFromVector3(camera.position.clone().sub(controls.target))
+  offset.theta += turn
+  offset.phi = Math.max(0.1, Math.min(Math.PI - 0.1, offset.phi + tilt))
+  offset.radius = Math.max(controls.minDistance, Math.min(controls.maxDistance, offset.radius * zoom))
+  camera.position.copy(controls.target).add(new Vector3().setFromSpherical(offset))
   controls.update()
 }
 
@@ -162,6 +176,7 @@ onMounted(() => {
   try { renderer = new WebGLRenderer({ antialias: true, alpha: true }) }
   catch { failed.value = true; return }
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.domElement.setAttribute('aria-hidden', 'true')
   host.value!.appendChild(renderer.domElement)
 
   scene = new Scene()
@@ -220,23 +235,39 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <!-- The canvas is a visual aid; every step is also written out in the panel beside it. -->
+  <div class="preview-widget">
   <div
+    v-show="!failed"
     ref="host"
     class="voxel-preview"
     role="img"
-    aria-label="3D preview of the build so far. The written steps beside it cover the same information."
+    :aria-label="`3D preview. ${description}`"
     title="Drag to rotate, scroll to zoom"
-  ><p v-if="failed" class="preview-error muted">The 3D preview could not start. You can still follow every written step.</p></div>
+  ></div>
+  <p v-if="failed" class="preview-error muted" role="status">The 3D preview could not start. You can still follow every written step.</p>
+  <div v-else class="camera-controls" role="group" aria-label="3D camera controls">
+    <button type="button" aria-label="Rotate preview left" @click="moveCamera(-Math.PI / 8)">↶ Left</button>
+    <button type="button" aria-label="Rotate preview right" @click="moveCamera(Math.PI / 8)">Right ↷</button>
+    <button type="button" aria-label="Tilt preview up" @click="moveCamera(0, -Math.PI / 12)">↑ Up</button>
+    <button type="button" aria-label="Tilt preview down" @click="moveCamera(0, Math.PI / 12)">↓ Down</button>
+    <button type="button" aria-label="Zoom preview in" @click="moveCamera(0, 0, 0.8)">+ Zoom in</button>
+    <button type="button" aria-label="Zoom preview out" @click="moveCamera(0, 0, 1.25)">− Zoom out</button>
+    <button type="button" aria-label="Reset preview view" @click="frameModel">Reset</button>
+  </div>
+  </div>
 </template>
 
 <style scoped>
 .preview-error { padding: 24px; text-align: center; }
+.preview-widget { display: flex; flex-direction: column; height: 100%; min-height: 0; }
+.camera-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; padding: 8px; }
+.camera-controls button { min-height: 44px; padding: 6px 10px; font-size: .8rem; background: var(--surface); color: var(--ink); border: 1px solid var(--ink-soft); border-radius: 6px; cursor: pointer; }
+.camera-controls button:hover { background: var(--surface-2); }
 .voxel-preview {
   position: relative;
   width: 100%;
-  height: 100%;
-  min-height: 280px;
+  flex: 1;
+  min-height: 140px;
   touch-action: pan-y;
 }
 

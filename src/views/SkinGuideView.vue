@@ -11,6 +11,7 @@ import { buildGuide } from '../engine/steps'
 import { currentSkin, setSkin } from '../lib/skinStore'
 import { setPageMeta } from '../lib/meta'
 import { hashString, readStored, writeStored } from '../lib/storage'
+import { flag, paintLimit } from '../lib/buildSettings'
 
 const pixels = shallowRef<PixelImage | null>(null)
 const prefs = reactive(
@@ -49,6 +50,11 @@ const armModel = computed({
 
 const route = useRoute()
 const router = useRouter()
+watch(() => route.query.paints, value => { prefs.maxPaints = paintLimit(value, prefs.maxPaints) }, { immediate: true })
+watch(() => route.query.hollow, value => { prefs.hollow = flag(value, prefs.hollow) }, { immediate: true })
+watch(() => route.query.simple, value => { prefs.simplePaint = flag(value, prefs.simplePaint) }, { immediate: true })
+watch(() => route.query.overlay, value => { prefs.overlay = flag(value, prefs.overlay) }, { immediate: true })
+watch(() => route.query.arm, value => { if (value === 'classic' || value === 'slim') armModel.value = value }, { immediate: true })
 
 const VIEWS = [
   { value: '2d' as const, label: '2D', hint: 'Flat, from the front' },
@@ -75,6 +81,11 @@ const storageKey = computed(() => {
     ? `${skin}:flat:${armModel.value}:${prefs.overlay}:${prefs.maxPaints}`
     : `${skin}:${hashString(JSON.stringify(options.value))}`
 })
+const skinHash = computed(() => currentSkin.value ? hashString(currentSkin.value.dataUrl) : '')
+const resumePath = computed(() => `/skin/guide?${new URLSearchParams({
+  view: view.value, paints: String(prefs.maxPaints), hollow: prefs.hollow ? '1' : '0',
+  simple: prefs.simplePaint ? '1' : '0', overlay: prefs.overlay ? '1' : '0', arm: armModel.value,
+})}`)
 </script>
 
 <template>
@@ -92,8 +103,8 @@ const storageKey = computed(() => {
 
     <template v-else>
       <header class="head">
-        <img v-if="view === '2d' && frontUrl" :src="frontUrl" alt="Character, front view" class="pixelated" width="48" height="96" />
-        <img v-else :src="currentSkin.dataUrl" alt="Skin file" class="pixelated" width="96" height="96" />
+        <img v-if="view === '2d' && frontUrl" :src="frontUrl" :alt="`${currentSkin.label}, character viewed from the front`" class="pixelated" width="48" height="96" />
+        <img v-else :src="currentSkin.dataUrl" :alt="`Unfolded Minecraft skin texture for ${currentSkin.label}`" class="pixelated" width="96" height="96" />
         <div class="head-text">
           <h1>{{ currentSkin.label }}</h1>
           <p v-if="view === '2d'" class="muted">
@@ -105,9 +116,11 @@ const storageKey = computed(() => {
             layer, with the character's front at the bottom.
           </p>
         </div>
-        <ViewToggle v-model="view" :options="VIEWS" />
       </header>
-
+      <details class="build-settings">
+        <summary>Customize build <span class="muted">· {{ view.toUpperCase() }} · up to {{ prefs.maxPaints }} paint colors</span></summary>
+        <p class="muted">Changing these options creates a different guide. Each version remembers its own step.</p>
+        <ViewToggle v-model="view" :options="VIEWS" />
       <PaintControls v-model:max-paints="prefs.maxPaints">
         <div class="toggles">
           <label v-if="view === '3d'" class="toggle">
@@ -135,10 +148,11 @@ const storageKey = computed(() => {
           </label>
         </div>
       </PaintControls>
+      </details>
 
       <!-- Same reserved box as the item guide, so the steps arriving doesn't shove the page down. -->
       <div class="guide-slot">
-        <GuideViewer v-if="model && guide" :model="model" :guide="guide" :storage-key="storageKey" />
+        <GuideViewer v-if="model && guide" :key="storageKey" :model="model" :guide="guide" :storage-key="storageKey" :title="currentSkin!.label" :resume-path="resumePath" :skin-hash="skinHash" />
       </div>
     </template>
   </div>
@@ -169,7 +183,7 @@ const storageKey = computed(() => {
 
 .head-text {
   flex: 1;
-  min-width: 220px;
+  min-width: min(220px, 100%);
 }
 
 .head p {

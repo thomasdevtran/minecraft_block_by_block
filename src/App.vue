@@ -138,7 +138,7 @@ async function copyDiscord() {
 </template>
 
 <style scoped>
-.theme-control { display: flex; align-items: center; gap: 12px; color: var(--ink-soft); font-size: 0.9rem; }
+.theme-control { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; color: var(--ink-soft); font-size: 0.9rem; }
 .theme-control select { min-height: 44px; max-width: 100%; padding: 6px 10px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
 .fan-notice { margin: 0; padding: 9px 16px; text-align: center; font-size: 0.75rem; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
 .skip-link {
@@ -169,7 +169,8 @@ async function copyDiscord() {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  height: 60px;
+  min-height: 60px;
+  padding-block: 8px;
 }
 
 .brand {
@@ -179,14 +180,16 @@ async function copyDiscord() {
   font: 700 1.35rem var(--pixel);
   color: var(--ink);
   text-decoration: none;
-  white-space: nowrap;
+  line-height: 1.2;
   min-height: 44px;
+  min-width: 0;
 }
 
 .site-header nav {
   display: flex;
   gap: 0.25rem;
 }
+.brand img { flex: none; }
 
 .nav-link {
   display: flex;
@@ -217,6 +220,7 @@ async function copyDiscord() {
   background: var(--surface);
   cursor: pointer;
   place-items: center;
+  flex: none;
 }
 
 .menu-button svg {
@@ -304,7 +308,7 @@ main:focus { outline: none; }
 .link-button {
   display: inline-flex;
   align-items: center;
-  min-height: 40px;
+  min-height: 44px;
   color: var(--ink);
   font: 600 0.95rem var(--sans);
   text-decoration: underline;

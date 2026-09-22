@@ -4,6 +4,11 @@ import { RouterLink } from 'vue-router'
 import AdSlot from '../components/AdSlot.vue'
 import BlockIcon from '../components/BlockIcon.vue'
 import ViewToggle from '../components/ViewToggle.vue'
+import CraftPhoto from '../components/CraftPhoto.vue'
+import { showcasePhoto, starterBuilds, starterPaintLimit } from '../lib/starterBuilds'
+import { readRecentBuild } from '../lib/recentBuild'
+import { currentSkin } from '../lib/skinStore'
+import { hashString } from '../lib/storage'
 import { blockUrl, buildStyles, loadCatalog, textureUrl, type Catalog, type CatalogItem, type Category } from '../lib/catalog'
 import { look as sharedLook } from '../lib/look'
 
@@ -75,6 +80,25 @@ const FEATURED =['grass_block', 'poppy', 'diamond_ore', 'tnt', 'cornflower', 'di
 const featured = computed(() =>
   FEATURED.map((id) => items.value.find((i) => i.id === id)).filter((i): i is ListItem => !!i),
 )
+const recent = readRecentBuild()
+const resumable = computed(() => recent && (!recent.skinHash ||
+  (currentSkin.value && hashString(currentSkin.value.dataUrl) === recent.skinHash)) &&
+  (recent.skinHash || items.value.some(item => recent.path.startsWith(`/item/${item.id}?`))) ? recent : null)
+const starterStats = ref<Record<string, { cubes: number; paints: number }>>({})
+const starters = computed(() => starterBuilds.flatMap(entry => {
+  const item = items.value.find(i => i.id === entry.id)
+  return item ? [{ ...entry, item, stats: starterStats.value[entry.id] }] : []
+}))
+watch(() => items.value, async list => {
+  if (!list.length) return
+  const [{ loadPixels }, { itemToModel }] = await Promise.all([import('../engine/pixels'), import('../engine/item')])
+  await Promise.allSettled(starterBuilds.map(async entry => {
+    const item = list.find(i => i.id === entry.id)
+    if (!item) return
+    const model = itemToModel(await loadPixels(textureUrl(item, 'current')), { maxPaints: starterPaintLimit, simplePaint: false })
+    starterStats.value[entry.id] = { cubes: model.voxels.length, paints: model.palette.length }
+  }))
+})
 
 const TAB_LABELS: Record<Category, string> = { block: 'blocks', plant: 'plants', item: 'items' }
 
@@ -126,11 +150,15 @@ const showMore = () => (shown.value += PAGE)
           have to squint at a reference picture.
         </p>
         <div class="hero-actions">
-          <a href="#catalog" class="btn primary" @click.prevent="scrollToCatalog">Browse items</a>
+          <a href="#first-build" class="btn primary">Find a first build</a>
+          <a href="#catalog" class="btn" @click.prevent="scrollToCatalog">Browse all items</a>
           <RouterLink to="/skin" class="btn">Build a player skin</RouterLink>
         </div>
         <p class="hero-note muted">Free build guides · No account needed · Unofficial fan project</p>
       </div>
+      <div class="craft-showcase">
+        <CraftPhoto :src="showcasePhoto" alt="Handmade Minecraft cube crafts" />
+        <p>From pixels to your shelf. Made by you.</p>
       <div v-if="featured.length" class="featured">
         <RouterLink
           v-for="(item, i) in featured"
@@ -146,6 +174,7 @@ const showMore = () => (shown.value += PAGE)
           <span class="feat-label">{{ item.name }}</span>
         </RouterLink>
       </div>
+      </div>
     </section>
 
     <ol class="how-it-works" aria-label="How it works">
@@ -153,6 +182,30 @@ const showMore = () => (shown.value += PAGE)
       <li><span aria-hidden="true">02</span><div><strong>Get your materials</strong><p>Use the cube count and matching paint list.</p></div></li>
       <li><span aria-hidden="true">03</span><div><strong>Build at your pace</strong><p>Follow each step. Come back where you left off.</p></div></li>
     </ol>
+
+    <section v-if="resumable" class="resume-build card" aria-labelledby="resume-title">
+      <div><p class="eyebrow">Your crafting table</p><h2 id="resume-title">{{ resumable.title }}</h2><p class="muted">Last opened at step {{ resumable.step }} of {{ resumable.total }} · saved on this device</p></div>
+      <RouterLink :to="resumable.path" class="btn primary">Continue your build →</RouterLink>
+    </section>
+
+    <section v-if="starters.length" id="first-build" class="first-build" aria-labelledby="first-build-title">
+      <p class="eyebrow">Start small. Make something you love.</p>
+      <h2 id="first-build-title">Pick your first project</h2>
+      <p class="muted">Start with a rose, emerald or red tulip. Each is a flat build with one color per cube and a smaller paint palette.</p>
+      <div class="starter-grid">
+        <RouterLink v-for="starter in starters" :key="starter.id" :to="`/item/${starter.id}?view=2d&look=current&paints=${starterPaintLimit}`" class="starter card">
+          <CraftPhoto :src="starter.photo" :alt="`Handmade ${starter.item.name}`" />
+          <div class="starter-body">
+            <img :src="textureUrl(starter.item, 'current')" :alt="`${starter.item.name} game texture reference`" width="40" height="40" class="pixelated" />
+            <h3>{{ starter.item.name }}</h3>
+            <p>{{ starter.note }}</p>
+            <span v-if="starter.stats" class="starter-stats">{{ starter.stats.cubes }} cubes · {{ starter.stats.paints }} paint colors · flat build</span>
+            <span v-else class="starter-stats">Flat build · up to {{ starterPaintLimit }} paint colors</span>
+            <strong class="starter-link">Open build guide →</strong>
+          </div>
+        </RouterLink>
+      </div>
+    </section>
 
     <section id="catalog" aria-labelledby="catalog-heading" :aria-busy="loading">
       <div class="toolbar">
@@ -233,6 +286,39 @@ const showMore = () => (shown.value += PAGE)
 </template>
 
 <style scoped>
+.craft-showcase > p { margin: 12px 0; font-size: .9rem; color: var(--ink-soft); text-align: center; }
+.craft-showcase .featured { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.craft-showcase .feat { padding: 10px 4px; min-width: 0; min-height: 60px; aspect-ratio: auto; display: flex; justify-content: center; align-items: center; }
+.craft-showcase .feat-label { display: none; }
+.craft-showcase .feat img { width: 32px; height: 32px; }
+.craft-showcase .feat :deep(.block-icon) { transform: scale(.65); }
+.resume-build { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 24px; margin-bottom: 36px; }
+.resume-build .eyebrow { margin-bottom: 8px; }
+.resume-build p:last-child { margin-bottom: 0; }
+.first-build { margin-bottom: 48px; }
+.first-build > .eyebrow { margin-bottom: 8px; }
+.starter-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.starter { overflow: hidden; text-decoration: none; color: var(--ink); transition: border-color .15s; }
+.starter:hover { border-color: var(--accent); }
+.starter :deep(.craft-photo) { border-radius: 0; }
+.starter-body { padding: 20px; }
+.starter-body > img { float: right; margin-left: 8px; }
+.starter h3 { font: 750 1.15rem/1.4 var(--sans); }
+.starter p { font-size: .9rem; color: var(--ink-soft); min-height: 3em; }
+.starter-stats { display: block; font-size: .8rem; color: var(--ink-soft); margin-bottom: 20px; }
+.starter-link { color: var(--accent); font-size: .9rem; }
+@media (max-width: 1000px) { .craft-showcase .featured { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) {
+  .starter-grid { grid-template-columns: 1fr; }
+  .starter { display: grid; grid-template-columns: 110px minmax(0, 1fr); }
+  .starter :deep(.craft-photo) { aspect-ratio: auto; }
+  .starter :deep(.photo-placeholder) { padding: 6px; margin: 8px; height: calc(100% - 16px); }
+  .starter :deep(.photo-placeholder strong) { display: none; }
+  .starter-body { padding: 16px; }
+  .starter-body > img { width: 28px; height: 28px; }
+  .starter-stats { margin-bottom: 12px; }
+  .starter p { min-height: 0; }
+}
 .hero {
   display: grid;
   grid-template-columns: 1.4fr 1fr;

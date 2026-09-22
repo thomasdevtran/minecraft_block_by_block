@@ -1,25 +1,37 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { BuildModel } from '../engine/model'
-import type { Guide, Recipe } from '../engine/steps'
-import type { Face } from '../engine/voxels'
+import type { Guide } from '../engine/steps'
 import { rolesForStep } from '../lib/roles'
 import { readStored, writeStored } from '../lib/storage'
 import { useNearViewport } from '../lib/visibility'
-import StepGrid from './StepGrid.vue'
+import StepInstructions from './StepInstructions.vue'
+import GuidePrint from './GuidePrint.vue'
+import { rememberBuild } from '../lib/recentBuild'
+import { showToast } from '../lib/toast'
 
 // three.js is ~570 KB, far bigger than the rest of the site put together. Loading it lazily lets
 // the written steps — which are the actual instructions — paint without waiting for the 3D.
 const VoxelPreview = defineAsyncComponent(() => import('./VoxelPreview.vue'))
 
-const props = defineProps<{ model: BuildModel; guide: Guide; storageKey: string }>()
+const props = defineProps<{ model: BuildModel; guide: Guide; storageKey: string; title: string; resumePath: string; skinHash?: string }>()
 
 /** 0 is the materials overview; step N is guide.steps[N - 1]. */
 const index = ref(0)
 const total = computed(() => props.guide.steps.length + 1)
 const step = computed(() => (index.value === 0 ? null : props.guide.steps[index.value - 1]))
 const roles = computed(() => rolesForStep(props.model, props.guide, step.value))
-const recipesById = computed(() => new Map(props.guide.recipes.map((r) => [r.id, r])))
+const panel = ref<HTMLElement | null>(null)
+const printing = ref(false)
+const shareUrl = ref('')
+const stages = computed(() => [
+  { label: 'Materials', index: 0 },
+  ...(['paint', 'build', 'assemble'] as const).flatMap(kind => {
+    const first = props.guide.steps.findIndex(s => s.kind === kind)
+    return first < 0 ? [] : [{ label: { paint: 'Paint', build: 'Build', assemble: 'Assemble' }[kind], index: first + 1 }]
+  }),
+])
+const currentStage = computed(() => stages.value.filter(s => s.index <= index.value).at(-1)?.label)
 
 watch(
   () => props.storageKey,
@@ -29,14 +41,53 @@ watch(
   },
   { immediate: true },
 )
-watch(index, (i) => writeStored(`progress:${props.storageKey}`, i))
+watch(index, (i) => {
+  writeStored(`progress:${props.storageKey}`, i)
+  rememberBuild({ title: props.title, path: props.resumePath, step: i, total: total.value - 1, skinHash: props.skinHash })
+})
 watch(total, (t) => (index.value = Math.min(index.value, t - 1)))
 
-const go = (delta: number) => (index.value = Math.max(0, Math.min(total.value - 1, index.value + delta)))
+async function jump(value: number) {
+  index.value = Math.max(0, Math.min(total.value - 1, value))
+  await nextTick()
+  panel.value?.querySelector<HTMLElement>(`[data-step="${index.value}"] h2`)?.focus({ preventScroll: true })
+  panel.value?.scrollIntoView({ block: 'start', behavior: 'instant' })
+}
+const go = (delta: number) => jump(index.value + delta)
+async function printGuide() {
+  printing.value = true
+  await nextTick()
+  window.print()
+}
+function beforePrint() { printing.value = true }
+function afterPrint() { printing.value = false }
+onMounted(() => {
+  window.addEventListener('beforeprint', beforePrint)
+  window.addEventListener('afterprint', afterPrint)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('beforeprint', beforePrint)
+  window.removeEventListener('afterprint', afterPrint)
+})
+async function shareBuild() {
+  const path = props.skinHash ? '/skin' : props.resumePath
+  const url = new URL(path, window.location.origin).href
+  try {
+    await navigator.clipboard.writeText(url)
+    showToast(props.skinHash ? 'Skin builder link copied. Your uploaded skin stays on this device.' : 'Build link copied, including your build settings.')
+  } catch {
+    shareUrl.value = url
+  }
+}
 
 function onKey(e: KeyboardEvent) {
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
+    e.preventDefault()
+    void printGuide()
+    return
+  }
   if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
-  if (e.target instanceof HTMLElement && e.target.closest('input, select, textarea, button, a, [contenteditable="true"]')) return
+  if (e.target instanceof HTMLElement && (e.target.isContentEditable || e.target.closest('input, select, textarea, button, a, summary, [tabindex]:not([tabindex="-1"])'))) return
   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
     e.preventDefault()
     go(e.key === 'ArrowRight' ? 1 : -1)
@@ -75,22 +126,6 @@ const stageLabel = computed(() => {
   return s.kind === 'paint' ? 'Paint' : s.kind === 'build' ? 'Build' : 'Assemble'
 })
 
-const FACE_LABELS: [Face, string][] = [
-  ['top', 'Top'],
-  ['front', 'Front'],
-  ['left', 'Left side'],
-  ['right', 'Right side'],
-  ['back', 'Back'],
-  ['bottom', 'Bottom'],
-]
-
-function faceList(recipe: Recipe) {
-  return FACE_LABELS.filter(([f]) => recipe.faces[f] !== undefined).map(([f, label]) => ({
-    label,
-    paint: props.model.palette[recipe.faces[f]!],
-  }))
-}
-
 const paintRows = computed(() =>
   props.model.palette.map((p, i) => ({ ...p, ...props.guide.materials.perPaint[i] })),
 )
@@ -99,6 +134,22 @@ const showFaces = computed(() => props.model.kind === 'skin')
 
 <template>
   <section class="guide">
+    <div class="guide-tools">
+      <nav class="stages" aria-label="Build stages">
+        <button v-for="stage in stages" :key="stage.label" class="stage-button" :aria-current="currentStage === stage.label ? 'step' : undefined" @click="jump(stage.index)">{{ stage.label }}</button>
+      </nav>
+      <div class="utility-actions">
+        <button class="btn" @click="printGuide">Print full guide</button>
+        <button class="btn" @click="shareBuild">{{ skinHash ? 'Copy skin builder link' : 'Copy build link' }}</button>
+      </div>
+    </div>
+    <label v-if="shareUrl" class="share-fallback">Copy this link <input readonly :value="shareUrl" @focus="($event.target as HTMLInputElement).select()" /></label>
+    <label class="step-picker">Jump to a step
+      <select :value="index" @change="jump(Number(($event.target as HTMLSelectElement).value))">
+        <option :value="0">Materials · What you need</option>
+        <option v-for="(s, i) in guide.steps" :key="i" :value="i + 1">{{ i + 1 }}. {{ s.title }}</option>
+      </select>
+    </label>
     <div
       class="progress"
       role="progressbar"
@@ -112,11 +163,10 @@ const showFaces = computed(() => props.model.kind === 'skin')
     </div>
 
     <div class="layout">
-      <!-- Screen readers announce each new step as it appears. -->
-      <div class="panel card" role="region" aria-label="Current step" aria-live="polite">
-        <div class="step-meta">
+      <div ref="panel" class="panel card" role="region" aria-label="Current step">
+        <div class="step-meta" role="status" aria-atomic="true">
           <span class="stage">{{ stageLabel }}</span>
-          <span class="muted">Step {{ index }} of {{ total - 1 }}</span>
+          <span class="muted">{{ index === 0 ? 'Before you start' : `Step ${index} of ${total - 1}` }}</span>
         </div>
 
         <!-- Fades each step in. Enter-only, with no `mode="out-in"`: that holds the old step on
@@ -124,10 +174,11 @@ const showFaces = computed(() => props.model.kind === 'skin')
              click — the one interaction on this page that has to stay instant. Height changes
              here follow a click, so they're excluded from the layout-shift score. -->
         <Transition name="step">
-        <div :key="index" class="step-body">
+        <div :key="index" class="step-body" :data-step="index">
         <!-- Materials overview -->
         <template v-if="!step">
-          <h2>What you need</h2>
+          <h2 tabindex="-1">What you need</h2>
+          <p>Gather your cubes, paint, brush and glue. Use labeled trays to keep each cube type together.</p>
           <p class="safety-note muted">Use equal-size craft cubes, suitable paint and glue. Small parts are a choking hazard; keep away from children under three. Children need adult supervision. <a href="/terms#safety">Build safely</a>.</p>
           <div class="totals">
             <div>
@@ -158,7 +209,7 @@ const showFaces = computed(() => props.model.kind === 'skin')
             <tbody>
               <tr v-for="p in paintRows" :key="p.id">
                 <td>
-                  <span class="swatch" :style="{ background: p.hex }"></span>
+                  <span class="swatch" aria-hidden="true" :style="{ background: p.hex }"></span>
                   <strong>#{{ p.id }}</strong> {{ p.name }}
                   <code class="muted">{{ p.hex }}</code>
                 </td>
@@ -173,64 +224,31 @@ const showFaces = computed(() => props.model.kind === 'skin')
           </p>
         </template>
 
-        <!-- Paint steps -->
-        <template v-else-if="step.kind === 'paint'">
-          <h2>{{ step.title }}</h2>
-          <p>{{ step.text }}</p>
-          <ul class="recipes">
-            <li v-for="id in step.recipes" :key="id">
-              <span class="letter">{{ id }}</span>
-              <span class="count">{{ recipesById.get(id)!.count }}×</span>
-              <span class="faces">
-                <template v-if="recipesById.get(id)!.uniform !== null">
-                  <span class="chip">
-                    <span class="swatch" :style="{ background: model.palette[recipesById.get(id)!.uniform!].hex }"></span>
-                    All sides: #{{ model.palette[recipesById.get(id)!.uniform!].id }}
-                    {{ model.palette[recipesById.get(id)!.uniform!].name }}
-                  </span>
-                </template>
-                <template v-else>
-                  <span v-for="f in faceList(recipesById.get(id)!)" :key="f.label" class="chip">
-                    <span class="swatch" :style="{ background: f.paint.hex }"></span>
-                    {{ f.label }}: #{{ f.paint.id }} {{ f.paint.name }}
-                  </span>
-                </template>
-              </span>
-            </li>
-          </ul>
-        </template>
-
-        <!-- Build steps -->
-        <template v-else-if="step.kind === 'build'">
-          <h2>{{ step.title }}</h2>
-          <p>{{ step.text }}</p>
-          <StepGrid :grid="step.grid" :palette="model.palette" />
-        </template>
-
-        <!-- Assembly steps -->
-        <template v-else>
-          <h2>{{ step.title }}</h2>
-          <p>{{ step.text }}</p>
-        </template>
+        <StepInstructions v-else :step="step" :recipes="guide.recipes" :palette="model.palette" />
 
         </div>
         </Transition>
 
-        <div class="nav">
+        <div class="nav desktop-nav">
           <button class="btn" :disabled="index === 0" @click="go(-1)">← Back</button>
           <button class="btn primary" :disabled="index === total - 1" @click="go(1)">
-            {{ index === 0 ? 'Start' : 'Next' }} →
+            {{ index === 0 ? 'Start painting' : 'Next step' }} →
           </button>
         </div>
-        <p v-if="index === total - 1" class="done">🎉 That's the last step. Nice build!</p>
+        <div v-if="index === total - 1" class="finish-card">
+          <h2>You made it, one cube at a time.</h2>
+          <p>Let the glue dry, then find a spot for your build. Share the guide so a friend can try it too.</p>
+          <button class="btn primary" @click="shareBuild">{{ skinHash ? 'Share the skin builder' : 'Share this build' }}</button>
+        </div>
       </div>
 
       <div ref="previewCard" class="preview card">
+        <p class="preview-title">{{ step ? 'Your build so far' : 'The finished build' }}</p>
         <!-- The stage always exists and always fills the card, so the message, the gap while the
              3D chunk downloads, and the finished canvas all occupy the same box. Without it the
              card collapses for those few hundred milliseconds and the hint below jumps twice. -->
         <div class="preview-stage">
-          <VoxelPreview v-if="showPreview" :model="model" :roles="roles" />
+          <VoxelPreview v-if="showPreview" :model="model" :roles="roles" :description="`${title}: ${step ? step.title : 'finished build'}. Exact cube positions are available in the written instructions.`" />
           <p v-else class="preview-placeholder muted">
             {{ webglOk ? 'Loading 3D preview…' : "This browser can't show the 3D preview. Every cube is written out in the steps." }}
           </p>
@@ -239,10 +257,38 @@ const showFaces = computed(() => props.model.kind === 'skin')
         <span class="hint muted hint-touch">Swipe sideways to rotate · pinch to zoom</span>
       </div>
     </div>
+    <nav class="mobile-nav" aria-label="Step navigation">
+      <button class="btn" :disabled="index === 0" @click="go(-1)">← Back</button>
+      <span>{{ index }} / {{ total - 1 }}</span>
+      <button class="btn primary" :disabled="index === total - 1" @click="go(1)">{{ index === 0 ? 'Start' : 'Next' }} →</button>
+    </nav>
+    <GuidePrint v-if="printing" :title="title" :model="model" :guide="guide" />
   </section>
 </template>
 
 <style scoped>
+.guide-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.stages, .utility-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.stage-button { border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 6px; padding: 10px 14px; min-height: 44px; cursor: pointer; font-weight: 600; }
+.stage-button[aria-current] { background: var(--accent-soft); color: var(--ink); border-color: var(--accent); }
+.utility-actions .btn { font-size: .85rem; }
+.step-picker { display: flex; align-items: center; gap: 12px; font-size: .9rem; margin-bottom: 16px; }
+.step-picker select { min-width: 0; max-width: 100%; flex: 1; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.share-fallback { display: grid; gap: 8px; margin-bottom: 16px; }
+.panel { scroll-margin-top: 16px; }
+.panel h2 { font-family: var(--sans); letter-spacing: 0; }
+.mobile-nav { display: none; }
+.preview-title { margin: 0; padding: 14px 16px 0; font-weight: 600; font-size: .9rem; }
+.finish-card { border-top: 1px solid var(--line); padding-top: 20px; margin-top: 20px; }
+.finish-card h2 { font-size: 1.2rem; line-height: 1.4; }
+@media (max-width: 860px) {
+  .guide { padding-bottom: 85px; }
+  .desktop-nav { display: none !important; }
+  .mobile-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; align-items: center; gap: 12px; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
+  .mobile-nav .btn { flex: 1; }
+  .mobile-nav span { font-size: .8rem; white-space: nowrap; }
+  .step-picker { flex-direction: column; align-items: stretch; gap: 6px; }
+}
 .safety-note { font-size: 0.85rem; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
 .progress {
   height: 8px;
@@ -332,7 +378,7 @@ const showFaces = computed(() => props.model.kind === 'skin')
 }
 
 .totals strong {
-  font: 700 1.6rem var(--pixel);
+  font: 700 1.6rem var(--sans);
 }
 
 .totals span {
@@ -375,56 +421,6 @@ const showFaces = computed(() => props.model.kind === 'skin')
   font-size: 0.85rem;
 }
 
-.recipes {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.recipes li {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.6rem;
-  padding: 0.5rem;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-}
-
-.letter {
-  font: 800 1.05rem var(--sans);
-  min-width: 2.2rem;
-  height: 2.2rem;
-  display: grid;
-  place-items: center;
-  border-radius: 6px;
-  background: var(--ink);
-  color: var(--bg);
-  padding: 0 0.3rem;
-}
-
-.count {
-  font: 700 1.1rem var(--pixel);
-  min-width: 3rem;
-  line-height: 2.2rem;
-}
-
-.faces {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px 10px;
-  padding-top: 0.35rem;
-  font-size: 0.9rem;
-}
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35em;
-}
-
 .nav {
   display: flex;
   justify-content: space-between;
@@ -436,12 +432,6 @@ const showFaces = computed(() => props.model.kind === 'skin')
   flex: 1;
   padding: 0.9em;
   font-size: 1.05rem;
-}
-
-.done {
-  margin: 0.8rem 0 0;
-  text-align: center;
-  font-weight: 600;
 }
 
 .preview {
@@ -463,6 +453,7 @@ const showFaces = computed(() => props.model.kind === 'skin')
 .preview-stage {
   flex: 1;
   position: relative;
+  min-height: 0;
 }
 
 /* Overlaid rather than in flow, so swapping it for the canvas can't move anything. */
@@ -506,8 +497,5 @@ const showFaces = computed(() => props.model.kind === 'skin')
     font-size: 1.3rem;
   }
 
-  .recipes li {
-    flex-wrap: wrap;
-  }
 }
 </style>

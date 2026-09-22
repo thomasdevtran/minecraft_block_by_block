@@ -134,7 +134,7 @@ function paintSteps(model: BuildModel, recipes: Recipe[]): Step[] {
     steps.push({
       kind: 'paint',
       title: `Paint ${r.count} cube${r.count === 1 ? '' : 's'} ${paint.name}`,
-      text: `Paint these cubes all over with paint #${paint.id} (${paint.name}). Label them "${r.id}".`,
+      text: `Paint all six sides with paint #${paint.id} (${paint.name}). Keep these cubes in a tray labeled "${r.id}".`,
       recipes: [r.id],
     })
   }

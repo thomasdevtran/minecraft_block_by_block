@@ -11,6 +11,8 @@ const username = ref('')
 const loading = ref(false)
 const uploading = ref(false)
 const error = ref('')
+const errorSource = ref<'lookup' | 'upload'>('lookup')
+const invalidUsername = ref(false)
 const dragging = ref(false)
 const fileInput = ref<HTMLInputElement>()
 
@@ -24,8 +26,11 @@ async function useSkin(skin: LoadedSkin) {
 
 async function lookup() {
   if (loading.value || uploading.value) return
+  errorSource.value = 'lookup'
+  invalidUsername.value = false
   const name = username.value.trim()
   if (!/^[A-Za-z0-9_]{1,16}$/.test(name)) {
+    invalidUsername.value = true
     error.value = 'Enter a Java Edition username: 1–16 letters, numbers or underscores.'
     return
   }
@@ -43,6 +48,7 @@ async function lookup() {
 
 async function upload(file: File | undefined) {
   if (!file || uploading.value || loading.value) return
+  errorSource.value = 'upload'
   error.value = ''
   if (file.type !== 'image/png' && !file.name.toLowerCase().endsWith('.png')) {
     error.value = `“${file.name}” isn't a PNG. Minecraft skins are .png files.`
@@ -106,12 +112,16 @@ function onDrop(e: DragEvent) {
             autocapitalize="off"
             spellcheck="false"
             enterkeyhint="search"
-            aria-label="Minecraft username"
+            aria-describedby="skin-username-help"
+            :aria-invalid="invalidUsername"
+            :aria-errormessage="errorSource === 'lookup' && error ? 'skin-error' : undefined"
+            @input="invalidUsername = false"
           />
           <button class="btn primary" :disabled="loading || uploading">
             {{ loading ? 'Looking up…' : 'Get skin' }}
           </button>
         </div>
+        <p id="skin-username-help" class="input-help muted">1–16 letters, numbers or underscores.</p>
       </form>
 
       <div
@@ -137,10 +147,10 @@ function onDrop(e: DragEvent) {
       </div>
     </div>
 
-    <p v-if="error" class="notice error-box" role="alert">{{ error }}</p>
+    <p v-if="error" id="skin-error" class="notice error-box" role="alert">{{ error }}</p>
 
     <div v-if="currentSkin" class="resume card">
-      <img :src="currentSkin.dataUrl" alt="" class="pixelated" width="64" height="64" />
+      <img :src="currentSkin.dataUrl" :alt="`Saved skin texture for ${currentSkin.label}`" class="pixelated" width="64" height="64" />
       <div>
         <strong>Continue with {{ currentSkin.label }}</strong>
         <p class="muted">Your progress on this skin is saved.</p>
@@ -158,6 +168,7 @@ function onDrop(e: DragEvent) {
 .lead {
   font-size: 1.1rem;
 }
+.input-help { font-size: .85rem; margin: 8px 0 0; }
 
 .options {
   display: grid;

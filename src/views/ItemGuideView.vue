@@ -16,6 +16,7 @@ import { look } from '../lib/look'
 import { setPageMeta } from '../lib/meta'
 import { readStored, writeStored } from '../lib/storage'
 import NotFoundView from './NotFoundView.vue'
+import { flag, paintLimit } from '../lib/buildSettings'
 
 const props = defineProps<{ id: string }>()
 const route = useRoute()
@@ -33,6 +34,10 @@ const maxPaints = ref(readStored('prefs:item:maxPaints', 12))
 watch(maxPaints, (v) => writeStored('prefs:item:maxPaints', v))
 const blockPrefs = reactive(readStored('prefs:block', { hollow: true, simplePaint: true }))
 watch(blockPrefs, (v) => writeStored('prefs:block', v))
+watch(() => route.query.paints, value => { maxPaints.value = paintLimit(value, maxPaints.value) }, { immediate: true })
+watch(() => route.query.hollow, value => { blockPrefs.hollow = flag(value, blockPrefs.hollow) }, { immediate: true })
+watch(() => route.query.simple, value => { blockPrefs.simplePaint = flag(value, blockPrefs.simplePaint) }, { immediate: true })
+watch(() => route.query.look, value => { if (value === 'current' || value === 'classic') look.value = value }, { immediate: true })
 
 const has3d = computed(() => !!(item.value?.block || item.value?.flower))
 const canPot = computed(() => !!item.value?.flower?.pottable)
@@ -149,6 +154,10 @@ const storageKey = computed(() => {
   if (view.value === '3d' && item.value?.block) parts.push(blockPrefs.hollow ? 'hollow' : 'solid')
   return parts.join(':')
 })
+const resumePath = computed(() => `/item/${props.id}?${new URLSearchParams({
+  view: view.value, look: activeLook.value, paints: String(maxPaints.value),
+  pot: potted.value ? '1' : '0', simple: blockPrefs.simplePaint ? '1' : '0', hollow: blockPrefs.hollow ? '1' : '0',
+})}`)
 
 /** Paint-per-face only matters where a cube shows more than one color. */
 const showSimplePaint = computed(() => view.value === '3d' && (!!item.value?.block || potted.value))
@@ -184,8 +193,8 @@ const description = computed(() => {
     <template v-if="item">
       <header class="head">
         <div class="icon">
-          <BlockIcon v-if="view === '3d' && item.block" :src="blockUrl(item, activeLook)!" :size="42" />
-          <img v-else :src="textureUrl(item, activeLook)" alt="" class="pixelated" width="64" height="64" />
+          <BlockIcon v-if="view === '3d' && item.block" :src="blockUrl(item, activeLook)!" :size="42" :label="`${item.name} block texture preview`" />
+          <img v-else :src="textureUrl(item, activeLook)" :alt="`${item.name} game texture used for this guide`" class="pixelated" width="64" height="64" />
         </div>
         <div class="head-text">
           <h1>{{ potted ? `Potted ${item.name}` : item.name }}</h1>
@@ -194,6 +203,10 @@ const description = computed(() => {
           </p>
           <p class="muted">{{ description }}</p>
         </div>
+      </header>
+      <details class="build-settings">
+        <summary>Customize build <span class="muted">· {{ view.toUpperCase() }} · up to {{ maxPaints }} paint colors</span></summary>
+        <p class="muted">Changing these options creates a different guide. Each version remembers its own step.</p>
         <div v-if="has3d || item.classic" class="style-controls">
           <ViewToggle v-if="has3d" v-model="view" :options="VIEWS" />
           <ViewToggle
@@ -209,7 +222,6 @@ const description = computed(() => {
             In a pot
           </button>
         </div>
-      </header>
 
       <PaintControls v-model:max-paints="maxPaints">
         <div v-if="showSimplePaint" class="toggles">
@@ -223,6 +235,7 @@ const description = computed(() => {
           </label>
         </div>
       </PaintControls>
+      </details>
 
       <p v-if="connectivity && connectivity.pieces > 1" class="notice">
         <strong>Heads up:</strong> some cubes only touch at their corners, so this build falls into
@@ -234,7 +247,7 @@ const description = computed(() => {
       <!-- Holds the guide's height from the first paint, so the steps arriving doesn't shove the
            footer down the page. -->
       <div class="guide-slot">
-        <GuideViewer v-if="model && guide" :model="model" :guide="guide" :storage-key="storageKey" />
+        <GuideViewer v-if="model && guide" :key="storageKey" :model="model" :guide="guide" :storage-key="storageKey" :title="potted ? `Potted ${item.name}` : item.name" :resume-path="resumePath" />
         <p v-else-if="loading" class="loading muted" role="status">Working out the steps…</p>
       </div>
     </template>
@@ -281,7 +294,7 @@ const description = computed(() => {
 
 .head-text {
   flex: 1;
-  min-width: 220px;
+  min-width: min(220px, 100%);
 }
 
 .head p {

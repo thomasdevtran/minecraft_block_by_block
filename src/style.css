@@ -146,6 +146,24 @@ canvas.pixelated {
   color: var(--ink-soft);
 }
 
+.build-settings { margin: 0 0 24px; border-block: 1px solid var(--line); padding: 4px 0; }
+.build-settings > summary { padding: 12px 0; cursor: pointer; min-height: 44px; font-weight: 650; }
+.build-settings > summary .muted { font-weight: 400; font-size: .85rem; }
+.build-settings > p { margin: 8px 0 16px; font-size: .9rem; }
+.build-settings .style-controls { margin-bottom: 16px; }
+.build-settings .controls { margin-top: 16px; }
+
+@media print {
+  :root, :root[data-theme], :root:not([data-theme='light']) { --bg: #fff; --surface: #fff; --surface-2: #eee; --ink: #111; --ink-soft: #444; --line: #aaa; --accent: #315919; --accent-soft: #eee; --plain-cube: #ddd; color: #111; background: white; color-scheme: light; font-size: 11pt; }
+  .site-header, .site-footer, .fan-notice, .skip-link, .toast-host { display: none !important; }
+  #main > .container > :not(.guide-slot) { display: none !important; }
+  .guide > :not(.guide-print) { display: none !important; }
+  .container { max-width: none; padding: 0; }
+  .guide, .guide-slot { padding: 0 !important; min-height: 0 !important; }
+  * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  @page { margin: 15mm; }
+}
+
 .btn {
   display: inline-flex;
   align-items: center;
@@ -305,6 +323,15 @@ p {
   .btn {
     min-height: 44px;
   }
+}
+
+/* Leave room for fixed guide controls when tabbing, scrolling or reading the footer. */
+@media (max-width: 860px) {
+  :root:has(.mobile-nav) {
+    --bottom-control-space: calc(76px + env(safe-area-inset-bottom));
+    scroll-padding-bottom: calc(16px + var(--bottom-control-space));
+  }
+  body:has(.mobile-nav) .site-footer { padding-bottom: calc(32px + var(--bottom-control-space)); }
 }
 
 /* Visible to screen readers only. */
