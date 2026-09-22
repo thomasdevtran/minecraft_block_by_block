@@ -204,7 +204,7 @@ const description = computed(() => {
           <p class="muted">{{ description }}</p>
         </div>
       </header>
-      <details class="build-settings">
+      <details class="build-settings" open>
         <summary>Customize build <span class="muted">· {{ view.toUpperCase() }} · up to {{ maxPaints }} paint colors</span></summary>
         <p class="muted">Changing these options creates a different guide. Each version remembers its own step.</p>
         <div v-if="has3d || item.classic" class="style-controls">

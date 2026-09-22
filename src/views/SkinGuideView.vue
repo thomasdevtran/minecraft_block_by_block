@@ -117,7 +117,7 @@ const resumePath = computed(() => `/skin/guide?${new URLSearchParams({
           </p>
         </div>
       </header>
-      <details class="build-settings">
+      <details class="build-settings" open>
         <summary>Customize build <span class="muted">· {{ view.toUpperCase() }} · up to {{ prefs.maxPaints }} paint colors</span></summary>
         <p class="muted">Changing these options creates a different guide. Each version remembers its own step.</p>
         <ViewToggle v-model="view" :options="VIEWS" />
