@@ -7,8 +7,8 @@ const BOTS = /bot|crawl|spider|headless|lighthouse|preview|curl|wget|python|axio
 const memory = new Set<string>()
 
 function configuration() {
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  const url = process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL
+  const token = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN
   const salt = process.env.VISITOR_SALT
   const deployed = !!process.env.VERCEL_ENV || process.env.NODE_ENV === 'production'
   return { url, token, salt, deployed, ready: !!(url?.startsWith('https://') && token && salt && salt.length >= 32) }

@@ -49,6 +49,16 @@ describe('visitor counter privacy boundary', () => {
     await POST(request())
     expect(fetch).not.toHaveBeenCalled()
   })
+  it('accepts environment names from the Vercel Upstash integration', async () => {
+    vi.stubEnv('UPSTASH_REDIS_REST_URL', '')
+    vi.stubEnv('UPSTASH_REDIS_REST_TOKEN', '')
+    vi.stubEnv('KV_REST_API_URL', 'https://kv.example.com')
+    vi.stubEnv('KV_REST_API_TOKEN', 'kv-token')
+    expect((await GET()).status).toBe(200)
+    expect(fetch).toHaveBeenCalledWith('https://kv.example.com', expect.objectContaining({
+      headers: expect.objectContaining({ Authorization: 'Bearer kv-token' }),
+    }))
+  })
   it('reports provider failures instead of a false zero', async () => {
     vi.mocked(fetch).mockResolvedValue(Response.json({ error: 'WRONGTYPE' }))
     expect((await GET()).status).toBe(503)

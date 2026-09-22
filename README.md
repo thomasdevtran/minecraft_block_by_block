@@ -66,8 +66,8 @@ Run `npm ci`, `npm test`, `npm run check:catalog`, `npm run build`, and `npm aud
 
 | Variable | Purpose |
 | --- | --- |
-| `UPSTASH_REDIS_REST_URL` | HTTPS REST endpoint from the Upstash integration. |
-| `UPSTASH_REDIS_REST_TOKEN` | Server-only database credential. |
+| `UPSTASH_REDIS_REST_URL` or `KV_REST_API_URL` | HTTPS REST endpoint from the Upstash integration. |
+| `UPSTASH_REDIS_REST_TOKEN` or `KV_REST_API_TOKEN` | Server-only database credential. |
 | `VISITOR_SALT` | Cryptographically random server-only secret, at least 32 characters. |
 
 Never prefix these secrets with `VITE_` or put them in client code. Generate a secret with `node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"` and save it directly in the hosting environment.
