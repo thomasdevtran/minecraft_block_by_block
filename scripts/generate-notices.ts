@@ -16,6 +16,8 @@ for (const [path, metadata] of Object.entries(lock.packages)) {
   // install them for the current build machine.
   if (!existsSync(directory)) continue
   const files = readdirSync(directory).filter((file) => /^(licen[sc]e|copying|notice)([.-]|$)/i.test(file) && !/\.(js|cjs|mjs)$/i.test(file))
+  // Rolldown's platform binaries use the parent package's shared license files.
+  if (!files.length && /^node_modules[\\/]@rolldown[\\/]binding-/.test(path)) continue
   if (!files.length) throw new Error(`Missing license file for ${path}; review before distribution.`)
   notices.push(`\n===== ${path.replace(/^node_modules\//, '')} ${metadata.version} (${metadata.license}) =====\n`)
   for (const file of files) notices.push(readFileSync(resolve(directory, file), 'utf8'))
