@@ -1,5 +1,5 @@
-# Snapshots the opted-in aggregate total. Repository history is not independent proof of audience size.
-name: Record visitor count
+# Snapshots the aggregate page-visit total. Repository history is not independent proof of audience size.
+name: Record page visits
 on:
   schedule:
     - cron: '10 3 * * *'
@@ -20,8 +20,8 @@ jobs:
           body=$(curl -fsS --max-time 30 "$SITE_URL/api/stats")
           total=$(printf '%s' "$body" | jq -er '.total | select(type == "number" and . >= 0 and . == floor)')
           mkdir -p docs
-          file=docs/consenting-visitors.csv
-          [ -f "$file" ] || echo "date,estimated_opted_in_visitors" > "$file"
+          file=docs/page-visits.csv
+          [ -f "$file" ] || echo "date,page_visits" > "$file"
           today=$(date -u +%F)
           if grep -q "^$today," "$file"; then
             exit 0
@@ -30,5 +30,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "$file"
-          git commit -m "Record opted-in visitor total for $today"
+          git commit -m "Record page-visit total for $today"
           git push

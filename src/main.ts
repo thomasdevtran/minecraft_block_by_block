@@ -6,5 +6,5 @@ import { countVisit } from './lib/stats'
 
 createApp(App).use(router).mount('#app')
 
-// Only a previously opted-in visitor is counted; no additional analytics scripts are loaded.
+// Count each page load automatically; no additional analytics scripts are loaded.
 countVisit()

@@ -3,7 +3,6 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import ToastHost from './components/ToastHost.vue'
 import VisitorCount from './components/VisitorCount.vue'
-import PrivacyChoice from './components/PrivacyChoice.vue'
 import { SITE } from './lib/site'
 import { showToast } from './lib/toast'
 import { readStored, writeStored } from './lib/storage'
@@ -106,7 +105,6 @@ async function copyDiscord() {
 
   <footer class="site-footer">
     <div class="container footer-inner">
-      <PrivacyChoice v-if="route.name !== 'privacy'" />
       <VisitorCount />
       <label class="theme-control">Appearance
         <select v-model="theme"><option value="system">Use device setting</option><option value="light">Light</option><option value="dark">Dark</option></select>

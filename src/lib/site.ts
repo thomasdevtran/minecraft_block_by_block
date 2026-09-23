@@ -26,5 +26,5 @@ export const SITE = {
   },
 
   /** Shown as "last updated" on the legal pages. */
-  legalUpdated: '16 September 2026',
+  legalUpdated: '22 September 2026',
 }

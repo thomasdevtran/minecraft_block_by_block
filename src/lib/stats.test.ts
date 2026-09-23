@@ -1,42 +1,47 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-const idle = vi.hoisted(() => [] as (() => void)[])
-vi.mock('./schedule', () => ({ whenIdle: (fn: () => void) => idle.push(fn) }))
+
 beforeEach(() => {
   vi.resetModules()
-  idle.length = 0
   vi.stubGlobal('navigator', { webdriver: false, doNotTrack: null })
-  vi.stubGlobal('localStorage', { getItem: () => null, setItem: vi.fn() })
+  vi.stubGlobal('localStorage', { getItem: vi.fn(), setItem: vi.fn() })
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })))
 })
 afterEach(() => vi.unstubAllGlobals())
-describe('count consent', () => {
-  it('sends nothing without a choice or after declining', async () => {
+
+describe('automatic page visits', () => {
+  it('counts immediately without a choice, cookies or local storage', async () => {
     const stats = await import('./stats')
     stats.countVisit()
-    stats.setVisitorChoice('deny')
-    idle.forEach((fn) => fn())
-    expect(fetch).not.toHaveBeenCalled()
+    expect(fetch).toHaveBeenCalledWith('/api/stats', {
+      method: 'POST', credentials: 'omit', keepalive: true,
+    })
+    expect(localStorage.getItem).not.toHaveBeenCalled()
+    expect(localStorage.setItem).not.toHaveBeenCalled()
   })
-  it('sends once after allowing and ignores duplicate idle scheduling', async () => {
+  it('counts once per page load, and again on a new load', async () => {
     const stats = await import('./stats')
-    stats.setVisitorChoice('allow')
     stats.countVisit()
-    idle.forEach((fn) => fn())
+    stats.countVisit()
     expect(fetch).toHaveBeenCalledTimes(1)
-    expect(fetch).toHaveBeenCalledWith('/api/stats', expect.objectContaining({ headers: { 'X-Visitor-Consent': 'granted' } }))
+    vi.resetModules()
+    const nextPage = await import('./stats')
+    nextPage.countVisit()
+    expect(fetch).toHaveBeenCalledTimes(2)
   })
-  it('withdrawal cancels a queued count', async () => {
+  it.each([{ globalPrivacyControl: true }, { doNotTrack: '1' }, { webdriver: true }])(
+    'skips privacy signals and browser automation: %j', async (navigatorValue) => {
+      vi.stubGlobal('navigator', navigatorValue)
+      const stats = await import('./stats')
+      stats.countVisit()
+      expect(fetch).not.toHaveBeenCalled()
+    },
+  )
+  it('contains network failures without retrying and double counting', async () => {
+    vi.mocked(fetch).mockRejectedValue(new Error('offline'))
     const stats = await import('./stats')
-    stats.setVisitorChoice('allow')
-    stats.setVisitorChoice('deny')
-    idle.forEach((fn) => fn())
-    expect(fetch).not.toHaveBeenCalled()
-  })
-  it('respects Global Privacy Control even with an allow choice', async () => {
-    vi.stubGlobal('navigator', { globalPrivacyControl: true })
-    const stats = await import('./stats')
-    stats.setVisitorChoice('allow')
-    idle.forEach((fn) => fn())
-    expect(fetch).not.toHaveBeenCalled()
+    stats.countVisit()
+    await Promise.resolve()
+    stats.countVisit()
+    expect(fetch).toHaveBeenCalledTimes(1)
   })
 })

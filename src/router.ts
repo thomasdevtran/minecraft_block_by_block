@@ -63,7 +63,7 @@ export const router = createRouter({
       component: () => import('./views/PrivacyView.vue'),
       meta: {
         title: 'Privacy & cookies',
-        description: 'How local build data, optional visitor counting, skin lookups and support payments work, and how to manage your privacy.',
+        description: 'How local build data, automatic page-visit counting, skin lookups and support payments work, and how to manage your privacy.',
       },
     },
     {

@@ -25,9 +25,9 @@ onMounted(() => {
        can't reflow the line around it. -->
   <p v-if="!failed" :class="['visitors', { big, ready: total !== null }]">
     <span class="count">{{ total?.toLocaleString() }}</span>
-    <span class="label muted">estimated opted-in {{ total === 1 ? 'visitor' : 'visitors' }} · <a href="/privacy#visitor-count">How we count</a></span>
+    <span class="label muted">{{ total === 1 ? 'page visit' : 'page visits' }} · <a href="/privacy#visitor-count">How we count</a></span>
   </p>
-  <p v-else-if="big" class="muted">Visitor count is currently unavailable.</p>
+  <p v-else-if="big" class="muted">Visit count is currently unavailable.</p>
 </template>
 
 <style scoped>

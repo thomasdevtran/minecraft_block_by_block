@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import PrivacyChoice from '../components/PrivacyChoice.vue'
 import { SITE } from '../lib/site'
 import { currentSkin } from '../lib/skinStore'
 import { clearBuildData } from '../lib/storage'
@@ -15,7 +14,7 @@ function eraseBuilds() {
     currentSkin.value = null
     look.value = 'current'
   }
-  cleared.value = success ? 'Saved skins, settings and build progress were removed from this browser. Your privacy choice is kept.' : 'Browser storage could not be cleared. Use your browser’s site-data settings instead.'
+  cleared.value = success ? 'Saved skins, settings and build progress were removed from this browser.' : 'Browser storage could not be cleared. Use your browser’s site-data settings instead.'
   confirming.value = false
 }
 </script>
@@ -28,16 +27,16 @@ function eraseBuilds() {
     <p class="intro">{{ SITE.name }} is an independent craft-guide site operated by {{ SITE.operator.name }} in {{ SITE.operator.country }}. Contact <a :href="`mailto:${SITE.operator.email}`">{{ SITE.operator.email }}</a> for privacy questions or requests.</p>
     <div class="summary">
       <p><strong>No account required. Uploaded skins stay on your device.</strong></p>
-      <p>There are no advertising scripts at launch. Visitor counting is optional and off until you choose to allow it. Hosting, player lookups and payment services still process data as described below.</p>
+      <p>There are no advertising scripts at launch. Page visits are counted automatically without cookies or stored visitor identifiers. Hosting, player lookups and payment services still process data as described below.</p>
     </div>
     <nav class="contents" aria-label="Privacy topics"><a href="#local-data">Saved builds</a><a href="#visitor-count">Visitor count</a><a href="#services">Service providers</a><a href="#rights">Your rights</a></nav>
 
     <h2 id="local-data">What stays in your browser</h2>
-    <p>The site uses local storage to remember the features you use: paint and build settings, your place in a guide, your texture choice, and your last skin image and its username or file label. Your appearance and visitor-count choices are also saved. The application does not set cookies.</p>
+    <p>The site uses local storage to remember the features you use: paint and build settings, your place in a guide, your texture choice, and your last skin image and its username or file label. Your appearance choice is also saved. The application does not set cookies.</p>
     <p>These records stay until you clear them or your browser removes them. Someone using the same browser profile could see them. Uploaded PNG files are processed locally and are not uploaded to our server. Saved builds are not synced or backed up by us.</p>
     <div class="card data-controls">
       <strong>Manage saved builds</strong>
-      <p>Remove the saved skin, build settings and progress from this browser. Your visitor-count preference is kept.</p>
+      <p>Remove the saved skin, build settings and progress from this browser.</p>
       <button v-if="!confirming" class="btn" @click="confirming = true">Clear saved build data</button>
       <div v-else>
         <p><strong>This removes your local progress and cannot be undone.</strong></p>
@@ -46,12 +45,10 @@ function eraseBuilds() {
       <p v-if="cleared" role="status">{{ cleared }}</p>
     </div>
 
-    <h2 id="visitor-count">Optional visitor count</h2>
-    <PrivacyChoice settings />
-    <p>If you allow counting, your browser sends one count request per page session. The server processes your IP address and browser user-agent with a secret key to form a pseudonymous code. It sends that code to Upstash Redis to update a probabilistic counter called a HyperLogLog. This is personal-data processing even though the final counter is an aggregate.</p>
-    <p>The application keeps the aggregate total, not a list of those codes. It does not track your page history, clicks, or advertising interests, and it does not load Vercel Web Analytics. Hosting and infrastructure providers may separately retain request or service logs. We do not claim that hashing makes every stage anonymous.</p>
-    <p>The number estimates opted-in IP/browser combinations, not individual people. Shared connections with matching browsers may merge; different browsers, network changes and browser updates may count the same person more than once. People who decline are excluded. HyperLogLog's roughly 0.81% standard error does not include these other sources of error.</p>
-    <p>Consent is the basis for this optional measurement where applicable. You can turn it off above without losing access to guides. We also honor Global Privacy Control and Do Not Track signals by skipping the count. Withdrawal stops future count requests; an individual contribution cannot be isolated from the existing aggregate. The aggregate is retained while the counter is in use. Public totals are available at <a href="/api/stats">/api/stats</a>.</p>
+    <h2 id="visitor-count">Page visits</h2>
+    <p>Your browser automatically sends one count request when you open or reload the site. Moving between guides without reloading does not add another visit. Repeat visits count again, so the total measures page visits, not unique people.</p>
+    <p>The server increments a single total in Upstash Redis. The counter does not store IP addresses, browser identifiers, pseudonymous codes, timestamps for individual visits, or page history. It does not set cookies, save a counting preference, track clicks or advertising interests, or load Vercel Web Analytics. The server checks the browser user-agent to filter common bots; hosting and infrastructure providers may separately retain request or service logs.</p>
+    <p>We honor Global Privacy Control and Do Not Track signals by skipping the count. Blockers, failed requests and bot filtering can also exclude visits, and automated requests can inflate the total. Public totals may take a few minutes to update and are available at <a href="/api/stats">/api/stats</a>. The aggregate is retained while the counter is in use and cannot be linked back to a particular visitor.</p>
 
     <h2 id="services">Hosting and player lookups</h2>
     <p>The deployment is configured for Vercel hosting. Requests expose technical data such as your IP address, browser, requested URL and time to the hosting provider for delivery, security and troubleshooting. A player username appears in the lookup URL and may appear in request logs. The application does not intentionally write those details into its own database.</p>
@@ -69,7 +66,7 @@ function eraseBuilds() {
     <p><a href="https://ko-fi.com/home/privacy" target="_blank" rel="noopener noreferrer">Ko-fi privacy policy</a> · <a href="https://www.paypal.com/us/legalhub/paypal/privacy-full" target="_blank" rel="noopener noreferrer">PayPal privacy statement</a></p>
 
     <h2>Children and families</h2>
-    <p>There are no accounts, public uploads, chat features or behavioral advertising here. Children should use the craft guides with an adult, and should not send personal information or payments. A parent or guardian can contact us about information a child may have provided. Optional counting is limited to aggregate service measurement and is not used to contact or profile children.</p>
+    <p>There are no accounts, public uploads, chat features or behavioral advertising here. Children should use the craft guides with an adult, and should not send personal information or payments. A parent or guardian can contact us about information a child may have provided. Visit counting is limited to aggregate service measurement and is not used to contact or profile children.</p>
 
     <h2 id="rights">Your rights and choices</h2>
     <p>We do not sell personal information or share it for cross-context behavioral advertising. Depending on your location and the laws that apply, you may have rights to access, correct, delete or receive personal information, restrict or object to processing, withdraw consent, or complain to a privacy regulator. We do not deny access to guides for exercising privacy choices.</p>

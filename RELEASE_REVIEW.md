@@ -1,5 +1,7 @@
 # Public release review — 16 September 2026
 
+**Counter update, 22 September 2026:** The counter now automatically increments `bbb:page-visits:v1` once per full page load, including repeat visits. It stores no visitor identifiers and requires only Redis URL/token configuration. The consent UI and HMAC/HyperLogLog implementation described in this historical review have been replaced; GPC/DNT and bot/origin filtering remain. Old totals are not merged. The snapshot workflow now writes `docs/page-visits.csv`. See README and the current privacy notice for the active implementation. Production verification should confirm automatic increments and repeat visits, privacy-signal suppression, and persistence across function instances.
+
 The site has been refined and verified locally and renamed **Block by Cube**. **Do not treat it as legally cleared or already deployed.** The remaining material launch decisions are formal name clearance, rights to the extracted game artwork, payment-account verification, and the live hosting/privacy configuration.
 
 Operator details supplied for this review: **babiiyi**, California, United States; **toemasu1452@gmail.com**. Launch intent: free guides, voluntary support payments, an approximate visitor total, and advertising only in a later release.

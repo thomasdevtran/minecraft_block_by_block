@@ -1,7 +1,4 @@
-import { ref } from 'vue'
 import { loader } from './loader'
-import { whenIdle } from './schedule'
-import { readStored, writeStored } from './storage'
 
 export interface Stats {
   total: number
@@ -10,35 +7,20 @@ export interface Stats {
   accuracy: string
 }
 
-type Choice = 'allow' | 'deny' | null
-const KEY = 'privacy:visitor-count:v1'
-const stored = readStored<Choice>(KEY, null)
-export const visitorChoice = ref<Choice>(stored === 'allow' || stored === 'deny' ? stored : null)
 let counted = false
 
-export function privacySignalEnabled(): boolean {
-  return typeof navigator !== 'undefined' &&
-    (navigator.doNotTrack === '1' || (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true)
+function privacySignalEnabled(): boolean {
+  return navigator.doNotTrack === '1' ||
+    (navigator as Navigator & { globalPrivacyControl?: boolean }).globalPrivacyControl === true
 }
 
-export function setVisitorChoice(choice: Exclude<Choice, null>): void {
-  visitorChoice.value = choice
-  writeStored(KEY, choice)
-  if (choice === 'allow') countVisit()
-}
-
-/** Recheck consent inside the deferred callback in case permission was withdrawn. */
+/** Count once per page load, including repeat visits, without cookies or identifiers. */
 export function countVisit(): void {
-  if (counted || typeof navigator === 'undefined' || navigator.webdriver) return
-  if (visitorChoice.value !== 'allow' || privacySignalEnabled()) return
-  whenIdle(() => {
-    if (counted || visitorChoice.value !== 'allow' || privacySignalEnabled()) return
-    counted = true
-    void fetch('/api/stats', {
-      method: 'POST', headers: { 'X-Visitor-Consent': 'granted' },
-      credentials: 'omit', keepalive: true,
-    }).catch(() => { /* Optional measurement never interrupts a guide. */ })
-  })
+  if (counted || typeof navigator === 'undefined' || navigator.webdriver || privacySignalEnabled()) return
+  counted = true
+  void fetch('/api/stats', {
+    method: 'POST', credentials: 'omit', keepalive: true,
+  }).catch(() => { /* Measurement failures never interrupt a guide. */ })
 }
 
-export const loadStats = loader<Stats>('/api/stats', 'Visitor count unavailable')
+export const loadStats = loader<Stats>('/api/stats', 'Visit count unavailable')

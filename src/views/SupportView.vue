@@ -20,7 +20,7 @@ import { SITE } from '../lib/site'
     <h2>Help without spending anything</h2>
     <p>Share the site with someone who enjoys making things, or tell us when a guide is unclear. Include the item's name, build style and step number so we can reproduce the issue.</p>
     <p><a :href="`mailto:${SITE.operator.email}`">Email {{ SITE.operator.name }}</a> · <a :href="`${SITE.github}/issues`" target="_blank" rel="noopener noreferrer">Report an issue on GitHub<span class="visually-hidden"> (opens in a new tab)</span></a></p>
-    <div class="counter card"><VisitorCount big /><p class="muted small">An approximate total of visitors who allow counting. It is not a verified number of individual people. <RouterLink to="/privacy#visitor-count">Method and privacy choices</RouterLink>.</p></div>
+    <div class="counter card"><VisitorCount big /><p class="muted small">Total page visits, including repeat visits and reloads. <RouterLink to="/privacy#visitor-count">How visits are counted</RouterLink>.</p></div>
     <h2>Payment questions</h2>
     <p>For an accidental payment, refund request or other payment concern, email <a :href="`mailto:${SITE.operator.email}`">{{ SITE.operator.email }}</a>. Provider rules and applicable legal rights still apply. Children should have a parent or guardian handle payments.</p>
     <p class="back-links"><RouterLink to="/terms#payments">Support payment terms</RouterLink> · <RouterLink to="/privacy">Privacy</RouterLink> · <RouterLink to="/">Back to builds</RouterLink></p>

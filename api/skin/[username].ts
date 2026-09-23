@@ -5,6 +5,8 @@
  */
 
 const USERNAME = /^[A-Za-z0-9_]{1,16}$/
+const MAX_TEXTURE_METADATA_LENGTH = 64 * 1024
+const MAX_SKIN_BYTES = 1024 * 1024
 
 export class SkinLookupError extends Error {
   status: number
@@ -32,18 +34,30 @@ export async function lookupSkin(username: string): Promise<SkinLookup> {
     throw new SkinLookupError(404, `No Minecraft player is named "${username}".`)
   }
   if (!profileRes.ok) throw new SkinLookupError(502, 'Mojang’s player lookup is not responding. Try again soon.')
-  const profile = (await profileRes.json()) as { id: string; name: string }
-  if (!/^[a-f0-9]{32}$/i.test(profile.id) || !USERNAME.test(profile.name)) throw new SkinLookupError(502, 'The player service returned an invalid profile.')
+  const profile = await profileRes.json() as { id?: unknown; name?: unknown } | null
+  if (!profile || typeof profile.id !== 'string' || typeof profile.name !== 'string' || !/^[a-f0-9]{32}$/i.test(profile.id) || !USERNAME.test(profile.name)) {
+    throw new SkinLookupError(502, 'The player service returned an invalid profile.')
+  }
 
   const sessionRes = await fetch(`https://sessionserver.mojang.com/session/minecraft/profile/${profile.id}`, options)
   if (!sessionRes.ok) throw new SkinLookupError(502, 'Mojang’s skin server is not responding. Try again soon.')
-  const session = (await sessionRes.json()) as { properties: { name: string; value: string }[] }
-  const encoded = session.properties.find((p) => p.name === 'textures')?.value
-  const textures = encoded
-    ? (JSON.parse(atob(encoded)) as { textures: { SKIN?: { url: string; metadata?: { model?: string } } } })
-    : null
-  const skin = textures?.textures.SKIN
+  const session = await sessionRes.json() as { properties?: unknown } | null
+  const properties = session && Array.isArray(session.properties) ? session.properties : []
+  const encoded = properties.find((property): property is { name: string; value: string } => (
+    !!property && typeof property === 'object'
+    && (property as { name?: unknown }).name === 'textures'
+    && typeof (property as { value?: unknown }).value === 'string'
+  ))?.value
+  if (encoded && encoded.length > MAX_TEXTURE_METADATA_LENGTH) throw new SkinLookupError(502, 'The skin service returned invalid texture data.')
+  type TexturePayload = { textures?: { SKIN?: { url?: unknown; metadata?: { model?: string } } } }
+  let textures: TexturePayload | null = null
+  if (encoded) {
+    try { textures = JSON.parse(atob(encoded)) as TexturePayload }
+    catch { throw new SkinLookupError(502, 'The skin service returned invalid texture data.') }
+  }
+  const skin = textures?.textures?.SKIN
   if (!skin) throw new SkinLookupError(404, `${profile.name} is using a default skin, so there is no custom skin to build.`)
+  if (typeof skin.url !== 'string') throw new SkinLookupError(502, 'The skin service returned an unsupported image URL.')
 
   const skinUrl = new URL(skin.url.replace(/^http:/, 'https:'))
   if (skinUrl.protocol !== 'https:' || skinUrl.hostname !== 'textures.minecraft.net' || skinUrl.port || skinUrl.username || skinUrl.password || !/^\/texture\/[a-f0-9]+$/i.test(skinUrl.pathname) || skinUrl.search || skinUrl.hash) {
@@ -57,11 +71,16 @@ export async function lookupSkin(username: string): Promise<SkinLookup> {
   const chunks: Uint8Array[] = []
   let size = 0
   try {
+    const declaredSize = pngRes.headers.get('content-length')
+    if (declaredSize && /^\d+$/.test(declaredSize) && Number(declaredSize) > MAX_SKIN_BYTES) {
+      await reader.cancel()
+      throw new SkinLookupError(502, 'The skin image is too large.')
+    }
     while (true) {
       const { done, value } = await reader.read()
       if (done) break
       size += value.byteLength
-      if (size > 1024 * 1024) {
+      if (size > MAX_SKIN_BYTES) {
         await reader.cancel()
         throw new SkinLookupError(502, 'The skin image is too large.')
       }
