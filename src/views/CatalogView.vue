@@ -159,6 +159,7 @@ const showMore = () => (shown.value += PAGE)
       </div>
       <div class="craft-showcase">
         <CraftPhoto :src="showcasePhoto" alt="Handmade Minecraft cube crafts" />
+        <p></p>
       <div v-if="featured.length" class="featured">
         <RouterLink
           v-for="(item, i) in featured"
