@@ -19,7 +19,13 @@ npm run build
 
 ## Catalog review
 
-Every item in Minecraft 26.3 was checked. The catalog includes an item when its inventory icon is a flat sprite or a full cube. Well-known blocks are pinned to a group in `BLOCK_GROUPS`, and all other full blocks are sorted by `AUTO_BLOCK_GROUPS`. `npm run extract` writes the auto-sorted ones to `scripts/.cache/auto-added-blocks.txt`. Rules live in `EXCLUDE_RULES` in `scripts/extract-assets.ts`, and `npm run extract` prints each excluded item.
+The Minecraft 26.3 catalog contains 1,117 builds: flat inventory sprites, full textured cubes, and ten curated craft shapes. Well-known blocks are pinned to a group in `BLOCK_GROUPS`, and all other full blocks are sorted by `AUTO_BLOCK_GROUPS`. Mirrored face textures are supported, including Observer and Dried Kelp Block. `npm run extract` writes the auto-sorted blocks to `scripts/.cache/auto-added-blocks.txt`. Rules live in `EXCLUDE_RULES` in `scripts/extract-assets.ts`, and extraction prints each excluded item. A pinned version uses its locally cached client jar when available.
+
+Items have subgroups for combat, tools, armor, food, brewing, transport, decoration, materials, collectibles, spawn eggs, and mob heads. Plant groups include newer flowers and saplings, Nether plants and aquatic plants/coral. Categorization lives in the extractor and `scripts/catalog-metadata.ts`, so regenerating assets preserves it. Flower grouping alone does not enable a crossed 3D model for ground-cover plants.
+
+Music discs, armor trims, and banner patterns use specific names. Search matches words across names, IDs, groups, category keywords and aliases; “enchanted golden apple” finds Golden Apple with a note about the shared painted appearance.
+
+`scripts/craft-shapes.ts` generates Creeper Head, Skeleton Skull, Wither Skeleton Skull, Zombie Head, Chest, Ender Chest, Shield, Dragon Egg, Enchanting Table and Beacon from game textures. Their geometry lives in `public/data/shapes/` and uses the existing paint, layer, print, share and progress flows. Heads retain their native 8-cube dimensions. Hollow shapes retain hidden supports where a stepped shell would otherwise disconnect. The chest has a fixed lid, the enchanting table omits its animated book, and the beacon models the solid core/base without glass or a light beam; each guide explains these craft adaptations. No physical craft validation is claimed.
 
 Left out on purpose (38 items that would otherwise show up):
 
@@ -30,7 +36,7 @@ Left out on purpose (38 items that would otherwise show up):
 - **Glass panes (17):** Glass Pane and the 16 stained glass panes. They're mostly see-through, so cubes would only make a thin frame.
 - **Technical (8):** Light, Structure Void, Debug Stick, Knowledge Book, Structure Block, Jigsaw Block, Test Block, Test Instance Block. Barrier and the command blocks stay in by request.
 
-Items whose icon is a 3D model and can't be built from a flat sprite yet: Shield and Straw Bed, plus 3D blocks like stairs, beds and chests.
+Most other non-cube models, including stairs and beds, remain unsupported. The ten curated shapes above are explicit exceptions, not a general-purpose renderer for every Minecraft model.
 
 ## Craft photos and starter projects
 

@@ -18,9 +18,9 @@
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --radius: 10px;
 
-  /* Motion. Everything on the site animates transform or opacity only — both run on the
-     compositor, so they can't cause a layout shift or block a tap. The reduced-motion rule
-     further down switches all of it off. */
+  /* Default motion uses transform or opacity. Guide step changes also ease their measured
+     height briefly; that interaction handles reduced motion in GuideViewer. The rule further
+     down switches off CSS motion. */
   --dur-1: 120ms;
   --dur-2: 200ms;
   --dur-3: 320ms;

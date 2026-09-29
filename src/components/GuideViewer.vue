@@ -47,11 +47,64 @@ watch(index, (i) => {
 })
 watch(total, (t) => (index.value = Math.min(index.value, t - 1)))
 
+const STEP_MOTION_MS = 160
+let resizeAnimation: Animation | undefined
+let scrollFrame = 0
+let navigation = 0
+function stopScroll() {
+  cancelAnimationFrame(scrollFrame)
+  scrollFrame = 0
+}
+function stopResize() {
+  resizeAnimation?.cancel()
+  resizeAnimation = undefined
+  panel.value?.classList.remove('resizing')
+}
+function stopMotion() {
+  stopScroll()
+  stopResize()
+}
+
 async function jump(value: number) {
-  index.value = Math.max(0, Math.min(total.value - 1, value))
+  const destination = Math.max(0, Math.min(total.value - 1, value))
+  if (destination === index.value) return
+  const currentNavigation = ++navigation
+  // Read the visible height before cancelling, so rapid clicks continue from mid-animation.
+  const previousHeight = panel.value?.getBoundingClientRect().height
+  stopMotion()
+  index.value = destination
   await nextTick()
-  panel.value?.querySelector<HTMLElement>(`[data-step="${index.value}"] h2`)?.focus({ preventScroll: true })
-  panel.value?.scrollIntoView({ block: 'start', behavior: 'instant' })
+  const card = panel.value
+  if (!card || currentNavigation !== navigation) return
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const height = card.getBoundingClientRect().height
+  if (!reduceMotion && previousHeight !== undefined && Math.abs(height - previousHeight) > 1) {
+    card.classList.add('resizing')
+    resizeAnimation = card.animate(
+      [{ height: `${previousHeight}px` }, { height: `${height}px` }],
+      { duration: STEP_MOTION_MS, easing: 'cubic-bezier(0.2, 0.7, 0.3, 1)' },
+    )
+    resizeAnimation.onfinish = stopResize
+  }
+  const heading = card.querySelector<HTMLElement>(`[data-step="${index.value}"] h2`)
+  heading?.focus({ preventScroll: true })
+  const headingBounds = heading?.getBoundingClientRect()
+  if (!headingBounds || (headingBounds.top >= 16 && headingBounds.bottom <= window.innerHeight - 100)) return
+
+  const from = window.scrollY
+  const to = Math.max(0, from + card.getBoundingClientRect().top - 16)
+  if (reduceMotion) {
+    window.scrollTo({ top: to, behavior: 'instant' })
+    return
+  }
+  // A bounded scroll keeps long steps readable without the browser's longer smooth-scroll delay.
+  const start = performance.now()
+  const scroll = (now: number) => {
+    const progress = Math.min(1, (now - start) / STEP_MOTION_MS)
+    window.scrollTo({ top: from + (to - from) * (1 - (1 - progress) ** 3), behavior: 'instant' })
+    scrollFrame = progress < 1 ? requestAnimationFrame(scroll) : 0
+  }
+  scrollFrame = requestAnimationFrame(scroll)
 }
 const go = (delta: number) => jump(index.value + delta)
 async function printGuide() {
@@ -64,11 +117,20 @@ function afterPrint() { printing.value = false }
 onMounted(() => {
   window.addEventListener('beforeprint', beforePrint)
   window.addEventListener('afterprint', afterPrint)
+  window.addEventListener('resize', stopMotion)
+  window.addEventListener('wheel', stopScroll, { passive: true })
+  window.addEventListener('touchstart', stopScroll, { passive: true })
 })
 onBeforeUnmount(() => {
+  navigation++
+  stopMotion()
   window.removeEventListener('beforeprint', beforePrint)
   window.removeEventListener('afterprint', afterPrint)
+  window.removeEventListener('resize', stopMotion)
+  window.removeEventListener('wheel', stopScroll)
+  window.removeEventListener('touchstart', stopScroll)
 })
+watch(() => props.storageKey, () => { navigation++; stopMotion() })
 async function shareBuild() {
   const path = props.skinHash ? '/skin' : props.resumePath
   const url = new URL(path, window.location.origin).href
@@ -169,11 +231,8 @@ const showFaces = computed(() => props.model.kind === 'skin')
           <span class="muted">{{ index === 0 ? 'Before you start' : `Step ${index} of ${total - 1}` }}</span>
         </div>
 
-        <!-- Fades each step in. Enter-only, with no `mode="out-in"`: that holds the old step on
-             screen for the whole leave transition, which would add its duration to every Next
-             click — the one interaction on this page that has to stay instant. Height changes
-             here follow a click, so they're excluded from the layout-shift score. -->
-        <Transition name="step">
+        <!-- Replace the content immediately; only the card's size and the new content's opacity
+             ease into place. No leave transition or waiting before another Next click. -->
         <div :key="index" class="step-body" :data-step="index">
         <!-- Materials overview -->
         <template v-if="!step">
@@ -195,7 +254,7 @@ const showFaces = computed(() => props.model.kind === 'skin')
             </div>
           </div>
           <p v-if="guide.materials.plainCubes" class="muted">
-            {{ guide.materials.plainCubes.toLocaleString() }} of the cubes are hidden inside and don't need paint.
+            {{ guide.materials.plainCubes.toLocaleString() }} {{ guide.materials.plainCubes === 1 ? "cube is hidden inside and doesn't" : "cubes are hidden inside and don't" }} need paint.
           </p>
           <table class="paints">
             <caption class="visually-hidden">Paint colors and cube quantities for this build</caption>
@@ -227,7 +286,6 @@ const showFaces = computed(() => props.model.kind === 'skin')
         <StepInstructions v-else :step="step" :recipes="guide.recipes" :palette="model.palette" />
 
         </div>
-        </Transition>
 
         <div class="nav desktop-nav">
           <button class="btn" :disabled="index === 0" @click="go(-1)">← Back</button>
@@ -326,23 +384,27 @@ const showFaces = computed(() => props.model.kind === 'skin')
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
+
+/* Let the card resize without squeezing its contents or drawing them over the next section.
+   Disable scroll anchoring here: jump() already keeps the new heading in view. */
+.panel { overflow-anchor: none; }
+.panel.resizing { overflow: clip; }
+.panel > * { flex-shrink: 0; }
 
 /* Flex, not block, so the headings and paragraphs inside keep the same non-collapsing margins
    they had as direct children of .panel. */
 .step-body {
   display: flex;
   flex-direction: column;
+  animation: step-appear var(--dur-1) var(--ease-out);
 }
 
-/* Enter only. With no leave transition defined the outgoing step is removed immediately, so the
-   new one is never waiting behind it and the two never overlap in the layout. */
-.step-enter-active {
-  transition: opacity var(--dur-1) var(--ease-out);
-}
-
-.step-enter-from {
-  opacity: 0;
+/* A keyed element replaces the old body synchronously, so height measurement never includes
+   both steps. CSS animation keeps the quick fade without delaying Vue's removal. */
+@keyframes step-appear {
+  from { opacity: 0; }
 }
 
 .step-meta {

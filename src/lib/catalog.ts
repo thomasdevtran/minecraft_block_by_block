@@ -11,6 +11,8 @@ export interface BuildableItem {
   texture: string
   /** Six-face strip for building the item as a 3D cube, when it is a full block. */
   block?: string
+  /** Voxel geometry for craft shapes that are not a full textured block. */
+  shape?: string
   /** Flowers can also be built as a 3D crossed plant, and most can go in a pot. */
   flower?: { pottable: boolean }
   /** Pre-1.14 textures, only when they look different from today's. */
@@ -21,8 +23,9 @@ export interface BuildableItem {
 
 export interface CatalogItem extends BuildableItem {
   category: Category
-  /** Sub-group inside the Plants or Blocks tab (Flowers, Ores…). */
+  /** Sub-group inside each catalog tab. */
   group?: string
+  aliases?: string[]
 }
 
 export interface Catalog {
@@ -71,7 +74,7 @@ export function blockUrl(item: BuildableItem, look: Look = 'current'): string | 
 
 /** Short label of the build styles an item supports, e.g. "2D · 3D · Pot". */
 export function buildStyles(item: BuildableItem): string | null {
-  if (item.block) return '2D · 3D'
+  if (item.block || item.shape) return '2D · 3D'
   if (item.flower) return item.flower.pottable ? '2D · 3D · Pot' : '2D · 3D'
   return null
 }

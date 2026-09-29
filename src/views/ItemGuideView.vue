@@ -6,6 +6,7 @@ import GuideViewer from '../components/GuideViewer.vue'
 import PaintControls from '../components/PaintControls.vue'
 import ViewToggle from '../components/ViewToggle.vue'
 import { blockToModel } from '../engine/block'
+import { shapeToModel, shapeCubeCounts, validateShape, type ShapeData } from '../engine/shape'
 import { checkConnectivity } from '../engine/connectivity'
 import { flowerToModel, pottedSprite } from '../engine/flower'
 import { itemToModel } from '../engine/item'
@@ -29,6 +30,7 @@ const classicVersion = ref('')
 const flatPixels = shallowRef<PixelImage | null>(null)
 const blockPixels = shallowRef<PixelImage | null>(null)
 const potPixels = shallowRef<PixelImage | null>(null)
+const shapeData = shallowRef<ShapeData | null>(null)
 const error = ref('')
 const maxPaints = ref(readStored('prefs:item:maxPaints', 12))
 watch(maxPaints, (v) => writeStored('prefs:item:maxPaints', v))
@@ -39,7 +41,7 @@ watch(() => route.query.hollow, value => { blockPrefs.hollow = flag(value, block
 watch(() => route.query.simple, value => { blockPrefs.simplePaint = flag(value, blockPrefs.simplePaint) }, { immediate: true })
 watch(() => route.query.look, value => { if (value === 'current' || value === 'classic') look.value = value }, { immediate: true })
 
-const has3d = computed(() => !!(item.value?.block || item.value?.flower))
+const has3d = computed(() => !!(item.value?.block || item.value?.flower || item.value?.shape))
 const canPot = computed(() => !!item.value?.flower?.pottable)
 
 /** Blocks open in 3D and flowers in 2D, unless the link says otherwise. */
@@ -48,7 +50,7 @@ const view = computed<'2d' | '3d'>({
     if (!has3d.value) return '2d'
     const asked = route.query.view
     if (asked === '2d' || asked === '3d') return asked
-    return item.value?.block ? '3d' : '2d'
+    return item.value?.block || item.value?.shape ? '3d' : '2d'
   },
   set: (v) => router.replace({ query: { ...route.query, view: v } }),
 })
@@ -57,7 +59,7 @@ const togglePot = () => router.replace({ query: { ...route.query, pot: potted.va
 
 const VIEWS = computed(() => [
   { value: '2d' as const, label: '2D', hint: 'Flat, one side' },
-  { value: '3d' as const, label: '3D', hint: item.value?.flower ? 'Crossed, like in game' : 'Full block' },
+  { value: '3d' as const, label: '3D', hint: item.value?.flower ? 'Crossed, like in game' : item.value?.shape ? 'Shaped build' : 'Full block' },
 ])
 
 /** The texture set in use; only items with a classic look can switch. */
@@ -102,6 +104,7 @@ async function loadTextures() {
   flatPixels.value = null
   blockPixels.value = null
   potPixels.value = null
+  shapeData.value = null
   if (!found || !potUrls.value) return
   error.value = ''
   loading.value = true
@@ -111,9 +114,15 @@ async function loadTextures() {
       loadPixels(textureUrl(found, lookNow)),
       strip ? loadPixels(strip) : null,
       found.flower?.pottable ? loadPixels(potUrls.value[lookNow]) : null,
+      found.shape ? fetch(assetUrl(found.shape)).then(async response => {
+        if (!response.ok) throw new Error('Build shape could not be loaded.')
+        const data: unknown = await response.json()
+        validateShape(data)
+        return data
+      }) : null,
     ])
     if (token !== loadToken) return
-    ;[flatPixels.value, blockPixels.value, potPixels.value] = loaded
+    ;[flatPixels.value, blockPixels.value, potPixels.value, shapeData.value] = loaded
   } catch {
     if (token === loadToken) error.value = `Couldn't load the textures for ${found.name}. Check your connection and try again.`
   } finally {
@@ -139,6 +148,7 @@ const model = computed(() => {
   const colors = { maxPaints: maxPaints.value, simplePaint: blockPrefs.simplePaint }
 
   if (view.value === '3d' && item.value?.flower) return flowerToModel(sprite, { ...colors, pot })
+  if (view.value === '3d' && item.value?.shape) return shapeData.value ? shapeToModel(shapeData.value, { ...colors, hollow: blockPrefs.hollow }) : null
   if (view.value === '3d') {
     return blockPixels.value ? blockToModel(blockPixels.value, { ...colors, hollow: blockPrefs.hollow }) : null
   }
@@ -151,7 +161,7 @@ const connectivity = computed(() =>
 const storageKey = computed(() => {
   const parts = [`item:${props.id}`, activeLook.value, maxPaints.value, view.value, potted.value ? 'pot' : '']
   if (view.value === '3d') parts.push(blockPrefs.simplePaint ? 'simple' : 'exact')
-  if (view.value === '3d' && item.value?.block) parts.push(blockPrefs.hollow ? 'hollow' : 'solid')
+  if (view.value === '3d' && (item.value?.block || item.value?.shape)) parts.push(blockPrefs.hollow ? 'hollow' : 'solid')
   return parts.join(':')
 })
 const resumePath = computed(() => `/item/${props.id}?${new URLSearchParams({
@@ -160,9 +170,16 @@ const resumePath = computed(() => `/item/${props.id}?${new URLSearchParams({
 })}`)
 
 /** Paint-per-face only matters where a cube shows more than one color. */
-const showSimplePaint = computed(() => view.value === '3d' && (!!item.value?.block || potted.value))
+const showSimplePaint = computed(() => view.value === '3d' && (!!item.value?.block || !!item.value?.shape || potted.value))
+const hollowCounts = computed(() => {
+  return shapeData.value ? shapeCubeCounts(shapeData.value) : { solid: 4096, hollow: 1352 }
+})
 
 const description = computed(() => {
+  if (view.value === '3d' && item.value?.shape) {
+    const size = shapeData.value?.size
+    return `${size ? `${size[0]} cubes wide × ${size[1]} tall × ${size[2]} deep. ` : ''}Paint the cubes, then follow each layer from the bottom up.`
+  }
   if (view.value === '3d' && item.value?.block) {
     return 'A full 16×16×16 block. Paint the cubes, then stack them one layer at a time from the bottom up.'
   }
@@ -194,7 +211,7 @@ const description = computed(() => {
       <header class="head">
         <div class="icon">
           <BlockIcon v-if="view === '3d' && item.block" :src="blockUrl(item, activeLook)!" :size="42" :label="`${item.name} block texture preview`" />
-          <img v-else :src="textureUrl(item, activeLook)" :alt="`${item.name} game texture used for this guide`" class="pixelated" width="64" height="64" />
+          <img v-else :src="textureUrl(item, activeLook)" :alt="`${item.name} ${item.shape ? 'front-view craft template' : 'game texture used for this guide'}`" class="pixelated" width="64" height="64" />
         </div>
         <div class="head-text">
           <h1>{{ potted ? `Potted ${item.name}` : item.name }}</h1>
@@ -225,9 +242,9 @@ const description = computed(() => {
 
       <PaintControls v-model:max-paints="maxPaints">
         <div v-if="showSimplePaint" class="toggles">
-          <label v-if="item.block" class="toggle">
+          <label v-if="(item.block || item.shape) && hollowCounts.hollow < hollowCounts.solid" class="toggle">
             <input v-model="blockPrefs.hollow" type="checkbox" />
-            Hollow inside (1,352 cubes instead of 4,096)
+            Hollow inside ({{ hollowCounts.hollow.toLocaleString() }} cubes instead of {{ hollowCounts.solid.toLocaleString() }})
           </label>
           <label class="toggle">
             <input v-model="blockPrefs.simplePaint" type="checkbox" />

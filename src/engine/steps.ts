@@ -210,7 +210,7 @@ function describeRun(positions: number[], labels: string[]): string {
 /** Builds each part (in `model.parts` order) one horizontal layer at a time, from the bottom up. */
 function layerBuildSteps(model: BuildModel, recipeOf: Map<Voxel<number>, Recipe>): Step[] {
   const steps: Step[] = []
-  const subject = { skin: 'character', block: 'block', plant: 'plant', item: 'item' }[model.kind]
+  const subject = { skin: 'character', block: 'block', plant: 'plant', item: 'item', object: 'build' }[model.kind]
   const multiPart = model.parts.length > 1
 
   for (const part of model.parts) {

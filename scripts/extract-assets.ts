@@ -6,9 +6,12 @@
  */
 import AdmZip from 'adm-zip'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { dirname, join } from 'node:path'
+import { dirname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { PNG } from 'pngjs'
+import { collectibleName, itemGroup, ITEM_GROUP_ORDER } from './catalog-metadata.ts'
+import { faceImage, type UV } from './texture-uv.ts'
+import { craftShapes } from './craft-shapes.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CACHE = join(ROOT, 'scripts', '.cache')
@@ -25,6 +28,8 @@ interface CatalogItem {
   category: 'item' | 'plant' | 'block'
   /** Sub-group inside the Plants or Blocks tab. */
   group?: string
+  aliases?: string[]
+  shape?: string
   /** Flat 16×16 sprite (for blocks, the front face). */
   texture: string
   /** 96×16 strip of the six block faces, when the item can be built as a 3D cube. */
@@ -44,13 +49,17 @@ const OUT_POT = join(ROOT, 'public', 'textures', 'pot.png')
  */
 const PLANT_GROUPS: Record<string, string[]> = {
   Leaves: ['oak_leaves', 'spruce_leaves', 'birch_leaves', 'jungle_leaves', 'acacia_leaves', 'dark_oak_leaves', 'azalea_leaves', 'flowering_azalea_leaves', 'mangrove_leaves'],
-  Saplings: ['oak_sapling', 'spruce_sapling', 'birch_sapling', 'jungle_sapling', 'acacia_sapling', 'dark_oak_sapling', 'azalea', 'flowering_azalea', 'mangrove_propagule'],
-  Flowers: ['allium', 'azure_bluet', 'blue_orchid', 'cornflower', 'dandelion', 'lilac', 'lily_of_the_valley', 'orange_tulip', 'oxeye_daisy', 'peony', 'pink_tulip', 'poppy', 'red_tulip', 'rose_bush', 'sunflower', 'white_tulip', 'wither_rose'],
+  Saplings: ['oak_sapling', 'spruce_sapling', 'birch_sapling', 'jungle_sapling', 'acacia_sapling', 'dark_oak_sapling', 'azalea', 'flowering_azalea', 'mangrove_propagule', 'cherry_sapling', 'pale_oak_sapling', 'poplar_sapling'],
+  Flowers: ['allium', 'azure_bluet', 'blue_orchid', 'cornflower', 'dandelion', 'lilac', 'lily_of_the_valley', 'orange_tulip', 'oxeye_daisy', 'peony', 'pink_tulip', 'poppy', 'red_tulip', 'rose_bush', 'sunflower', 'white_tulip', 'wither_rose', 'torchflower', 'pitcher_plant', 'open_eyeblossom', 'closed_eyeblossom', 'cactus_flower', 'wildflowers', 'pink_petals', 'golden_dandelion'],
   Mushrooms: ['brown_mushroom', 'brown_mushroom_block', 'mushroom_stem', 'red_mushroom', 'red_mushroom_block'],
-  Crops: ['bamboo', 'cactus', 'carved_pumpkin', 'hay_block', 'melon', 'pumpkin', 'sugar_cane'],
-  'Cave Plants': ['big_dripleaf', 'glow_lichen', 'hanging_roots', 'moss_block', 'moss_carpet', 'small_dripleaf', 'spore_blossom'],
-  Shrubbery: ['dead_bush', 'fern', 'short_grass', 'large_fern', 'lily_pad', 'tall_grass', 'vine'],
+  Crops: ['bamboo', 'cactus', 'carved_pumpkin', 'hay_block', 'melon', 'pumpkin', 'sugar_cane', 'wheat', 'wheat_seeds', 'beetroot_seeds', 'melon_seeds', 'pumpkin_seeds', 'torchflower_seeds', 'pitcher_pod', 'cocoa_beans'],
+  'Cave Plants': ['big_dripleaf', 'glow_lichen', 'hanging_roots', 'moss_block', 'moss_carpet', 'small_dripleaf', 'spore_blossom', 'pale_hanging_moss', 'pale_moss_block', 'sculk_vein'],
+  Shrubbery: ['dead_bush', 'fern', 'short_grass', 'large_fern', 'lily_pad', 'tall_grass', 'vine', 'bush', 'firefly_bush', 'red_shrub', 'short_dry_grass', 'tall_dry_grass', 'leaf_litter'],
+  'Nether Plants': ['crimson_fungus', 'warped_fungus', 'crimson_roots', 'warped_roots', 'weeping_vines', 'twisting_vines', 'nether_sprouts'],
+  'Aquatic Plants & Coral': ['kelp', 'seagrass', 'sea_pickle', ...['brain', 'bubble', 'fire', 'horn', 'tube'].flatMap(kind => [`${kind}_coral`, `${kind}_coral_fan`, `dead_${kind}_coral`, `dead_${kind}_coral_fan`])],
 }
+// Ground-cover flowers stay flat; a category does not imply a crossed 3D shape.
+const FLAT_FLOWERS = new Set(['pink_petals', 'wildflowers', 'cactus_flower'])
 
 /**
  * Well-known full blocks, pinned to a group. Every other full-cube block is still included and
@@ -65,7 +74,7 @@ const BLOCK_GROUPS: Record<string, string[]> = {
   'Utility & Fun': [
     'tnt', 'crafting_table', 'furnace', 'bookshelf', 'jukebox', 'note_block', 'redstone_lamp', 'sea_lantern', 'sponge', 'target', 'barrel', 'bee_nest', 'command_block',
     'wet_sponge', 'chiseled_bookshelf', 'beehive', 'blast_furnace', 'smoker', 'cartography_table', 'fletching_table', 'smithing_table', 'loom', 'crafter',
-    'dispenser', 'dropper', 'piston', 'sticky_piston', 'jack_o_lantern', 'lodestone', 'respawn_anchor', 'chain_command_block', 'repeating_command_block',
+    'dispenser', 'dropper', 'piston', 'sticky_piston', 'jack_o_lantern', 'lodestone', 'respawn_anchor', 'chain_command_block', 'repeating_command_block', 'observer',
   ],
 }
 
@@ -130,7 +139,7 @@ type McFace = (typeof MC_FACES)[number]
 const STRIP_ORDER: readonly McFace[] = MC_FACES
 
 /** `rotation` turns the texture clockwise on that face, in degrees. */
-type FaceLayer = { texture: string; tint: number; rotation: number }
+type FaceLayer = { texture: string; tint: number; rotation: number; uv: UV }
 type Resolved =
   | { kind: 'flat'; textures: Record<string, string> }
   | { kind: 'cube'; faces: Record<McFace, FaceLayer[]>; orientable: boolean }
@@ -142,6 +151,9 @@ async function getJson(url: string): Promise<Json> {
 }
 
 async function downloadJar(requested?: string): Promise<{ version: string; jar: AdmZip }> {
+  if (requested && /^[a-zA-Z0-9._-]+$/.test(requested) && existsSync(join(CACHE, `${requested}.jar`))) {
+    return { version: requested, jar: new AdmZip(join(CACHE, `${requested}.jar`)) }
+  }
   const manifest = await getJson(MANIFEST)
   const version = requested ?? manifest.latest.release
   const entry = manifest.versions.find((v: Json) => v.id === version)
@@ -210,10 +222,11 @@ function jarReader(jar: AdmZip): JarReader {
       const full = el.from.every((n: number) => n === 0) && el.to.every((n: number) => n === 16)
       if (!full || el.rotation) return null
       for (const [face, def] of Object.entries<Json>(el.faces ?? {})) {
-        if (def.uv && def.uv.join() !== '0,0,16,16') return null
+        const uv: UV = def.uv ?? [0, 0, 16, 16]
+        if (Math.abs(uv[2] - uv[0]) !== 16 || Math.abs(uv[3] - uv[1]) !== 16 || uv.some(n => n !== 0 && n !== 16)) return null
         const texture = lookup(def.texture)
         if (!texture) return null
-        faces[face as McFace].push({ texture, tint: def.tintindex ?? -1, rotation: def.rotation ?? 0 })
+        faces[face as McFace].push({ texture, tint: def.tintindex ?? -1, rotation: def.rotation ?? 0, uv })
       }
     }
     if (MC_FACES.some((f) => faces[f].length === 0)) return null
@@ -241,7 +254,7 @@ function renderCube(reader: JarReader, resolved: Extract<Resolved, { kind: 'cube
       const out = new PNG({ width: 16, height: 16 })
       for (const layer of resolved.faces[face]) {
         const png = reader.readTexture(layer.texture)
-        if (png) composite(out, rotateClockwise(png, layer.rotation), layer.tint >= 0 ? tintColor(tints[layer.tint]) : null)
+        if (png) composite(out, faceImage(png, layer.uv, layer.rotation), layer.tint >= 0 ? tintColor(tints[layer.tint]) : null)
       }
       fillTransparent(out)
       return [face, out]
@@ -318,7 +331,7 @@ function main(reader: JarReader, jar: AdmZip): { items: CatalogItem[]; tints: Ma
     const resolved = model && reader.resolveModel(model.model)
     const tints: Json[] = model?.tints ?? []
     tintsById.set(id, tints)
-    const name = lang[`item.minecraft.${id}`] ?? lang[`block.minecraft.${id}`] ?? id
+    const name = collectibleName(id, lang[`item.minecraft.${id}`] ?? lang[`block.minecraft.${id}`] ?? id, lang)
     const plantGroup = PLANT_GROUP_OF.get(id)
     const blockGroup = BLOCK_GROUP_OF.get(id)
 
@@ -333,9 +346,10 @@ function main(reader: JarReader, jar: AdmZip): { items: CatalogItem[]; tints: Ma
         id,
         name,
         category: plantGroup ? 'plant' : 'item',
-        ...(plantGroup && { group: plantGroup }),
+        group: plantGroup ?? itemGroup(id),
+        ...(id === 'golden_apple' && { aliases: ['enchanted golden apple', 'enchanted apple', 'notch apple', 'god apple', 'gapple'], note: 'Also use this shape for an Enchanted Golden Apple. The game adds an animated glint; this painted build uses the shared apple texture.' }),
         texture: `textures/items/${id}.png`,
-        ...(plantGroup === 'Flowers' && {
+        ...(plantGroup === 'Flowers' && !FLAT_FLOWERS.has(id) && {
           flower: { pottable: read(`assets/minecraft/models/block/potted_${id}.json`) !== null },
         }),
       })
@@ -392,6 +406,7 @@ function addClassicTextures(items: CatalogItem[], tintsById: Map<string, Json[]>
   let count = 0
 
   for (const item of items) {
+    if (item.shape) continue
     // Spawn eggs were tinted in code before 1.14, so their old models are plain gray.
     if (item.id.endsWith('_spawn_egg')) continue
     const resolved = classic.resolveModel(`item/${CLASSIC_RENAMES[item.id] ?? item.id}`)
@@ -488,23 +503,6 @@ function fillTransparent(png: PNG): void {
   }
 }
 
-/** Copy of the first 16×16 frame, turned clockwise by 0, 90, 180 or 270 degrees. */
-function rotateClockwise(src: PNG, degrees: number): PNG {
-  const turns = (((degrees / 90) % 4) + 4) % 4
-  if (turns === 0) return src
-  const out = new PNG({ width: 16, height: 16 })
-  for (let y = 0; y < 16; y++) {
-    for (let x = 0; x < 16; x++) {
-      // Walk back from the output pixel to where it came from, one quarter turn at a time.
-      let sx = x
-      let sy = y
-      for (let t = 0; t < turns; t++) [sx, sy] = [sy, 15 - sx]
-      src.data.copy(out.data, (y * 16 + x) * 4, (sy * 16 + sx) * 4, (sy * 16 + sx) * 4 + 4)
-    }
-  }
-  return out
-}
-
 function rotate180(png: PNG): void {
   const copy = Buffer.from(png.data)
   const pixels = png.width * png.height
@@ -513,11 +511,21 @@ function rotate180(png: PNG): void {
 
 const { version, jar } = await downloadJar(process.argv[2])
 for (const dir of [OUT_ITEMS, OUT_BLOCKS, OUT_CLASSIC]) {
+  if (!resolve(dir).startsWith(resolve(ROOT, 'public', 'textures') + sep)) throw new Error(`Unsafe asset directory: ${dir}`)
   rmSync(dir, { recursive: true, force: true })
   mkdirSync(dir, { recursive: true })
 }
 mkdirSync(dirname(OUT_INDEX), { recursive: true })
 const { items, tints } = main(jarReader(jar), jar)
+const shapeDir = join(ROOT, 'public', 'data', 'shapes')
+mkdirSync(shapeDir, { recursive: true })
+for (const craft of craftShapes(jar)) {
+  if (items.some(item => item.id === craft.id)) throw new Error(`Duplicate craft: ${craft.id}`)
+  const { id, name, category, group, note } = craft
+  writeFileSync(join(shapeDir, `${id}.json`), JSON.stringify(craft.data))
+  writeFileSync(join(OUT_ITEMS, `${id}.png`), PNG.sync.write(craft.sprite))
+  items.push({ id, name, category, group, note, texture: `textures/items/${id}.png`, shape: `data/shapes/${id}.json` })
+}
 
 const classicCount = addClassicTextures(items, tints, jarReader((await downloadJar(CLASSIC_VERSION)).jar))
 console.log(`Classic (${CLASSIC_VERSION}) textures for ${classicCount} items that looked different.`)
@@ -533,7 +541,7 @@ writeFileSync(
   OUT_INDEX,
   JSON.stringify({
     version,
-    groups: { plant: Object.keys(PLANT_GROUPS), block: BLOCK_GROUP_ORDER },
+    groups: { plant: Object.keys(PLANT_GROUPS), block: BLOCK_GROUP_ORDER, item: ITEM_GROUP_ORDER },
     pot: 'textures/pot.png',
     classicPot: 'textures/classic/pot.png',
     classicVersion: CLASSIC_VERSION,

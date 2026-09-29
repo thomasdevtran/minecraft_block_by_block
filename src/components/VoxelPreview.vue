@@ -141,6 +141,7 @@ function frameModel() {
     skin: new Vector3(0.6, 0.35, 1),
     block: new Vector3(0.75, 0.65, 1),
     plant: new Vector3(0.8, 0.45, 1),
+    object: new Vector3(0.65, 0.45, 1),
   }[props.model.kind]
   camera.position.copy(center).add(dir.normalize().multiplyScalar(distance))
   camera.near = distance / 100

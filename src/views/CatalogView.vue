@@ -11,6 +11,7 @@ import { currentSkin } from '../lib/skinStore'
 import { hashString } from '../lib/storage'
 import { blockUrl, buildStyles, loadCatalog, textureUrl, type Catalog, type CatalogItem, type Category } from '../lib/catalog'
 import { look as sharedLook } from '../lib/look'
+import { catalogSearchText, matchesCatalogSearch } from '../lib/catalogSearch'
 
 const look = computed({ get: () => sharedLook.value, set: (v) => (sharedLook.value = v) })
 const LOOKS = [
@@ -53,7 +54,7 @@ async function fetchCatalog() {
   error.value = ''
   try {
     const catalog = await loadCatalog()
-    items.value = catalog.items.map((i) => ({ ...i, search: `${i.name} ${i.id}`.toLowerCase() }))
+    items.value = catalog.items.map((i) => ({ ...i, search: catalogSearchText(i) }))
     groupOrder.value = catalog.groups ?? {}
     version.value = catalog.version
     classicVersion.value = catalog.classicVersion
@@ -118,12 +119,12 @@ const filtered = computed(() => {
     (i) =>
       (category.value === 'all' || i.category === category.value) &&
       (group.value === null || i.group === group.value) &&
-      (!q || i.search.includes(q)),
+      matchesCatalogSearch(i.search, q),
   )
 })
 
 /**
- * The catalog is 1,105 items and ~400 of the tiles are CSS cubes whose faces are background
+ * The catalog has over 1,100 items and ~400 of the tiles are CSS cubes whose faces are background
  * images — and background images are never lazy-loaded. Rendering the whole list therefore pulled
  * roughly 1 MB of block textures on first paint. Showing a page at a time keeps the DOM small and,
  * more importantly, means an unrendered tile has no image to fetch at all.
@@ -230,7 +231,14 @@ const showMore = () => (shown.value += PAGE)
         </div>
       </div>
 
-      <div v-if="category !== 'all' && groups.length" class="chips" aria-label="Filter by type">
+      <label v-if="category !== 'all' && groups.length" class="mobile-type-filter">
+        <span>Filter by type</span>
+        <select v-model="group">
+          <option :value="null">All {{ TAB_LABELS[category] }} ({{ tabCount }})</option>
+          <option v-for="g in groups" :key="g.name" :value="g.name">{{ g.name }} ({{ g.count }})</option>
+        </select>
+      </label>
+      <div v-if="category !== 'all' && groups.length" class="chips" role="group" aria-label="Filter by type">
         <button :class="['chip', { active: group === null }]" :aria-pressed="group === null" @click="group = null">
           All {{ TAB_LABELS[category] }} <span class="count">{{ tabCount }}</span>
         </button>
@@ -260,7 +268,7 @@ const showMore = () => (shown.value += PAGE)
       <ul v-if="!error" class="grid" :class="{ loading }">
         <li v-for="item in visible" :key="item.id" v-memo="[look]">
           <RouterLink :to="`/item/${item.id}`" class="tile card">
-            <span v-if="item.block || item.flower" class="badge" :title="`${item.name} can also be built in 3D (${buildStyles(item)})`">3D</span>
+            <span v-if="item.block || item.flower || item.shape" class="badge" :title="`${item.name} can also be built in 3D (${buildStyles(item)})`">3D</span>
             <BlockIcon v-if="item.block" :src="blockUrl(item, look)!" />
             <img v-else :src="textureUrl(item, look)" alt="" class="pixelated" width="48" height="48" loading="lazy" />
             <span>{{ item.name }}</span>
@@ -450,6 +458,13 @@ const showMore = () => (shown.value += PAGE)
   flex-wrap: wrap;
   gap: 8px;
   margin: -4px 0 16px;
+}
+
+.mobile-type-filter { display: none; }
+@media (max-width: 640px) {
+  .chips { display: none; }
+  .mobile-type-filter { display: grid; gap: 6px; margin-bottom: 16px; font-size: .9rem; }
+  .mobile-type-filter select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); }
 }
 
 .chip {

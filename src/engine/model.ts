@@ -16,7 +16,7 @@ export interface PartInfo {
 
 export interface BuildModel {
   /** item = flat sprite, skin = player figure, block = full cube, plant = crossed flower (maybe potted). */
-  kind: 'item' | 'skin' | 'block' | 'plant'
+  kind: 'item' | 'skin' | 'block' | 'plant' | 'object'
   voxels: Voxel<number>[]
   palette: PaletteEntry[]
   parts: PartInfo[]
