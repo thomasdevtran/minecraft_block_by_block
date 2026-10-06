@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import VisitorCount from '../components/VisitorCount.vue'
 import { SITE } from '../lib/site'
 </script>
 
@@ -20,7 +19,10 @@ import { SITE } from '../lib/site'
     <h2>Help without spending anything</h2>
     <p>Share the site with someone who enjoys making things, or tell us when a guide is unclear. Include the item's name, build style and step number so we can reproduce the issue.</p>
     <p><a :href="`mailto:${SITE.operator.email}`">Email {{ SITE.operator.name }}</a> · <a :href="`${SITE.github}/issues`" target="_blank" rel="noopener noreferrer">Report an issue on GitHub<span class="visually-hidden"> (opens in a new tab)</span></a></p>
-    <div class="counter card"><VisitorCount big /><p class="muted small">Total page visits, including repeat visits and reloads. <RouterLink to="/privacy#visitor-count">How visits are counted</RouterLink>.</p></div>
+    <div class="counter card">
+      <p class="demo-count"><strong>10,151</strong> <span class="muted">demo users</span></p>
+      <p class="muted small">Sample data for a presentation, not a measured user total. The live counter measures <RouterLink to="/privacy#visitor-count">page visits</RouterLink>.</p>
+    </div>
     <h2>Payment questions</h2>
     <p>For an accidental payment, refund request or other payment concern, email <a :href="`mailto:${SITE.operator.email}`">{{ SITE.operator.email }}</a>. Provider rules and applicable legal rights still apply. Children should have a parent or guardian handle payments.</p>
     <p class="back-links"><RouterLink to="/terms#payments">Support payment terms</RouterLink> · <RouterLink to="/privacy">Privacy</RouterLink> · <RouterLink to="/">Back to builds</RouterLink></p>
@@ -31,6 +33,8 @@ import { SITE } from '../lib/site'
 .buttons { display: flex; flex-wrap: wrap; gap: 12px; margin: 24px 0 12px; }
 .counter { padding: 24px; margin: 28px 0; }
 .counter p { margin: 12px 0 0; }
+.demo-count { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 0.5em; }
+.demo-count strong { font: 700 2.4rem var(--pixel); color: var(--accent); font-variant-numeric: tabular-nums; }
 .small { font-size: 0.9rem; }
 @media (max-width: 480px) { .buttons .btn { width: 100%; } }
 </style>
