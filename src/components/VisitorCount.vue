@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { whenIdle } from '../lib/schedule'
-import { loadStats } from '../lib/stats'
+import { isStatsDemo, loadStats } from '../lib/stats'
 
 withDefaults(defineProps<{ big?: boolean }>(), { big: false })
 
@@ -25,7 +25,8 @@ onMounted(() => {
        can't reflow the line around it. -->
   <p v-if="!failed" :class="['visitors', { big, ready: total !== null }]">
     <span class="count">{{ total?.toLocaleString() }}</span>
-    <span class="label muted">{{ total === 1 ? 'page visit' : 'page visits' }} · <a href="/privacy#visitor-count">How we count</a></span>
+    <span v-if="isStatsDemo" class="label muted">demo page visits · Sample data</span>
+    <span v-else class="label muted">{{ total === 1 ? 'page visit' : 'page visits' }} · <a href="/privacy#visitor-count">How we count</a></span>
   </p>
   <p v-else-if="big" class="muted">Visit count is currently unavailable.</p>
 </template>

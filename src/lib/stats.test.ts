@@ -45,3 +45,27 @@ describe('automatic page visits', () => {
     expect(fetch).toHaveBeenCalledTimes(1)
   })
 })
+
+describe('presentation demo', () => {
+  it('shows 10,000 sample visits without reading or changing the live counter', async () => {
+    vi.stubGlobal('window', { location: { search: '?demo=1' } })
+    const stats = await import('./stats')
+    expect(stats.isStatsDemo).toBe(true)
+    expect(await stats.loadStats()).toMatchObject({
+      total: 10_000,
+      accuracy: 'Sample data only; not measured visits.',
+    })
+    stats.countVisit()
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it.each(['', '?demo=0'])('uses real data when the demo is off: %s', async (search) => {
+    vi.stubGlobal('window', { location: { search } })
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({ total: 42 })))
+    const stats = await import('./stats')
+    expect(stats.isStatsDemo).toBe(false)
+    expect(await stats.loadStats()).toMatchObject({ total: 42 })
+    stats.countVisit()
+    expect(fetch).toHaveBeenCalledTimes(2)
+  })
+})

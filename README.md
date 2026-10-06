@@ -5,6 +5,11 @@ One pixel = one cube. Every guide starts with a paint list and cube count, then 
 
 ## Commands
 
+For an interview or presentation, open the site with `?demo=1` (for example,
+`http://localhost:5173/?demo=1`). The counter displays 10,000 clearly labeled
+sample page visits and does not read or increment the live total during that
+page session. Remove `demo=1` from the URL and reload to restore live counting.
+
 ```sh
 npm install
 npm run extract   # download the Minecraft client jar and write public/textures/items + public/data/items.json
