@@ -15,6 +15,16 @@ npm run build
 
 `npm run extract -- 1.21.8` pins a specific Minecraft version. The jar is cached in `scripts/.cache/` (git-ignored).
 
+## Accounts and My Builds
+
+Accounts use Supabase Auth. The private `saved_builds` table stores item/skin settings, counts and the explicitly saved step. Skin PNGs use the private `build-skins` bucket. Users can save an existing local build from its guide, then reopen it from My Builds on another device.
+
+Copy `.env.example` to `.env.local` and set the project's URL and publishable key. Set the same `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the hosting build environment. These are browser-facing values. The frontend uses row-level access policies for every user's data.
+
+For a new Supabase project, apply `supabase/migrations/202611070001_saved_builds.sql`, then run `supabase/tests/saved_builds.sql` in its SQL editor. The test rolls back its temporary records. Configure Authentication URL settings to allow the local and deployed `/account` callback URLs. Email confirmation and password recovery use these callbacks. Set the project's exact HTTPS origin in `vercel.json`'s `connect-src` when switching projects.
+
+Saving the same build again updates its place after checking the saved revision. Concurrent changes produce a reload message. Generation changes that alter recipes or steps must bump `GUIDE_ENGINE_VERSION` in `src/lib/savedBuilds.ts`. A mismatched engine or catalog version reopens at Materials.
+
 `public/textures/` and `public/data/items.json` are **committed**, so a deploy only runs `npm run build`. `npm run extract` is a local maintenance step you run when bumping the Minecraft version; commit whatever it changes. Don't add it to the build — it downloads several client jars and would make deploys depend on Mojang's servers.
 
 ## Catalog review
@@ -55,8 +65,8 @@ Starter counts are calculated from current textures with an eight-color palette.
 
 The release configuration uses **babiiyi**, California, United States, and **toemasu1452@gmail.com** as supplied by the operator. Read [RELEASE_REVIEW.md](RELEASE_REVIEW.md) before publishing: implementation improvements are not legal clearance.
 
-- No accounts or advertising scripts at launch. Fonts are self-hosted under the included OFL license.
-- Uploaded skin files stay local. Player lookups reach Mojang through our API and can be cached or present in hosting logs.
+- Accounts provide a private saved-build library. Fonts are self-hosted under the included OFL license.
+- Skin files are processed locally. Saving a skin build uploads its PNG to private Supabase storage. Player lookups reach Mojang through our API and can be cached or present in hosting logs.
 - Build progress, skin images and appearance preferences use local storage. The privacy page can clear build data while preserving appearance preferences.
 - **Page visits** are counted automatically once per full page load, including reloads and repeat visits. Internal route changes do not add visits. No cookies, stored visitor identifiers, page history or Vercel Web Analytics script are used. GPC/DNT disables counting.
 - There is no counting prompt. The server increments a single Redis integer and requires same-origin request signals. Bot filters and origin checks are not proof of a human visitor and do not prevent determined counter manipulation. The total is not unique people and may be cached for a few minutes.

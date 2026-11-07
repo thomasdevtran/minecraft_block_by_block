@@ -8,6 +8,7 @@ export const ROLE = { hidden: 0, ghost: 1, solid: 2, focus: 3 } as const
 export function rolesForStep(model: BuildModel, guide: Guide, step: Step | null): Uint8Array {
   const roles = new Uint8Array(model.voxels.length)
   const partOrder = new Map(model.parts.map((p, i) => [p.id, i]))
+  const aligned = new Set(step?.kind === 'assemble' ? step.alignedParts.map(part => part.id) : [])
   model.voxels.forEach((v, i) => {
     if (!step) {
       roles[i] = ROLE.solid
@@ -15,7 +16,7 @@ export function rolesForStep(model: BuildModel, guide: Guide, step: Step | null)
       const recipe = guide.recipeOf.get(v)
       roles[i] = recipe && step.recipes.includes(recipe.id) ? ROLE.focus : ROLE.ghost
     } else if (step.kind === 'assemble') {
-      roles[i] = step.parts.includes(v.part) ? ROLE.focus : ROLE.solid
+      roles[i] = step.parts.includes(v.part) ? ROLE.focus : aligned.has(v.part) ? ROLE.solid : ROLE.hidden
     } else if (model.kind === 'item') {
       roles[i] = v.y < step.layer ? ROLE.solid : v.y === step.layer ? ROLE.focus : ROLE.hidden
     } else {

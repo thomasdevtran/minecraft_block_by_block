@@ -17,6 +17,18 @@ export const router = createRouter({
   history: createWebHistory(),
   routes: [
     {
+      path: '/account',
+      name: 'account',
+      component: () => import('./views/AccountView.vue'),
+      meta: { title: 'Your account' },
+    },
+    {
+      path: '/library',
+      name: 'library',
+      component: () => import('./views/LibraryView.vue'),
+      meta: { title: 'My Builds' },
+    },
+    {
       path: '/',
       name: 'catalog',
       component: () => import('./views/CatalogView.vue'),

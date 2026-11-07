@@ -9,6 +9,7 @@ import StepInstructions from './StepInstructions.vue'
 import GuidePrint from './GuidePrint.vue'
 import { rememberBuild } from '../lib/recentBuild'
 import { showToast } from '../lib/toast'
+import SaveBuild from './SaveBuild.vue'
 
 // three.js is ~570 KB, far bigger than the rest of the site put together. Loading it lazily lets
 // the written steps — which are the actual instructions — paint without waiting for the 3D.
@@ -205,6 +206,7 @@ const showFaces = computed(() => props.model.kind === 'skin')
         <button class="btn" @click="shareBuild">{{ skinHash ? 'Copy skin builder link' : 'Copy build link' }}</button>
       </div>
     </div>
+    <SaveBuild :title="title" :path="resumePath" :guide-key="storageKey" :step="index" :total="total - 1" :cubes="guide.materials.totalCubes" :paints="model.palette.length" :skin="!!skinHash" />
     <label v-if="shareUrl" class="share-fallback">Copy this link <input readonly :value="shareUrl" @focus="($event.target as HTMLInputElement).select()" /></label>
     <label class="step-picker">Jump to a step
       <select :value="index" @change="jump(Number(($event.target as HTMLSelectElement).value))">
@@ -256,6 +258,7 @@ const showFaces = computed(() => props.model.kind === 'skin')
           <p v-if="guide.materials.plainCubes" class="muted">
             {{ guide.materials.plainCubes.toLocaleString() }} {{ guide.materials.plainCubes === 1 ? "cube is hidden inside and doesn't" : "cubes are hidden inside and don't" }} need paint.
           </p>
+          <p v-if="guide.materials.backingBoard">Gather a flat backing board and glue suitable for the board and cubes. The separate pieces attach to the board.</p>
           <table class="paints">
             <caption class="visually-hidden">Paint colors and cube quantities for this build</caption>
             <thead>

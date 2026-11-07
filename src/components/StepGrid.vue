@@ -8,6 +8,7 @@ import { activeRow } from '../lib/guideDisplay'
 const props = defineProps<{ grid: StepGrid; palette: PaletteEntry[] }>()
 
 const CELL = 40
+const PLAIN_CUBE = '—'
 const enlarged = ref(false)
 
 const cells = computed(() =>
@@ -17,7 +18,7 @@ const cells = computed(() =>
       ...c,
       fill,
       text: c.paint === null ? '#3b2f20' : textOn(props.palette[c.paint].hex),
-      label: c.recipe ?? '',
+      label: c.recipe ?? PLAIN_CUBE,
     }
   }),
 )
@@ -25,12 +26,14 @@ const cells = computed(() =>
 const width = computed(() => props.grid.cols * CELL)
 const height = computed(() => props.grid.rows * CELL)
 const fontSize = computed(() => (cells.value.some((c) => c.label.length > 1) ? 15 : 19))
+const hasSupports = computed(() => cells.value.some(c => c.support))
 const row = computed(() => activeRow(props.grid.cells, props.grid.cols))
 const textRows = computed(() => {
   const rows = new Map<number, string[]>()
   for (const cell of [...props.grid.cells].filter((cell) => cell.state === 'now').sort((a, b) => a.row - b.row || a.col - b.col)) {
     const row = rows.get(cell.row) ?? []
-    row.push(`column ${cell.col + 1}: ${cell.recipe ? `cube ${cell.recipe}` : 'plain filler cube'}`)
+    const label = cell.recipe ? `cube ${cell.recipe}` : 'plain filler cube'
+    row.push(`column ${cell.col + 1}: ${label}${cell.support ? ' (support)' : ''}`)
     rows.set(cell.row, row)
   }
   return [...rows].map(([row, cubes]) => `Row ${row + 1}: ${cubes.join('; ')}.`)
@@ -46,12 +49,15 @@ const textRows = computed(() => {
         <span class="visually-hidden">Column {{ col + 1 }}: {{ cell ? (cell.recipe ? `cube ${cell.recipe}` : 'plain filler cube') : 'leave empty' }}.</span>
         <span class="column-number" aria-hidden="true">{{ col + 1 }}</span>
         <span aria-hidden="true" :class="['row-cube', { gap: !cell }]" :style="cell ? { background: cell.paint === null ? 'var(--plain-cube)' : palette[cell.paint]!.hex, color: cell.paint === null ? '#3b2f20' : textOn(palette[cell.paint]!.hex) } : {}">
-          {{ cell ? (cell.recipe ?? '—') : '' }}
+          {{ cell ? (cell.recipe ?? PLAIN_CUBE) : '' }}
         </span>
       </div>
     </div>
   </section>
-  <p class="grid-key"><strong>Placement map</strong><span>Letters = add now · faded = already built · — = plain cube</span></p>
+  <p class="grid-key">
+    <strong>Placement map</strong>
+    <span>Letters = painted cubes · {{ PLAIN_CUBE }} = plain cube (no paint) · dashed spaces = leave empty · faded = already built<span v-if="hasSupports"> · + = support cube</span></span>
+  </p>
   <button class="btn map-zoom" :aria-pressed="enlarged" @click="enlarged = !enlarged">{{ enlarged ? 'Fit map' : 'Enlarge map' }}</button>
   <p v-if="enlarged" class="zoom-hint muted">Scroll across and down to see the whole map.</p>
   <figure class="step-grid">
@@ -84,6 +90,13 @@ const textRows = computed(() => {
         >
           {{ cell.label }}
         </text>
+        <text
+          v-if="cell.support"
+          :x="cell.col * CELL + 32"
+          :y="cell.row * CELL + 8"
+          :fill="cell.text"
+          font-size="13"
+        >+</text>
       </g>
     </svg>
     </div>

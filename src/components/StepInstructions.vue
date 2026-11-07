@@ -4,6 +4,7 @@ import type { Step, Recipe } from '../engine/steps'
 import type { PaletteEntry } from '../engine/palette'
 import { cubesForStep } from '../lib/guideDisplay'
 import CubeRecipes from './CubeRecipes.vue'
+import SkinAssemblyDiagram from './SkinAssemblyDiagram.vue'
 import StepGrid from './StepGrid.vue'
 const props = defineProps<{ step: Step; recipes: Recipe[]; palette: PaletteEntry[]; printable?: boolean }>()
 const entries = computed(() => cubesForStep(props.step, props.recipes))
@@ -23,6 +24,7 @@ const sentences = computed(() => props.step.text.split(/(?<=\.)\s+/).filter(Bool
     </div>
   </template>
   <StepGrid v-if="step.kind === 'build'" :grid="step.grid" :palette="palette" />
+  <SkinAssemblyDiagram v-else-if="step.kind === 'assemble'" :parts="step.alignedParts" :adding="step.parts" />
 </template>
 
 <style scoped>

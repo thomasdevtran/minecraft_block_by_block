@@ -12,6 +12,7 @@
     "check:catalog": "tsx scripts/check-catalog.ts"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "three": "^0.186.0",
     "vue": "^3.5.42",
     "vue-router": "^5.3.1"

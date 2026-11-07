@@ -6,6 +6,7 @@ import VisitorCount from './components/VisitorCount.vue'
 import { SITE } from './lib/site'
 import { showToast } from './lib/toast'
 import { readStored, writeStored } from './lib/storage'
+import { user } from './lib/auth'
 
 const route = useRoute()
 const menuOpen = ref(false)
@@ -25,6 +26,7 @@ const section = computed(() => {
   if (name === 'catalog' || name === 'item') return 'items'
   if (name.startsWith('skin')) return 'skins'
   if (name === 'support') return 'support'
+  if (name === 'library') return 'library'
   return ''
 })
 
@@ -84,6 +86,8 @@ async function copyDiscord() {
       <nav id="site-nav" :class="{ open: menuOpen }" aria-label="Main" @click="closeMenu">
         <RouterLink to="/" :class="['nav-link', { active: section === 'items' }]">Items</RouterLink>
         <RouterLink to="/skin" :class="['nav-link', { active: section === 'skins' }]">Skins</RouterLink>
+        <RouterLink to="/library" :class="['nav-link', { active: section === 'library' }]">My Builds</RouterLink>
+        <RouterLink to="/account" class="nav-link">{{ user ? 'Account' : 'Sign in' }}</RouterLink>
         <RouterLink to="/support" :class="['nav-link', { active: section === 'support' }]">Support</RouterLink>
       </nav>
     </div>

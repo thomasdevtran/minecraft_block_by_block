@@ -9,33 +9,42 @@ export interface ConnectivityReport {
   bridgeSpots: { x: number; y: number; z: number }[]
 }
 
-export function checkConnectivity(voxels: Voxel<unknown>[]): ConnectivityReport {
-  const index = new Map(voxels.map((v, i) => [voxelKey(v.x, v.y, v.z), i]))
-  const pieceOf = new Array<number>(voxels.length).fill(-1)
-  const sizes: number[] = []
-
-  for (let start = 0; start < voxels.length; start++) {
-    if (pieceOf[start] !== -1) continue
-    const piece = sizes.length
-    sizes.push(0)
-    const stack = [start]
-    pieceOf[start] = piece
-    while (stack.length) {
-      const v = voxels[stack.pop()!]
-      sizes[piece]++
+export function faceConnectedGroups<T>(voxels: readonly Voxel<T>[]): Voxel<T>[][] {
+  const remaining = new Map(voxels.map(v => [voxelKey(v.x, v.y, v.z), v]))
+  const groups: Voxel<T>[][] = []
+  for (const [key, start] of remaining) {
+    remaining.delete(key)
+    const group = [start]
+    for (const v of group) {
       for (const face of FACES) {
         const [dx, dy, dz] = FACE_NORMALS[face]
-        const n = index.get(voxelKey(v.x + dx, v.y + dy, v.z + dz))
-        if (n !== undefined && pieceOf[n] === -1) {
-          pieceOf[n] = piece
-          stack.push(n)
-        }
+        const neighbor = voxelKey(v.x + dx, v.y + dy, v.z + dz)
+        const next = remaining.get(neighbor)
+        if (!next) continue
+        remaining.delete(neighbor)
+        group.push(next)
       }
     }
+    groups.push(group)
   }
+  return groups
+}
 
+export function touchesPlacedCube(v: Voxel<unknown>, placed: ReadonlySet<string>): boolean {
+  return FACES.some(face => {
+    const [dx, dy, dz] = FACE_NORMALS[face]
+    return placed.has(voxelKey(v.x + dx, v.y + dy, v.z + dz))
+  })
+}
+
+export function checkConnectivity(voxels: Voxel<unknown>[]): ConnectivityReport {
+  const groups = faceConnectedGroups(voxels)
   const bridgeSpots: ConnectivityReport['bridgeSpots'] = []
-  if (sizes.length > 1) {
+  if (groups.length > 1) {
+    const pieceOf = new Map<string, number>()
+    groups.forEach((group, i) => {
+      for (const v of group) pieceOf.set(voxelKey(v.x, v.y, v.z), i)
+    })
     const seen = new Set<string>()
     for (const v of voxels) {
       for (const face of FACES) {
@@ -44,18 +53,18 @@ export function checkConnectivity(voxels: Voxel<unknown>[]): ConnectivityReport 
         const y = v.y + dy
         const z = v.z + dz
         const key = voxelKey(x, y, z)
-        if (index.has(key) || seen.has(key)) continue
+        if (pieceOf.has(key) || seen.has(key)) continue
         seen.add(key)
         const touching = new Set<number>()
         for (const f of FACES) {
           const [ex, ey, ez] = FACE_NORMALS[f]
-          const n = index.get(voxelKey(x + ex, y + ey, z + ez))
-          if (n !== undefined) touching.add(pieceOf[n])
+          const n = pieceOf.get(voxelKey(x + ex, y + ey, z + ez))
+          if (n !== undefined) touching.add(n)
         }
         if (touching.size > 1) bridgeSpots.push({ x, y, z })
       }
     }
   }
 
-  return { pieces: sizes.length, pieceSizes: [...sizes].sort((a, b) => b - a), bridgeSpots }
+  return { pieces: groups.length, pieceSizes: groups.map(group => group.length).sort((a, b) => b - a), bridgeSpots }
 }

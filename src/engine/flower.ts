@@ -1,6 +1,7 @@
+import { faceConnectedGroups, touchesPlacedCube } from './connectivity'
 import { finalizeModel, type BuildModel, type ColorOptions, type PartInfo } from './model'
 import { ALPHA_CUTOFF, getPixel, toHex, type PixelImage } from './pixels'
-import { emptyFaces, faceTexel, FACES, type Face, type Voxel } from './voxels'
+import { emptyFaces, faceTexel, FACE_NORMALS, FACES, voxelKey, type Face, type Voxel } from './voxels'
 
 /**
  * Pot textures written by `npm run extract`: a 32×16 image with flower_pot.png on the left and dirt.png on the right.
@@ -57,7 +58,7 @@ export function flowerToModel(sprite: PixelImage, options: FlowerOptions): Build
   const lift = options.pot ? PLANT_LIFT : 0
   const byPosition = new Map<string, Voxel<string>>()
   const add = (v: Voxel<string>) => {
-    const key = `${v.x},${v.y},${v.z}`
+    const key = voxelKey(v.x, v.y, v.z)
     if (!byPosition.has(key)) byPosition.set(key, v)
   }
 
@@ -87,6 +88,8 @@ export function flowerToModel(sprite: PixelImage, options: FlowerOptions): Build
     }
   }
 
+  addPlantSupports(byPosition, sprite.width)
+
   const parts: PartInfo[] = []
   if (options.pot) {
     parts.push({ id: 'pot', name: 'Pot', w: POT.size, h: POT.height, d: POT.size, origin: POT.origin })
@@ -103,6 +106,57 @@ export function flowerToModel(sprite: PixelImage, options: FlowerOptions): Build
     }),
   })
   return finalizeModel('plant', [...byPosition.values()], parts, options)
+}
+
+const HORIZONTAL_FACES = ['left', 'right', 'back', 'front'] as const
+
+/** Bridge a detached section with one cube that can sit on the build below it. */
+function addPlantSupports(occupied: Map<string, Voxel<string>>, width: number): void {
+  const placed = new Set<string>()
+  const layers = new Map<number, Voxel<string>[]>()
+  for (const [key, v] of occupied) {
+    if (v.part === 'pot') {
+      placed.add(key)
+    } else {
+      const layer = layers.get(v.y) ?? []
+      layer.push(v)
+      layers.set(v.y, layer)
+    }
+  }
+
+  const heights = [...layers.keys()].sort((a, b) => a - b)
+  for (const y of heights) {
+    const startsOnTable = y === heights[0] && placed.size === 0
+    for (const group of faceConnectedGroups(layers.get(y)!)) {
+      if (!startsOnTable && !group.some(v => touchesPlacedCube(v, placed))) {
+        const support = findPlantSupport(group, occupied, placed, width)
+        if (!support) continue
+        const key = voxelKey(support.x, y, support.z)
+        occupied.set(key, support)
+        placed.add(key)
+      }
+      for (const v of group) placed.add(voxelKey(v.x, v.y, v.z))
+    }
+  }
+}
+
+function findPlantSupport(
+  group: Voxel<string>[],
+  occupied: ReadonlyMap<string, Voxel<string>>,
+  placed: ReadonlySet<string>,
+  width: number,
+): Voxel<string> | undefined {
+  for (const v of group) {
+    for (const face of HORIZONTAL_FACES) {
+      const [dx, , dz] = FACE_NORMALS[face]
+      const x = v.x + dx
+      const z = v.z + dz
+      if (x < 0 || x >= width || z < 0 || z >= width) continue
+      if (!occupied.has(voxelKey(x, v.y, z)) && placed.has(voxelKey(x, v.y - 1, z))) {
+        return { ...v, x, z, lx: v.lx + dx, lz: v.lz + dz, faces: { ...v.faces }, support: true }
+      }
+    }
+  }
 }
 
 /** A 6×6×6 pot with 1-cube walls, filled with dirt up to 2 cubes below the rim. */

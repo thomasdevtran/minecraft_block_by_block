@@ -31,6 +31,8 @@ export interface Voxel<T = number> {
   faces: FaceColors<T>
   /** Hollow-build filler cube that never shows. */
   interior: boolean
+  /** Extra cube that joins a flower section to the layer below. */
+  support?: boolean
 }
 
 /**

@@ -13,6 +13,7 @@ defineProps<{ title: string; guide: Guide; model: BuildModel }>()
     <h2>Materials</h2>
     <p>{{ guide.materials.totalCubes.toLocaleString() }} equal-size cubes · {{ model.palette.length }} paint colors · suitable glue · paintbrush · labeled trays</p>
     <p v-if="guide.materials.plainCubes">{{ guide.materials.plainCubes }} cubes are hidden filler and need no paint.</p>
+    <p v-if="guide.materials.backingBoard">Gather a flat backing board and glue suitable for the board and cubes. The separate pieces attach to the board.</p>
     <p>Match paints as closely as you can; screen colors are a reference. Small parts: keep away from children under three. Children need adult supervision.</p>
     <CubeRecipes :entries="guide.recipes.map(recipe => ({ recipe, count: recipe.count }))" :palette="model.palette" expanded />
     <section v-for="(step, i) in guide.steps" :key="i" class="print-step">

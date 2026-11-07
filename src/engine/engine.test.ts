@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { ROLE, rolesForStep } from '../lib/roles'
 import { blockToModel } from './block'
 import { checkConnectivity } from './connectivity'
 import { flowerToModel, pottedSprite } from './flower'
@@ -290,5 +291,33 @@ describe('skin cube counts', () => {
     const hidden = m.voxels.filter((v) => FACES.every((f) => v.faces[f] === null)).length
     expect(guide.materials.plainCubes).toBe(hidden)
     expect(guide.materials.paintedCubes + guide.materials.plainCubes).toBe(1664)
+  })
+
+  it('counts all six sides of each painted cube in a one-color skin', () => {
+    const guide = buildGuide(skinToModel(graySkin(), skinOpts))
+    expect(guide.recipes).toMatchObject([{ uniform: 0, count: 980 }])
+    expect(guide.steps.find(step => step.kind === 'paint')?.text).toContain('Paint all six sides')
+    expect(guide.materials.perPaint).toEqual([{ cubes: 980, faces: 5880 }])
+  })
+})
+
+describe('skin assembly alignment', () => {
+  it.each([['classic', 4], ['slim', 3]] as const)('uses the %s model geometry for each assembly stage', (armModel, armWidth) => {
+    const model = skinToModel(graySkin(), { ...skinOpts, model: armModel })
+    const guide = buildGuide(model)
+    const assembly = guide.steps.filter(step => step.kind === 'assemble')
+    const legs = ['rightLeg', 'leftLeg']
+    const torso = [...legs, 'body']
+    const shoulders = [...torso, 'rightArm', 'leftArm']
+    expect(assembly.map(step => step.alignedParts.map(part => part.id))).toEqual([
+      legs, torso, shoulders, [...shoulders, 'head'],
+    ])
+    const arm = assembly[2].alignedParts.find(part => part.id === 'rightArm')
+    expect(arm).toMatchObject({ w: armWidth, origin: [4 - armWidth, 12, 0] })
+    expect(assembly[3].text).toContain('2 cubes overhanging the front and 2 cubes overhanging the back')
+    const roles = rolesForStep(model, guide, assembly[2])
+    expect(roles[model.voxels.findIndex(cube => cube.part === 'rightArm')]).toBe(ROLE.focus)
+    expect(roles[model.voxels.findIndex(cube => cube.part === 'body')]).toBe(ROLE.solid)
+    expect(roles[model.voxels.findIndex(cube => cube.part === 'head')]).toBe(ROLE.hidden)
   })
 })

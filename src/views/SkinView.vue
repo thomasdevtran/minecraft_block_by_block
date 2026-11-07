@@ -131,7 +131,7 @@ function onDrop(e: DragEvent) {
         @drop.prevent="onDrop"
       >
         <h2>Upload a skin file</h2>
-        <p class="muted">Choose or drop a 64×64 or 64×32 PNG, up to 1 MB. Your file stays on this device. Only use skins you have permission to use.</p>
+      <p class="muted">Choose or drop a 64×64 or 64×32 PNG, up to 1 MB. The skin is processed on this device. Choosing “Save to My Builds” uploads it to your private account library. Only use skins you have permission to use.</p>
         <button type="button" class="btn" :disabled="uploading || loading" @click="fileInput?.click()">
           {{ uploading ? 'Opening…' : 'Choose PNG…' }}
         </button>

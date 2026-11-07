@@ -26,14 +26,17 @@ function eraseBuilds() {
     <p class="muted">Last updated {{ SITE.legalUpdated }}.</p>
     <p class="intro">{{ SITE.name }} is an independent craft-guide site operated by {{ SITE.operator.name }} in {{ SITE.operator.country }}. Contact <a :href="`mailto:${SITE.operator.email}`">{{ SITE.operator.email }}</a> for privacy questions or requests.</p>
     <div class="summary">
-      <p><strong>No account required. Uploaded skins stay on your device.</strong></p>
+      <p><strong>Browse guides freely. Choose an account to save builds across devices.</strong></p>
       <p>There are no advertising scripts at launch. Page visits are counted automatically without cookies or stored visitor identifiers. Hosting, player lookups and payment services still process data as described below.</p>
     </div>
     <nav class="contents" aria-label="Privacy topics"><a href="#local-data">Saved builds</a><a href="#visitor-count">Visitor count</a><a href="#services">Service providers</a><a href="#rights">Your rights</a></nav>
 
     <h2 id="local-data">What stays in your browser</h2>
     <p>The site uses local storage to remember the features you use: paint and build settings, your place in a guide, your texture choice, and your last skin image and its username or file label. Your appearance choice is also saved. The application does not set cookies.</p>
-    <p>These records stay until you clear them or your browser removes them. Someone using the same browser profile could see them. Uploaded PNG files are processed locally and are not uploaded to our server. Saved builds are not synced or backed up by us.</p>
+    <p>These records stay until you clear them or your browser removes them. Someone using the same browser profile could see them. Uploaded skins are processed on your device. Choosing “Save to My Builds” while signed in uploads the selected skin and saves the build settings and current step to your private account library.</p>
+    <h2>Accounts and My Builds</h2>
+    <p>Supabase provides account sign-in, the saved-build database, and private skin storage. Creating an account sends your email and authentication information to Supabase. A session is stored in this browser to keep you signed in. Signing out on this device removes that session.</p>
+    <p>Your library stores build names, item references, settings, material counts, the step you explicitly save, and uploaded skins for saved skin builds. Sign in on another device to open these builds. Clearing browser build data below affects local records. Contact us to request deletion of your account and cloud records.</p>
     <div class="card data-controls">
       <strong>Manage saved builds</strong>
       <p>Remove the saved skin, build settings and progress from this browser.</p>
@@ -57,6 +60,7 @@ function eraseBuilds() {
     <ul>
       <li><a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Vercel privacy policy</a> — hosting and technical requests.</li>
       <li><a href="https://upstash.com/trust/privacy.pdf" target="_blank" rel="noopener noreferrer">Upstash privacy policy</a> — the aggregate counter when configured.</li>
+      <li><a href="https://supabase.com/privacy" target="_blank" rel="noopener noreferrer">Supabase privacy policy</a> — accounts, saved builds, and private skin files.</li>
       <li><a href="https://privacy.microsoft.com/privacystatement" target="_blank" rel="noopener noreferrer">Microsoft privacy statement</a> — Minecraft player lookups.</li>
     </ul>
 
@@ -66,7 +70,7 @@ function eraseBuilds() {
     <p><a href="https://ko-fi.com/home/privacy" target="_blank" rel="noopener noreferrer">Ko-fi privacy policy</a> · <a href="https://www.paypal.com/us/legalhub/paypal/privacy-full" target="_blank" rel="noopener noreferrer">PayPal privacy statement</a></p>
 
     <h2>Children and families</h2>
-    <p>There are no accounts, public uploads, chat features or behavioral advertising here. Children should use the craft guides with an adult, and should not send personal information or payments. A parent or guardian can contact us about information a child may have provided. Visit counting is limited to aggregate service measurement and is not used to contact or profile children.</p>
+    <p>Children should use the craft guides with an adult, who can manage any saved builds and account information. A parent or guardian can contact us about information a child may have provided. Visit counting is limited to aggregate service measurement and is not used to contact or profile children.</p>
 
     <h2 id="rights">Your rights and choices</h2>
     <p>We do not sell personal information or share it for cross-context behavioral advertising. Depending on your location and the laws that apply, you may have rights to access, correct, delete or receive personal information, restrict or object to processing, withdraw consent, or complain to a privacy regulator. We do not deny access to guides for exercising privacy choices.</p>
