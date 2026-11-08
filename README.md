@@ -25,6 +25,8 @@ For a new Supabase project, apply `supabase/migrations/202611070001_saved_builds
 
 Saving the same build again updates its place after checking the saved revision. Concurrent changes produce a reload message. Generation changes that alter recipes or steps must bump `GUIDE_ENGINE_VERSION` in `src/lib/savedBuilds.ts`. A mismatched engine or catalog version reopens at Materials.
 
+Apply `supabase/migrations/202611070002_library_limits.sql` after the initial schema, then run `supabase/tests/library_limits.sql`. Initial server-enforced limits are 100 saved builds and 100 private skin images per account, with the bucket's 1 MB file limit. The database serializes quota checks per owner. Duplicate saves and reusing an existing image remain supported at the limit. Contact the operator to remove unused cloud images when necessary.
+
 `public/textures/` and `public/data/items.json` are **committed**, so a deploy only runs `npm run build`. `npm run extract` is a local maintenance step you run when bumping the Minecraft version; commit whatever it changes. Don't add it to the build — it downloads several client jars and would make deploys depend on Mojang's servers.
 
 ## Catalog review

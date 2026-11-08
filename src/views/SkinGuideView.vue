@@ -5,13 +5,14 @@ import GuideViewer from '../components/GuideViewer.vue'
 import PaintControls from '../components/PaintControls.vue'
 import ViewToggle from '../components/ViewToggle.vue'
 import { itemToModel } from '../engine/item'
-import { loadPixels, pixelsToDataUrl, type PixelImage } from '../engine/pixels'
+import { pixelsToDataUrl, type PixelImage } from '../engine/pixels'
 import { skinFront, skinToModel, validateSkin, type SkinOptions } from '../engine/skin'
 import { buildGuide } from '../engine/steps'
 import { currentSkin, setSkin } from '../lib/skinStore'
 import { setPageMeta } from '../lib/meta'
 import { hashString, readStored, writeStored } from '../lib/storage'
 import { flag, paintLimit } from '../lib/buildSettings'
+import { loadSkinPixels } from '../lib/skinImages'
 
 const pixels = shallowRef<PixelImage | null>(null)
 const prefs = reactive(
@@ -30,7 +31,7 @@ watch(
     loadError.value = ''
     setPageMeta(currentSkin.value ? `${currentSkin.value.label}'s skin build guide` : 'Skin build guide', undefined, true)
     try {
-      const loaded = url ? await loadPixels(url) : null
+      const loaded = url ? await loadSkinPixels(url) : null
       if (token !== skinLoad) return
       if (loaded && validateSkin(loaded)) throw new Error('Invalid saved skin')
       pixels.value = loaded

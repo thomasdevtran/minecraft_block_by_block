@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { authError, authReady, recoveringPassword, user } from '../lib/auth'
 import { requireSupabase, supabase } from '../lib/supabase'
@@ -12,6 +12,7 @@ const password = ref('')
 const busy = ref(false)
 const error = ref('')
 const message = ref('')
+watch(() => user.value?.id, () => { password.value = '' })
 const heading = computed(() => recoveringPassword.value ? 'Choose a new password'
   : mode.value === 'signup' ? 'Create your account' : mode.value === 'reset' ? 'Reset your password' : 'Sign in')
 const nextPath = computed(() => {

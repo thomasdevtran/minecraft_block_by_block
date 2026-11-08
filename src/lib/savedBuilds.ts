@@ -2,6 +2,7 @@ import type { SkinModelType } from '../engine/skin'
 import { user as signedInUser } from './auth'
 import { loadCatalog } from './catalog'
 import { blobToDataUrl, setSkin, type LoadedSkin } from './skinStore'
+import { readSkinPng } from './skinImages'
 import { requireSupabase } from './supabase'
 import { writeStored } from './storage'
 
@@ -66,10 +67,7 @@ export async function saveBuild(input: BuildToSave, previous: SavedBuild | null)
   if (kind === 'skin' && !input.skin) throw new Error('Choose a skin before saving.')
   let imagePath: string | null = null
   if (kind === 'skin' && input.skin) {
-    if (!input.skin.dataUrl.startsWith('data:image/png;base64,') || input.skin.dataUrl.length > 1_400_000) {
-      throw new Error('Choose a valid skin PNG up to 1 MB.')
-    }
-    const image = await fetch(input.skin.dataUrl).then(response => response.blob())
+    const image = await readSkinPng(input.skin.dataUrl)
     const hash = await digest(await image.arrayBuffer())
     imagePath = `${user.id}/${hash}.png`
     const { error } = await client.storage.from('build-skins').upload(imagePath, image, { contentType: 'image/png', upsert: false })
@@ -98,6 +96,9 @@ export async function saveBuild(input: BuildToSave, previous: SavedBuild | null)
     if (existing.error) throw existing.error
     return existing.data as SavedBuild
   }
+  if (error?.code === '23514' && error.message === 'Your library can store up to 100 builds.') {
+    throw new Error(error.message)
+  }
   if (error) throw error
   return data as SavedBuild
 }
@@ -107,13 +108,18 @@ export async function openBuild(build: SavedBuild): Promise<{ path: string; upda
   validateBuildPath(build.resume_path)
   let updated = build.engine_version !== GUIDE_ENGINE_VERSION
   if (build.kind === 'item') updated ||= build.catalog_version !== (await loadCatalog()).version
+  let skin: LoadedSkin | null = null
   if (build.kind === 'skin') {
     if (!build.image_path || !build.skin_model) throw new Error('The saved skin is incomplete.')
     const { data, error } = await requireSupabase().storage.from('build-skins').download(build.image_path)
     if (error) throw error
     if (signedInUser.value?.id !== build.user_id) throw new Error('Your sign-in changed. Open My Builds again.')
-    setSkin({ label: build.title, model: build.skin_model, dataUrl: await blobToDataUrl(data) })
+    const image = await readSkinPng(data)
+    skin = { label: build.title, model: build.skin_model, dataUrl: await blobToDataUrl(image), accountId: build.user_id }
   }
+  // Commit local state only after all asynchronous work and the final ownership check.
+  if (signedInUser.value?.id !== build.user_id) throw new Error('Your sign-in changed. Open My Builds again.')
+  if (skin) setSkin(skin)
   writeStored(`progress:${build.guide_key}`, updated ? 0 : build.current_step)
   return { path: build.resume_path, updated }
 }

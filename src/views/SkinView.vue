@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { loadPixels } from '../engine/pixels'
+import { loadSkinPixels, readSkinPng } from '../lib/skinImages'
 import { validateSkin } from '../engine/skin'
 import { blobToDataUrl, currentSkin, fetchSkinByUsername, setSkin, type LoadedSkin } from '../lib/skinStore'
 import { showToast } from '../lib/toast'
@@ -17,7 +17,7 @@ const dragging = ref(false)
 const fileInput = ref<HTMLInputElement>()
 
 async function useSkin(skin: LoadedSkin) {
-  const problem = validateSkin(await loadPixels(skin.dataUrl))
+  const problem = validateSkin(await loadSkinPixels(skin.dataUrl))
   if (problem) throw new Error(problem)
   setSkin(skin)
   showToast(`Loaded ${skin.label}'s skin.`)
@@ -56,16 +56,9 @@ async function upload(file: File | undefined) {
   }
   uploading.value = true
   try {
-    if (file.size > 1024 * 1024) throw new Error('Choose a skin PNG smaller than 1 MB.')
-    const header = new DataView(await file.slice(0, 24).arrayBuffer())
-    if (header.byteLength < 24 || header.getUint32(0) !== 0x89504e47 || header.getUint32(4) !== 0x0d0a1a0a || header.getUint32(12) !== 0x49484452) {
-      throw new Error('This file is not a valid PNG skin.')
-    }
-    if (header.getUint32(16) !== 64 || ![32, 64].includes(header.getUint32(20))) {
-      throw new Error('Use a 64×64 or 64×32 skin PNG. Screenshots and larger images are not supported.')
-    }
+    await readSkinPng(file)
     const dataUrl = await blobToDataUrl(file)
-    const pixels = await loadPixels(dataUrl).catch(() => {
+    const pixels = await loadSkinPixels(dataUrl).catch(() => {
       throw new Error(`“${file.name}” couldn't be opened as an image. It may be damaged.`)
     })
     // Slim skins leave the 4th column of each arm's front texture empty.

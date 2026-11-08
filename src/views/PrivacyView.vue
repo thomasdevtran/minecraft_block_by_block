@@ -35,7 +35,7 @@ function eraseBuilds() {
     <p>The site uses local storage to remember the features you use: paint and build settings, your place in a guide, your texture choice, and your last skin image and its username or file label. Your appearance choice is also saved. The application does not set cookies.</p>
     <p>These records stay until you clear them or your browser removes them. Someone using the same browser profile could see them. Uploaded skins are processed on your device. Choosing “Save to My Builds” while signed in uploads the selected skin and saves the build settings and current step to your private account library.</p>
     <h2>Accounts and My Builds</h2>
-    <p>Supabase provides account sign-in, the saved-build database, and private skin storage. Creating an account sends your email and authentication information to Supabase. A session is stored in this browser to keep you signed in. Signing out on this device removes that session.</p>
+    <p>Supabase provides account sign-in, the saved-build database, and private skin storage. Creating an account sends your email and authentication information to Supabase. A session is stored in this browser to keep you signed in. Signing out on this device removes that session and clears the active skin opened from your private library.</p>
     <p>Your library stores build names, item references, settings, material counts, the step you explicitly save, and uploaded skins for saved skin builds. Sign in on another device to open these builds. Clearing browser build data below affects local records. Contact us to request deletion of your account and cloud records.</p>
     <div class="card data-controls">
       <strong>Manage saved builds</strong>

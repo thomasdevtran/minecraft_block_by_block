@@ -73,6 +73,7 @@ async function resume(build: SavedBuild) {
     <p class="eyebrow muted">Your crafting table</p>
     <h1>My Builds</h1>
     <p>Keep your projects together and open their saved steps on any device.</p>
+    <p class="muted">Each account supports up to 100 saved builds and 100 private skin images, up to 1 MB each.</p>
     <p v-if="!supabase" class="notice">Accounts are being set up. Please check back soon.</p>
     <p v-else-if="!authReady" role="status">Checking your sign-in…</p>
     <p v-else-if="!user" class="notice"><RouterLink to="/account?next=/library">Sign in or create an account</RouterLink> to see your saved builds.</p>
