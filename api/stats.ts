@@ -1,3 +1,5 @@
+/// <reference types="node" />
+
 /** Aggregate page loads only. No stored visitor identifiers or browsing history. */
 
 const KEY = 'bbb:page-visits:v1'
