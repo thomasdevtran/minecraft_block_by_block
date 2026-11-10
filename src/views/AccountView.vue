@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import CommunityUsername from '../components/CommunityUsername.vue'
 import { authError, authReady, recoveringPassword, user } from '../lib/auth'
 import { requireSupabase, supabase } from '../lib/supabase'
 
@@ -85,6 +86,10 @@ async function signOut() {
         <RouterLink class="btn primary" :to="nextPath">Continue to your builds</RouterLink>
         <button class="btn" :disabled="busy" @click="signOut">Sign out</button>
       </div>
+      <CommunityUsername
+        :key="`${user.id}:${user.email_confirmed_at ?? ''}`"
+        :email-confirmed="Boolean(user.email_confirmed_at)"
+      />
     </template>
     <template v-else>
       <form class="account-form card" @submit.prevent="submit">
