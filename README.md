@@ -29,7 +29,7 @@ Apply `supabase/migrations/202611070002_library_limits.sql` after the initial sc
 
 ### Community development: usernames
 
-The community work uses `supabase/migrations/202611070003_community_profiles.sql` and `src/lib/communityProfiles.ts`. The additive migration has not been applied to the hosted project. Signed-in users can open **Community username** on `/account` to choose or edit their name. The panel loads only when opened and requires a confirmed email. If the migration is missing, the panel reports that usernames are not available yet; sign-in and the library remain usable. Discussions, moderator tools, and photos are later review steps.
+The community work uses `supabase/migrations/202611070003_community_profiles.sql` and `src/lib/communityProfiles.ts`. The username migration is installed on the hosted project. Signed-in users can open **Community username** on `/account` to choose or edit their name. The panel loads only when opened and requires a confirmed email. On a project without the migration, it reports that usernames are not available yet; sign-in and the library remain usable.
 
 Public profiles contain only an account ID, username, and creation/update timestamps. They never contain email addresses, auth metadata, or moderator permissions. Usernames use 3–24 lowercase ASCII letters, numbers, or underscores, starting with a letter; official/system names are reserved. Users explicitly choose a username rather than deriving one from their email.
 
@@ -38,6 +38,14 @@ All writes go through `set_community_username(expected_user_id, new_username)`. 
 Run `npm test -- src/lib/communityProfiles.test.ts tests/community-database.test.ts` to review this step without network access. The development-only PGlite dependency runs the actual migrations and SQL assertions in a disposable PostgreSQL database with minimal Auth/Storage schema stubs. It also reruns the existing library ownership and quota SQL checks. This does not emulate Supabase Auth or the REST API; a hosted integration check is still required after approval and before release. The SQL checks in `supabase/tests/community_profiles.sql` roll back their temporary users and profiles.
 
 For deployment later, apply the additive migration before enabling the username UI. An application rollback can leave the new table in place without affecting accounts or libraries. For a disposable review database only, the schema can be removed by dropping `public.set_community_username(uuid, text)` and then `public.community_profiles`; doing so deletes any community usernames, so it is not the production rollback path.
+
+### Community development: topics and replies
+
+The local review adds `/community`, `/community/new`, and `/community/:topicId`. The board has Build Help, Finished Builds, and Ideas & Feedback categories and shows 20 topics or replies per page. Visitors can read visible discussions. Posting requires a confirmed email and a public community username. Titles and messages render as plain text. Account deletion unlinks the author from existing posts, which display “Deleted account.”
+
+Apply `supabase/migrations/202611100001_community_discussions.sql` after the username migration in a review database. The board displays an unavailable message on projects without the new tables. The migration grants read access to visible content and restricts writes to the authenticated posting functions. The database checks account identity, text limits, locked/hidden topics, and a shared 30-second cooldown plus rolling 24-hour limits of five topics and 30 replies. Run `npm test -- src/lib/communityDiscussions.test.ts tests/community-database.test.ts` for local client and SQL checks. The SQL assertions use a rolled-back transaction with test accounts.
+
+The discussions migration is pending for hosted Supabase. Keep this slice in review until reporting and moderation controls are ready for public posting. Editing, guide step links, and photos are separate review steps. To roll back the application, hide/remove the Community routes and leave the additive tables in place so discussion data is preserved.
 
 `public/textures/` and `public/data/items.json` are **committed**, so a deploy only runs `npm run build`. `npm run extract` is a local maintenance step you run when bumping the Minecraft version; commit whatever it changes. Don't add it to the build — it downloads several client jars and would make deploys depend on Mojang's servers.
 

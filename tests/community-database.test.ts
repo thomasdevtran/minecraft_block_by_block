@@ -59,6 +59,7 @@ beforeAll(async () => {
   `)
   existingLibrary = (await db.query(existingLibrarySql)).rows
   await db.exec(sqlFile('migrations/202611070003_community_profiles.sql'))
+  await db.exec(sqlFile('migrations/202611100001_community_discussions.sql'))
 }, 30_000)
 
 afterAll(async () => { await db?.close() })
@@ -68,7 +69,7 @@ describe('community migration with existing library policies', () => {
     expect((await db.query(existingLibrarySql)).rows).toEqual(existingLibrary)
   })
 
-  it.each(['saved_builds', 'library_limits', 'community_profiles'])('passes the %s SQL regression checks', async name => {
+  it.each(['saved_builds', 'library_limits', 'community_profiles', 'community_discussions'])('passes the %s SQL regression checks', async name => {
     try {
       const results = await db.exec(sqlFile(`tests/${name}.sql`))
       expect(results.some(result => result.rows.some(row => typeof row.result === 'string' && row.result.includes('passed')))).toBe(true)

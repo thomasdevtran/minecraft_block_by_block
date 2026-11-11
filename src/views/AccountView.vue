@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import CommunityUsername from '../components/CommunityUsername.vue'
+import { isCommunityReturnPath } from '../lib/communityDiscussions'
 import { authError, authReady, recoveringPassword, user } from '../lib/auth'
 import { requireSupabase, supabase } from '../lib/supabase'
 
@@ -18,7 +19,7 @@ const heading = computed(() => recoveringPassword.value ? 'Choose a new password
   : mode.value === 'signup' ? 'Create your account' : mode.value === 'reset' ? 'Reset your password' : 'Sign in')
 const nextPath = computed(() => {
   const path = route.query.next
-  return typeof path === 'string' && /^\/(library|item\/[a-z0-9_]+|skin(?:\/guide)?)(?:\?[^#]*)?$/.test(path) ? path : '/library'
+  return typeof path === 'string' && (isCommunityReturnPath(path) || /^\/(library|item\/[a-z0-9_]+|skin(?:\/guide)?)(?:\?[^#]*)?$/.test(path)) ? path : '/library'
 })
 
 async function submit() {
@@ -83,7 +84,7 @@ async function signOut() {
     <template v-else-if="user && !recoveringPassword">
       <p>Signed in as <strong>{{ user.email }}</strong>.</p>
       <div class="account-actions">
-        <RouterLink class="btn primary" :to="nextPath">Continue to your builds</RouterLink>
+        <RouterLink class="btn primary" :to="nextPath">{{ isCommunityReturnPath(nextPath) ? 'Return to Community' : 'Continue to your builds' }}</RouterLink>
         <button class="btn" :disabled="busy" @click="signOut">Sign out</button>
       </div>
       <CommunityUsername

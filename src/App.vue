@@ -27,6 +27,7 @@ const section = computed(() => {
   if (name.startsWith('skin')) return 'skins'
   if (name === 'support') return 'support'
   if (name === 'library') return 'library'
+  if (name.startsWith('community')) return 'community'
   return ''
 })
 
@@ -87,6 +88,7 @@ async function copyDiscord() {
         <RouterLink to="/" :class="['nav-link', { active: section === 'items' }]">Items</RouterLink>
         <RouterLink to="/skin" :class="['nav-link', { active: section === 'skins' }]">Skins</RouterLink>
         <RouterLink to="/library" :class="['nav-link', { active: section === 'library' }]">My Builds</RouterLink>
+        <RouterLink to="/community" :class="['nav-link', { active: section === 'community' }]">Community</RouterLink>
         <RouterLink to="/account" class="nav-link">{{ user ? 'Account' : 'Sign in' }}</RouterLink>
         <RouterLink to="/support" :class="['nav-link', { active: section === 'support' }]">Support</RouterLink>
       </nav>
@@ -232,7 +234,7 @@ async function copyDiscord() {
   fill: none;
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   .brand {
     font-size: 1.15rem;
   }

@@ -29,6 +29,25 @@ export const router = createRouter({
       meta: { title: 'My Builds' },
     },
     {
+      path: '/community',
+      name: 'community',
+      component: () => import('./views/CommunityView.vue'),
+      meta: { title: 'Community' },
+    },
+    {
+      path: '/community/new',
+      name: 'community-new',
+      component: () => import('./views/CommunityNewTopicView.vue'),
+      meta: { title: 'New community topic' },
+    },
+    {
+      path: '/community/:topicId',
+      name: 'community-topic',
+      component: () => import('./views/CommunityTopicView.vue'),
+      props: true,
+      meta: { title: 'Community topic' },
+    },
+    {
       path: '/',
       name: 'catalog',
       component: () => import('./views/CatalogView.vue'),
@@ -113,5 +132,6 @@ router.beforeEach((to) => {
 })
 
 router.afterEach((to, from) => {
-  if (to.path !== from.path || !from.name) setPageMeta(to.meta.title, to.meta.description, to.name === 'not-found' || to.name === 'skin-guide')
+  if (to.path !== from.path || !from.name) setPageMeta(to.meta.title, to.meta.description,
+    to.name === 'not-found' || to.name === 'skin-guide' || String(to.name ?? '').startsWith('community'))
 })
