@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import CommunityPostForm from '../components/CommunityPostForm.vue'
+import CommunityReportForm from '../components/CommunityReportForm.vue'
 import { COMMUNITY_CATEGORIES, communityDate, listCommunityReplies, loadCommunityTopic, type CommunityReply, type CommunityTopic } from '../lib/communityDiscussions'
 import { supabase } from '../lib/supabase'
 
@@ -79,6 +80,7 @@ function replyPosted() {
         <h1>{{ topic.title }}</h1>
         <p class="muted">{{ topic.author ? `@${topic.author.username}` : 'Deleted account' }} · <time :datetime="topic.created_at">{{ communityDate(topic.created_at) }}</time></p>
         <p class="post-body">{{ topic.body }}</p>
+        <CommunityReportForm :topic-id="topic.id" />
       </article>
       <section aria-labelledby="replies-heading">
         <h2 id="replies-heading">Replies</h2>
@@ -98,6 +100,7 @@ function replyPosted() {
               <li v-for="reply in replies" :key="reply.id" class="card">
                 <p class="muted">{{ reply.author ? `@${reply.author.username}` : 'Deleted account' }} · <time :datetime="reply.created_at">{{ communityDate(reply.created_at) }}</time></p>
                 <p class="post-body">{{ reply.body }}</p>
+                <CommunityReportForm :topic-id="topic.id" :reply-id="reply.id" />
               </li>
             </ol>
           </template>

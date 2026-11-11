@@ -35,7 +35,7 @@ const TOPIC_FIELDS = 'id,title,category,created_at,author:community_profiles(use
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i
 
 export function isCommunityReturnPath(path: string) {
-  return path === '/community' || path === '/community/new'
+  return path === '/community' || path === '/community/new' || path === '/community/moderation'
     || (path.startsWith('/community/') && UUID.test(path.slice('/community/'.length)))
 }
 

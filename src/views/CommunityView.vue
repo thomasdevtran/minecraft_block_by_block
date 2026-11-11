@@ -3,6 +3,8 @@ import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { COMMUNITY_CATEGORIES, communityDate, listCommunityTopics, type CommunityCategory, type TopicSummary } from '../lib/communityDiscussions'
 import { supabase } from '../lib/supabase'
+import { authReady, user } from '../lib/auth'
+import { isCommunityModerator } from '../lib/communityModeration'
 
 const category = ref<CommunityCategory | ''>('')
 const page = ref(0)
@@ -11,6 +13,18 @@ const topics = ref<TopicSummary[]>([])
 const hasMore = ref(false)
 const loading = ref(false)
 const error = ref('')
+const moderator = ref(false)
+
+watch([authReady, () => user.value?.id], async (_value, _old, onCleanup) => {
+  let current = true
+  onCleanup(() => { current = false })
+  moderator.value = false
+  if (!supabase || !authReady.value || !user.value) return
+  try {
+    const allowed = await isCommunityModerator()
+    if (current) moderator.value = allowed
+  } catch { /* The board stays readable before the moderation migration is installed. */ }
+}, { immediate: true })
 
 watch([category, page, retry], async ([filter, currentPage], _previous, onCleanup) => {
   if (!supabase) return
@@ -38,6 +52,7 @@ watch([category, page, retry], async ([filter, currentPage], _previous, onCleanu
     <p class="eyebrow muted">The shared workbench</p>
     <h1>Community</h1>
     <p>Ask for build help, show what you made, or suggest the next guide.</p>
+    <p v-if="moderator"><RouterLink to="/community/moderation">Review reports</RouterLink></p>
     <p v-if="!supabase" class="notice">Discussions are not available yet. Please check back later.</p>
     <div v-else class="board-tools">
       <label>Category

@@ -41,6 +41,12 @@ export const router = createRouter({
       meta: { title: 'New community topic' },
     },
     {
+      path: '/community/moderation',
+      name: 'community-moderation',
+      component: () => import('./views/CommunityModerationView.vue'),
+      meta: { title: 'Community report queue' },
+    },
+    {
       path: '/community/:topicId',
       name: 'community-topic',
       component: () => import('./views/CommunityTopicView.vue'),
