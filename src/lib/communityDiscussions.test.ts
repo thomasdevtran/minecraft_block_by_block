@@ -44,7 +44,7 @@ describe('community discussion client', () => {
   })
 
   it('does not query invalid topic IDs and allows only known local return routes', async () => {
-    for (const path of ['/community', '/community/new', `/community/${topicId}`]) expect(isCommunityReturnPath(path)).toBe(true)
+    for (const path of ['/community', '/community/new', '/community/moderation', `/community/${topicId}`]) expect(isCommunityReturnPath(path)).toBe(true)
     for (const path of ['//other.example/community', '/community/../account', '/community/new?next=//other.example', '/community/%2fexample', 'https://example.invalid/community']) {
       expect(isCommunityReturnPath(path)).toBe(false)
     }

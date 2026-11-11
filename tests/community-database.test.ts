@@ -4,11 +4,15 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 let db: PGlite
 let existingLibrary: unknown[]
+let existingDiscussions: unknown[]
 const sqlFile = (path: string) => readFileSync(new URL(`../supabase/${path}`, import.meta.url), 'utf8')
 const existingLibrarySql = `select
   (select jsonb_agg(to_jsonb(build)) from public.saved_builds build) as builds,
   (select jsonb_agg(to_jsonb(image)) from storage.objects image) as images,
   (select jsonb_agg(to_jsonb(bucket)) from storage.buckets bucket) as buckets`
+const existingDiscussionsSql = `select
+  (select jsonb_agg(to_jsonb(topic) - 'moderation_revision') from public.community_topics topic) as topics,
+  (select jsonb_agg(to_jsonb(reply) - 'moderation_revision') from public.community_replies reply) as replies`
 
 beforeAll(async () => {
   // A disposable PostgreSQL database, never the configured Supabase project.
@@ -60,6 +64,15 @@ beforeAll(async () => {
   existingLibrary = (await db.query(existingLibrarySql)).rows
   await db.exec(sqlFile('migrations/202611070003_community_profiles.sql'))
   await db.exec(sqlFile('migrations/202611100001_community_discussions.sql'))
+  await db.exec(`
+    insert into public.community_profiles (user_id,username) values ('10000000-0000-4000-8000-000000000099','existing_builder');
+    insert into public.community_topics (id,author_id,category,title,body)
+      values ('20000000-0000-4000-8000-000000000098','10000000-0000-4000-8000-000000000099','help','Existing topic','Existing message');
+    insert into public.community_replies (topic_id,author_id,body)
+      values ('20000000-0000-4000-8000-000000000098','10000000-0000-4000-8000-000000000099','Existing reply');
+  `)
+  existingDiscussions = (await db.query(existingDiscussionsSql)).rows
+  await db.exec(sqlFile('migrations/202611100002_community_moderation.sql'))
 }, 30_000)
 
 afterAll(async () => { await db?.close() })
@@ -69,7 +82,11 @@ describe('community migration with existing library policies', () => {
     expect((await db.query(existingLibrarySql)).rows).toEqual(existingLibrary)
   })
 
-  it.each(['saved_builds', 'library_limits', 'community_profiles', 'community_discussions'])('passes the %s SQL regression checks', async name => {
+  it('preserves existing topics and replies when adding moderation', async () => {
+    expect((await db.query(existingDiscussionsSql)).rows).toEqual(existingDiscussions)
+  })
+
+  it.each(['saved_builds', 'library_limits', 'community_profiles', 'community_discussions', 'community_moderation'])('passes the %s SQL regression checks', async name => {
     try {
       const results = await db.exec(sqlFile(`tests/${name}.sql`))
       expect(results.some(result => result.rows.some(row => typeof row.result === 'string' && row.result.includes('passed')))).toBe(true)
