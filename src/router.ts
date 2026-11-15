@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { loadCatalog } from './lib/catalog'
 import { setPageMeta } from './lib/meta'
 import { SITE } from './lib/site'
+import { isChunkLoadError, reloadForNewDeploy } from './lib/recovery'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -135,6 +136,11 @@ export const router = createRouter({
  */
 router.beforeEach((to) => {
   if (to.meta.needsCatalog) void loadCatalog().catch(() => {})
+})
+
+/** A route's code chunk failed to load, usually because a deploy replaced it: open the page fresh. */
+router.onError((error, to) => {
+  if (isChunkLoadError(error)) reloadForNewDeploy(to.fullPath)
 })
 
 router.afterEach((to, from) => {

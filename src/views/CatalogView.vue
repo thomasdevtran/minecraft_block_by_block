@@ -92,7 +92,10 @@ const starters = computed(() => starterBuilds.flatMap(entry => {
 }))
 watch(() => items.value, async list => {
   if (!list.length) return
-  const [{ loadPixels }, { itemToModel }] = await Promise.all([import('../engine/pixels'), import('../engine/item')])
+  // The counts are optional extras: if their code fails to load, the cards just go without them.
+  const engine = await Promise.all([import('../engine/pixels'), import('../engine/item')]).catch(() => null)
+  if (!engine) return
+  const [{ loadPixels }, { itemToModel }] = engine
   await Promise.allSettled(starterBuilds.map(async entry => {
     const item = list.find(i => i.id === entry.id)
     if (!item) return
