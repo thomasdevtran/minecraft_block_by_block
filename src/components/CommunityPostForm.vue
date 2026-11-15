@@ -101,7 +101,7 @@ async function submit() {
 .post-form > p:first-child { margin-top: 0; }
 .post-form fieldset { border: 0; margin: 0; padding: 0; min-width: 0; display: grid; gap: 16px; }
 .post-form label { display: grid; gap: 6px; font-weight: 600; }
-.post-form :is(input, select, textarea) { width: 100%; padding: 10px; font: inherit; font-weight: 400; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.post-form :is(input, select, textarea) { width: 100%; }
 .post-form textarea { resize: vertical; }
 .post-form button { justify-self: start; }
 </style>

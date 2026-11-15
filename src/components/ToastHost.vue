@@ -1,19 +1,69 @@
 <script setup lang="ts">
-import { dismissToast, toasts } from '../lib/toast'
+import { nextTick, ref, watch } from 'vue'
+import { dismissToast, pauseToasts, resumeToasts, toasts } from '../lib/toast'
+
+const host = ref<HTMLElement>()
+const hovering = ref(false)
+const focused = ref(false)
+/** Where keyboard focus was before it entered a toast, so closing the last one can hand it back. */
+let returnFocus: HTMLElement | null = null
+
+watch([hovering, focused], ([hover, focus]) => (hover || focus ? pauseToasts() : resumeToasts()))
+watch(() => toasts.value.length, (count) => {
+  if (!count) hovering.value = focused.value = false
+})
+
+const inside = (node: EventTarget | null) => node instanceof Node && !!host.value?.contains(node)
+
+function onFocusIn(event: FocusEvent) {
+  if (!inside(event.relatedTarget)) returnFocus = event.relatedTarget instanceof HTMLElement ? event.relatedTarget : null
+  focused.value = true
+}
+function onFocusOut(event: FocusEvent) {
+  if (!inside(event.relatedTarget)) focused.value = false
+}
+
+async function close(id: number) {
+  const hadFocus = inside(document.activeElement)
+  dismissToast(id)
+  await nextTick()
+  // A removed element can't report the pointer or focus leaving it, so re-check both.
+  hovering.value = !!host.value?.matches(':hover')
+  if (!hadFocus) return
+  // Look the next toast up by id: the closing one is still in the DOM while it fades out, so a
+  // plain '.close' query would find its own button and focus would be lost when it's removed.
+  const remaining = toasts.value.at(-1)
+  const next = remaining && host.value?.querySelector<HTMLButtonElement>(`[data-toast-id="${remaining.id}"] .close`)
+  if (next) next.focus()
+  else {
+    focused.value = false
+    if (returnFocus?.isConnected) returnFocus.focus()
+    returnFocus = null
+  }
+}
 </script>
 
 <template>
-  <div class="toasts" aria-live="polite">
+  <div
+    ref="host"
+    class="toasts"
+    aria-live="polite"
+    @pointerover="hovering = true"
+    @pointerout="!inside($event.relatedTarget) && (hovering = false)"
+    @focusin="onFocusIn"
+    @focusout="onFocusOut"
+  >
     <TransitionGroup name="toast">
       <div
         v-for="t in toasts"
         :key="t.id"
         :class="['toast', t.kind]"
+        :data-toast-id="t.id"
         :role="t.kind === 'error' ? 'alert' : 'status'"
       >
         <span class="icon" aria-hidden="true">{{ t.kind === 'success' ? '✓' : '!' }}</span>
         <span class="message">{{ t.message }}</span>
-        <button class="close" aria-label="Dismiss" @click="dismissToast(t.id)">×</button>
+        <button type="button" class="close" aria-label="Dismiss message" @click="close(t.id)">×</button>
       </div>
     </TransitionGroup>
   </div>

@@ -6,14 +6,15 @@ import { cubesForStep } from '../lib/guideDisplay'
 import CubeRecipes from './CubeRecipes.vue'
 import SkinAssemblyDiagram from './SkinAssemblyDiagram.vue'
 import StepGrid from './StepGrid.vue'
-const props = defineProps<{ step: Step; recipes: Recipe[]; palette: PaletteEntry[]; printable?: boolean }>()
+/** `position` ("Step 3 of 20") is read before the title by screen readers; the print layout omits it. */
+const props = defineProps<{ step: Step; recipes: Recipe[]; palette: PaletteEntry[]; printable?: boolean; position?: string }>()
 const entries = computed(() => cubesForStep(props.step, props.recipes))
 const longLegend = computed(() => props.step.kind === 'build' && entries.value.length > 6 && !props.printable)
 const sentences = computed(() => props.step.text.split(/(?<=\.)\s+/).filter(Boolean))
 </script>
 
 <template>
-  <h2 tabindex="-1">{{ step.title }}</h2>
+  <h2 tabindex="-1"><span v-if="position" class="visually-hidden">{{ position }}: </span>{{ step.title }}</h2>
   <ul class="actions"><li v-for="line in sentences" :key="line">{{ line }}</li></ul>
   <p v-if="step.kind === 'paint'" class="paint-tip">Let the paint dry. Keep each cube type in a separate tray labeled with its letter.</p>
   <template v-if="entries.length">

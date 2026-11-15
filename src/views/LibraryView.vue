@@ -70,7 +70,7 @@ async function resume(build: SavedBuild) {
 
 <template>
   <div class="container library-page">
-    <p class="eyebrow muted">Your crafting table</p>
+    <p class="eyebrow">Your crafting table</p>
     <h1>My Builds</h1>
     <p>Keep your projects together and open their saved steps on any device.</p>
     <p class="muted">Each account supports up to 100 saved builds and 100 private skin images, up to 1 MB each.</p>

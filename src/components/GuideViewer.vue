@@ -10,6 +10,7 @@ import GuidePrint from './GuidePrint.vue'
 import { rememberBuild } from '../lib/recentBuild'
 import { showToast } from '../lib/toast'
 import SaveBuild from './SaveBuild.vue'
+import { RouterLink } from 'vue-router'
 
 // three.js is ~570 KB, far bigger than the rest of the site put together. Loading it lazily lets
 // the written steps — which are the actual instructions — paint without waiting for the 3D.
@@ -193,6 +194,12 @@ const paintRows = computed(() =>
   props.model.palette.map((p, i) => ({ ...p, ...props.guide.materials.perPaint[i] })),
 )
 const showFaces = computed(() => props.model.kind === 'skin')
+/**
+ * Read before the step heading, which takes focus on every step change. The position used to be
+ * a separate polite live region, but focus moving in the same moment makes screen readers drop or
+ * reorder that announcement; putting it in the focused heading gives one reliable read-out.
+ */
+const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index.value} of ${total.value - 1}`))
 </script>
 
 <template>
@@ -228,7 +235,7 @@ const showFaces = computed(() => props.model.kind === 'skin')
 
     <div class="layout">
       <div ref="panel" class="panel card" role="region" aria-label="Current step">
-        <div class="step-meta" role="status" aria-atomic="true">
+        <div class="step-meta">
           <span class="stage">{{ stageLabel }}</span>
           <span class="muted">{{ index === 0 ? 'Before you start' : `Step ${index} of ${total - 1}` }}</span>
         </div>
@@ -238,9 +245,9 @@ const showFaces = computed(() => props.model.kind === 'skin')
         <div :key="index" class="step-body" :data-step="index">
         <!-- Materials overview -->
         <template v-if="!step">
-          <h2 tabindex="-1">What you need</h2>
+          <h2 tabindex="-1"><span class="visually-hidden">{{ position }}: </span>What you need</h2>
           <p>Gather your cubes, paint, brush and glue. Use labeled trays to keep each cube type together.</p>
-          <p class="safety-note muted">Use equal-size craft cubes, suitable paint and glue. Small parts are a choking hazard; keep away from children under three. Children need adult supervision. <a href="/terms#safety">Build safely</a>.</p>
+          <p class="safety-note muted">Use equal-size craft cubes, suitable paint and glue. Small parts are a choking hazard; keep away from children under three. Children need adult supervision. <RouterLink to="/terms#safety">Build safely</RouterLink>.</p>
           <div class="totals">
             <div>
               <strong>{{ guide.materials.totalCubes.toLocaleString() }}</strong>
@@ -286,7 +293,7 @@ const showFaces = computed(() => props.model.kind === 'skin')
           </p>
         </template>
 
-        <StepInstructions v-else :step="step" :recipes="guide.recipes" :palette="model.palette" />
+        <StepInstructions v-else :step="step" :recipes="guide.recipes" :palette="model.palette" :position="position" />
 
         </div>
 
@@ -320,7 +327,8 @@ const showFaces = computed(() => props.model.kind === 'skin')
     </div>
     <nav class="mobile-nav" aria-label="Step navigation">
       <button class="btn" :disabled="index === 0" @click="go(-1)">← Back</button>
-      <span>{{ index }} / {{ total - 1 }}</span>
+      <span aria-hidden="true">{{ index }} / {{ total - 1 }}</span>
+      <span class="visually-hidden">{{ position }}</span>
       <button class="btn primary" :disabled="index === total - 1" @click="go(1)">{{ index === 0 ? 'Start' : 'Next' }} →</button>
     </nav>
     <GuidePrint v-if="printing" :title="title" :model="model" :guide="guide" />
@@ -334,7 +342,7 @@ const showFaces = computed(() => props.model.kind === 'skin')
 .stage-button[aria-current] { background: var(--accent-soft); color: var(--ink); border-color: var(--accent); }
 .utility-actions .btn { font-size: .85rem; }
 .step-picker { display: flex; align-items: center; gap: 12px; font-size: .9rem; margin-bottom: 16px; }
-.step-picker select { min-width: 0; max-width: 100%; flex: 1; padding: 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--surface); color: var(--ink); }
+.step-picker select { max-width: 100%; flex: 1; }
 .share-fallback { display: grid; gap: 8px; margin-bottom: 16px; }
 .panel { scroll-margin-top: 16px; }
 .panel h2 { font-family: var(--sans); letter-spacing: 0; }

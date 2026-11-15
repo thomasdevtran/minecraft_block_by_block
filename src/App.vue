@@ -28,6 +28,7 @@ const section = computed(() => {
   if (name === 'support') return 'support'
   if (name === 'library') return 'library'
   if (name.startsWith('community')) return 'community'
+  if (name === 'account') return 'account'
   return ''
 })
 
@@ -89,7 +90,7 @@ async function copyDiscord() {
         <RouterLink to="/skin" :class="['nav-link', { active: section === 'skins' }]">Skins</RouterLink>
         <RouterLink to="/library" :class="['nav-link', { active: section === 'library' }]">My Builds</RouterLink>
         <RouterLink to="/community" :class="['nav-link', { active: section === 'community' }]">Community</RouterLink>
-        <RouterLink to="/account" class="nav-link">{{ user ? 'Account' : 'Sign in' }}</RouterLink>
+        <RouterLink to="/account" :class="['nav-link', { active: section === 'account' }]">{{ user ? 'Account' : 'Sign in' }}</RouterLink>
         <RouterLink to="/support" :class="['nav-link', { active: section === 'support' }]">Support</RouterLink>
       </nav>
     </div>
@@ -143,7 +144,7 @@ async function copyDiscord() {
 
 <style scoped>
 .theme-control { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; color: var(--ink-soft); font-size: 0.9rem; }
-.theme-control select { min-height: 44px; max-width: 100%; padding: 6px 10px; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; }
+.theme-control select { max-width: 100%; }
 .fan-notice { margin: 0; padding: 9px 16px; text-align: center; font-size: 0.75rem; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
 .skip-link {
   position: absolute;
@@ -317,13 +318,6 @@ main:focus { outline: none; }
   font: 600 0.95rem var(--sans);
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.link-button {
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
 }
 
 .footer-links a:hover,

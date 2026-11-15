@@ -49,7 +49,7 @@ watch([category, page, retry], async ([filter, currentPage], _previous, onCleanu
 
 <template>
   <div class="container community-page">
-    <p class="eyebrow muted">The shared workbench</p>
+    <p class="eyebrow">The shared workbench</p>
     <h1>Community</h1>
     <p>Ask for build help, show what you made, or suggest the next guide.</p>
     <p v-if="moderator"><RouterLink to="/community/moderation">Review reports</RouterLink></p>
@@ -91,7 +91,6 @@ watch([category, page, retry], async ([filter, currentPage], _previous, onCleanu
 .board-tools, .pages { display: flex; align-items: end; flex-wrap: wrap; gap: 12px; margin-block: 24px; }
 .board-tools { justify-content: space-between; }
 .board-tools label { display: grid; gap: 6px; font-weight: 600; }
-.board-tools select { min-height: 44px; font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); padding: 6px 12px; }
 .pages { align-items: center; }
 .topic-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 .topic-list li { padding: 16px 20px; overflow-wrap: anywhere; }

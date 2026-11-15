@@ -63,7 +63,7 @@ async function submit() {
 .report-form form { max-width: 560px; }
 .report-form fieldset { padding: 0; margin: 0; border: 0; min-width: 0; display: grid; gap: 12px; }
 .report-form label { display: grid; gap: 6px; font-weight: 600; }
-.report-form :is(select, textarea) { width: 100%; font: inherit; background: var(--surface); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
+.report-form :is(select, textarea) { width: 100%; }
 .report-form textarea { resize: vertical; }
 .report-form button { justify-self: start; }
 </style>

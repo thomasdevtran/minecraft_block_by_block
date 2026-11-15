@@ -21,7 +21,7 @@ function eraseBuilds() {
 
 <template>
   <article class="container legal">
-    <p class="eyebrow muted">Your data, your choices</p>
+    <p class="eyebrow">Your data, your choices</p>
     <h1>Privacy &amp; cookies</h1>
     <p class="muted">Last updated {{ SITE.legalUpdated }}.</p>
     <p class="intro">{{ SITE.name }} is an independent craft-guide site operated by {{ SITE.operator.name }} in {{ SITE.operator.country }}. Contact <a :href="`mailto:${SITE.operator.email}`">{{ SITE.operator.email }}</a> for privacy questions or requests.</p>

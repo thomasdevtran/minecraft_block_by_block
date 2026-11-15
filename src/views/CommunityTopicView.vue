@@ -67,7 +67,7 @@ function replyPosted() {
 
 <template>
   <div class="container topic-page">
-    <RouterLink to="/community">← Community</RouterLink>
+    <RouterLink to="/community" class="back">← Community</RouterLink>
     <p v-if="!supabase" class="notice">Discussions are not available yet. Please check back later.</p>
     <p v-else-if="topicLoading" role="status">Loading topic…</p>
     <div v-else-if="topicError" class="notice">

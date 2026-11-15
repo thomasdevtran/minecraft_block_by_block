@@ -1,16 +1,38 @@
 <script setup lang="ts">
+import { ref, useId, watch } from 'vue'
+
 const maxPaints = defineModel<number>('maxPaints', { required: true })
+
+/**
+ * What the slider shows while it moves. Rebuilding the guide is too heavy to do on every pixel of
+ * a drag, so the real value still only changes when the slider is released (or on each key press),
+ * but the number beside it now follows the thumb instead of sitting still until release.
+ */
+const draft = ref(maxPaints.value)
+watch(maxPaints, (value) => (draft.value = value))
+
+const id = useId()
+const read = (event: Event) => Number((event.target as HTMLInputElement).value)
 </script>
 
 <template>
   <div class="controls card">
-    <label class="slider">
-      <span>
-        Max paint colors: <strong>{{ maxPaints }}</strong>
-      </span>
-      <input v-model.lazy.number="maxPaints" type="range" min="2" max="32" />
-      <small class="muted">Fewer colors are easier to paint. More colors look closer to the game.</small>
-    </label>
+    <div class="slider">
+      <!-- The live number is hidden from the accessible name: the slider already announces its
+           value, and a name that changes on every step would be read out again each time. -->
+      <label :for="`${id}-range`">Max paint colors: <strong aria-hidden="true">{{ draft }}</strong></label>
+      <input
+        :id="`${id}-range`"
+        :value="draft"
+        type="range"
+        min="2"
+        max="32"
+        :aria-describedby="`${id}-hint`"
+        @input="draft = read($event)"
+        @change="maxPaints = read($event)"
+      />
+      <small :id="`${id}-hint`" class="muted">Fewer colors are easier to paint. More colors look closer to the game.</small>
+    </div>
     <slot />
   </div>
 </template>

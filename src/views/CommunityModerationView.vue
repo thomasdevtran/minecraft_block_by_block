@@ -69,7 +69,7 @@ async function review(report: CommunityReport, action: ReviewAction) {
 
 <template>
   <div class="container moderation-page">
-    <RouterLink to="/community">← Community</RouterLink>
+    <RouterLink to="/community" class="back">← Community</RouterLink>
     <h1>Report queue</h1>
     <p>Review reported content. Every decision is recorded for moderators.</p>
     <p v-if="!supabase" class="notice">Reporting and moderation are not available yet.</p>
@@ -139,6 +139,5 @@ async function review(report: CommunityReport, action: ReviewAction) {
 .report-list h2 { font: 700 1.25rem var(--sans); margin-block: 8px; }
 .report-details { border-block: 1px solid var(--line); margin-top: 16px; }
 .plain-text { white-space: pre-wrap; overflow-wrap: anywhere; }
-.moderation-page :is(select, textarea) { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 10px; }
 .report-list textarea { width: 100%; resize: vertical; }
 </style>

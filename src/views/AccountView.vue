@@ -76,7 +76,7 @@ async function signOut() {
 
 <template>
   <div class="container account-page">
-    <p class="eyebrow muted">Your crafting table</p>
+    <p class="eyebrow">Your crafting table</p>
     <h1>{{ user && !recoveringPassword ? 'Your account' : heading }}</h1>
     <p>Save your builds and open them on another device.</p>
     <p v-if="!supabase" class="notice">Accounts are being set up. Please check back soon.</p>
@@ -118,6 +118,6 @@ async function signOut() {
 .account-page { max-width: 640px; padding-block: 32px; }
 .account-form { display: grid; gap: 20px; padding: 24px; margin-block: 24px; }
 .account-form label { display: grid; gap: 8px; font-weight: 600; }
-.account-form input { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.account-form input { width: 100%; }
 .account-actions { display: flex; flex-wrap: wrap; gap: 16px; margin-block: 20px; }
 </style>

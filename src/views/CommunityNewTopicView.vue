@@ -11,7 +11,7 @@ function openTopic(id: string) {
 
 <template>
   <div class="container new-topic-page">
-    <RouterLink to="/community">← Community</RouterLink>
+    <RouterLink to="/community" class="back">← Community</RouterLink>
     <h1>New topic</h1>
     <p>Pick the category that fits your post. For build help, include the guide name and the step you’re on.</p>
     <CommunityPostForm v-if="supabase" return-to="/community/new" @posted="openTopic" />

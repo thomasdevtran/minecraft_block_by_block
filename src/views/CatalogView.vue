@@ -467,7 +467,7 @@ const showMore = () => (shown.value += PAGE)
 @media (max-width: 640px) {
   .chips { display: none; }
   .mobile-type-filter { display: grid; gap: 6px; margin-bottom: 16px; font-size: .9rem; }
-  .mobile-type-filter select { width: 100%; min-width: 0; min-height: 44px; padding: 8px 10px; font: inherit; color: var(--ink); background: var(--surface); border: 2px solid var(--line); border-radius: var(--radius); }
+  .mobile-type-filter select { width: 100%; }
 }
 
 .chip {

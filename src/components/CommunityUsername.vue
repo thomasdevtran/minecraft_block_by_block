@@ -78,7 +78,7 @@ async function saveUsername() {
 .community-username summary { cursor: pointer; font-weight: 650; min-height: 24px; }
 .username-form { display: grid; gap: 8px; }
 .username-form label { font-weight: 600; }
-.username-form input { width: 100%; box-sizing: border-box; padding: 12px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--ink); }
+.username-form input { width: 100%; }
 .username-form p { margin: 0 0 4px; }
 .username-form button { justify-self: start; }
 </style>
