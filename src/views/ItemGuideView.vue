@@ -220,7 +220,7 @@ const description = computed(() => {
           <p class="muted">{{ description }}</p>
         </div>
       </header>
-      <details class="build-settings" open>
+      <details class="build-settings">
         <summary>Customize build <span class="muted">· {{ view.toUpperCase() }} · up to {{ maxPaints }} paint colors</span></summary>
         <p class="muted">Changing these options creates a different guide. Each version remembers its own step.</p>
         <div v-if="has3d || item.classic" class="style-controls">
@@ -253,12 +253,16 @@ const description = computed(() => {
       </PaintControls>
       </details>
 
-      <p v-if="connectivity && connectivity.pieces > 1" class="notice">
-        <strong>Heads up:</strong> some cubes only touch at their corners, so this build falls into
-        {{ connectivity.pieces }} separate pieces.
-        {{ view === '2d' ? 'Glue it onto a backing board, or add' : 'Add' }} filler cubes at
-        {{ connectivity.bridgeSpots.length }} spots where a cube would join two pieces.
-      </p>
+      <!-- The fact that matters stays visible; the how-to opens on demand. The materials step
+           repeats the backing-board advice, so nothing is lost when this stays closed. -->
+      <details v-if="connectivity && connectivity.pieces > 1" class="notice pieces">
+        <summary><strong>Heads up:</strong> this build falls into {{ connectivity.pieces }} separate pieces</summary>
+        <p>
+          Some cubes only touch at their corners.
+          {{ view === '2d' ? 'Glue it onto a backing board, or add' : 'Add' }} filler cubes at
+          {{ connectivity.bridgeSpots.length }} spots where a cube would join two pieces.
+        </p>
+      </details>
 
       <!-- Holds the guide's height from the first paint, so the steps arriving doesn't shove the
            footer down the page. -->
@@ -386,5 +390,31 @@ const description = computed(() => {
 
 .notice {
   margin-bottom: 16px;
+}
+
+.pieces summary {
+  cursor: pointer;
+  min-height: 24px;
+}
+
+.pieces p {
+  margin: 8px 0 0;
+}
+
+/* A smaller picture leaves more of the row for the name and description on phones. */
+@media (max-width: 640px) {
+  .head {
+    gap: 12px;
+  }
+
+  .icon {
+    width: 60px;
+    height: 60px;
+  }
+
+  .icon img {
+    width: 48px;
+    height: 48px;
+  }
 }
 </style>

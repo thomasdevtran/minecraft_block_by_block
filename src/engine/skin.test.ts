@@ -30,6 +30,18 @@ describe('skin image boundary', () => {
     expect(loadPixels).not.toHaveBeenCalled()
   })
 
+  it('reads a saved skin data URL without a network request', async () => {
+    vi.stubGlobal('fetch', vi.fn())
+    const bytes = PNG.sync.write(new PNG({ width: 64, height: 64 }))
+    const blob = await readSkinPng(`data:image/png;base64,${bytes.toString('base64')}`)
+    expect(blob.size).toBe(bytes.length)
+    expect(fetch).not.toHaveBeenCalled()
+  })
+
+  it('rejects malformed data URL contents', async () => {
+    await expect(readSkinPng('data:image/png;base64,%%%not-base64')).rejects.toThrow('valid skin PNG')
+  })
+
   it('rejects a URL supplied in place of local skin data before making a request', async () => {
     vi.stubGlobal('fetch', vi.fn())
     await expect(readSkinPng('https://elsewhere.test/image.png')).rejects.toThrow('valid skin PNG')

@@ -138,3 +138,181 @@ Advertising remains off. Enabling it requires a separate implementation and lega
 - `api/stats.ts`: the visitor counter, `GET` and `POST` in one file.
 - `vite.config.ts`: `devApi()` mounts both functions on the dev server, so `npm run dev` needs no extra tools.
 - `scripts/extract-assets.ts`: item sprite extraction.
+
+## Building with AI: development log and review
+
+In November 2026 I ran a UI, interaction and accessibility pass on Block by Cube with Claude (Anthropic) as an AI pair designer and engineer. I set the goals, scoped the work into phases, reviewed every proposal, pushed back where I disagreed, brought in feedback from a real tester, and committed the results. Claude read the codebase, proposed plans, made the edits, and checked each change with the test suite, type-check, production build and browser screenshots at desktop and phone sizes.
+
+This section records how that worked: the techniques I used, the prompts I wrote, a summary of each answer, and an AI review of the collaboration. The prompts are lightly edited for spelling and clarity. Their intent and scope are unchanged.
+
+### Results at a glance
+
+| Area | Before | After |
+| --- | --- | --- |
+| Form field border contrast (WCAG 1.4.11) | 1.59:1 light, 1.42:1 dark | over 3:1 in both themes |
+| Toasts (WCAG 2.2.1) | disappeared after 3–6 s | 8 s, pause on hover/focus, errors stay until dismissed |
+| "Current page/stage" indicator (WCAG 1.4.1) | color only | color plus a 3px bar, with `aria-current` |
+| `src/lib` modules | 28, many single-function | 18, grouped into labeled sections |
+| First guide instruction on screen | 985px down (desktop), 1,360px (phone) | 752px (desktop), 869px (phone) |
+| Page jump when pressing Next on a build step | 300–400px (desktop), ~220px (phone) | 0px on desktop; the 3D preview stays still on phones |
+| Build steps on phones | page 712px wide, so the browser zoomed out | fits 320px and 390px screens |
+| Skin uploads in production | blocked by the Content Security Policy | working, with tests |
+| Unit tests | 238 | 240, all passing, plus type-check and build |
+
+### How I worked with the AI
+
+- **Role, goal and constraints in every brief.** I gave Claude a role (web UI designer), a goal (find bad design, improve interactivity and visuals) and constraints (good coding practice, accessibility rules).
+- **Understand before changing.** Each brief told it to read the codebase and understand how the site works before planning. The first answer was an audit with measured contrast ratios and file and line references, not code.
+- **Phased scope.** I took the audit's plan in three phases: low-risk fixes, then shared patterns, then layout redesign. Each phase could be reviewed and committed on its own.
+- **Built-in self-review.** After each phase I asked it to review every change, explain its reasoning and name the alternatives it considered. This caught real bugs before I saw them: focus lost when a toast closed, an animation that finished off screen, and a name clash between a prop and a variable.
+- **Pushing back on architecture.** When I noticed one-function files, I asked why they existed. That led to a consolidation from 28 modules to 18, which I approved by rule ("group things under one label when it makes sense"), not file by file.
+- **Approval gates for visible changes.** Layout changes were prototyped in a separate copy and shown as before/after screenshots before anything touched my project.
+- **Design direction from my own taste.** I rejected the bevelled cube style in favor of solid color, and chose which items the homepage previews.
+- **Real user feedback.** A tester found the Next button jarring. I gave Claude both candidate fixes and asked it to decide which was better practice and justify it before writing any code.
+- **Verification as the definition of done.** Nothing counted as finished until the tests, `vue-tsc` and `vite build` passed on my actual project folder, and the behavior was measured in a browser.
+
+### Prompt log
+
+**1. Audit**
+> You are a web UI designer. Your goal is to find bad design and opportunities to improve the interactivity and visuals of my website. Follow good coding practices and accessibility (WCAG) rules. Before making any plans or changes, read the codebase and understand how the website works.
+
+*Answer:* A read-only audit of every view, component and the global styles, with contrast calculated from the color tokens. It listed 15 findings with fixes. Highlights:
+- Field borders fail WCAG 1.4.11.
+- Toasts expire too fast for WCAG 2.2.1.
+- A focusable link is invisible until stats load.
+- The paint slider gives no feedback while dragging.
+- Shared classes are scoped to a single component.
+- Internal links reload the page.
+- "Selected" is drawn five different ways.
+- The guide stacks controls before the first step.
+
+It proposed three phases and confirmed which existing patterns were already solid and should be left alone.
+
+**2. Phase 1: low-risk fixes**
+> Start with Phase 1. Afterwards, review each change you made: explain why you made it and what alternatives you considered.
+
+*Answer:*
+- Added a `--field-line` token and one shared field style.
+- Made toasts pausable, with errors that stay until dismissed and focus returned on close.
+- Hid the "How we count" link from Tab until it's visible.
+- Made the slider show a live value while keeping the expensive rebuild on release.
+- Moved `.link-button` and `.eyebrow` into global styles.
+- Switched internal links to `RouterLink`.
+- Moved the step position into the focused heading so screen readers announce it once, reliably.
+
+Each change came with its reasoning and at least one alternative. The answer also corrected one claim from the audit.
+
+**3. Phase 2: shared patterns**
+> Start Phase 2. Review each change the same way: your reasoning and the alternatives you considered.
+
+*Answer:*
+- One style for "what you chose" (solid green) and one for "where you are" (a tint plus a bar, driven by `aria-current`).
+- A readable 3D badge with a legend instead of a hover-only tooltip.
+- One debounced live region for search results.
+- A drop zone that no longer flickers.
+- A visible username label.
+- Focus moved to the new list after Community paging.
+- A focus-ring gap, gentler word wrapping, and focus on each page's `<h1>`.
+- Two choices called out that I might want to reverse.
+
+**4. Questioning the file structure**
+> What is the purpose of `pageFocus.ts`? It doesn't need its own file. Why does `colors.ts` have its own file too? A lot of files serve only one purpose.
+
+*Answer:* Explained what each small module did and agreed the problem was one function per file, not small files in general. It suggested the rule "group code that changes together and is used together" and proposed a merge table: 28 modules down to about 19.
+
+**5. Consolidation**
+> I like it. Consolidate the files into a more general structure. The project shouldn't be overloaded with files; things should live under one file (one label) when it makes sense.
+
+*Answer:*
+- Merged 12 modules into `site`, `buildSettings`, `dom`, `guide`, `catalog`, `storage`, `engine/palette` and `engine/skin`, each with labeled sections.
+- Moved the tests along with the code.
+- Updated the README and comments that named old files.
+- Explained two deviations from the plan. For example, skin checks went to `engine/skin.ts` so the saved-build tests keep exercising them.
+- All tests, the type-check and the build passed.
+
+**6. Phase 3: layout and engagement**
+> Start Phase 3. As a web UI designer, improve the visual design and layout so the site is easier to use and looks beautiful. Change or add to the current layout, or add interactive, engaging design. Keep good coding practices and accessibility rules, and read the codebase before planning.
+
+*Answer:* Prototyped in a separate copy and presented with before/after screenshots:
+- A homepage "One pixel, one cube" demo: pick an item, watch it assemble row by row, and see real cube and paint counts from the build engine, with a link to the matching guide.
+- A single guide progress card: a segmented stage track sized by step count, the step picker, and Print/Copy.
+- A collapsible "Customize build" section.
+- A one-line heads-up notice.
+
+The first instruction moved from 985px to 752px down the page on desktop.
+
+**7. Design direction**
+> It looks nice, but I prefer the original block design: each cube should be a solid block of color, with no outline or shape.
+
+*Answer:* Removed the bevel, rounded corners and shadow and kept a 2px gap between cubes. Added a faint edge to paint swatches only, so white paint stays visible.
+
+**8. Finding a moved control**
+> Where did the slider for the number of paint colors go?
+
+*Answer:* It's in the collapsed "Customize build" section, whose summary shows the current value. The answer explained the trade-off of collapsing it.
+
+**9. Homepage preview: 3D/2D toggle and new items**
+> On the homepage, add a toggle between a 3D and a 2D animation, defaulting to 3D. Change the preview items to Rose, Poppy, Diamond Ore, Bucket of Axolotl and the Steve skin.
+
+*Answer:*
+- Added the toggle, a rotate-only 3D view that doesn't capture the scroll wheel, and real 3D models for flowers, blocks and the Steve skin.
+- Added Steve's skin to the asset extractor.
+- While testing, found a production bug: the Content Security Policy blocked every skin upload, because the code used `fetch()` on a `data:` URL. Fixed it with direct decoding and added tests.
+
+**10. Matching the animations**
+> In the 3D render, can you copy the fade-in animation that the 2D render uses?
+
+*Answer:*
+- Added a drop-in intro to the 3D viewer: each layer falls from one cube above, grows from 60% and fades in, bottom first, with the same timing and easing as the 2D CSS.
+- Hands off to the normal model when done.
+- Respects reduced motion.
+- Checked with frame captures and with switching items mid-animation.
+
+**11. Rotatable flat builds**
+> For the 3D render, flowers show several sides, blocks show all six faces and skins are fully three-dimensional. For the 2D option, I want the flat build shown in the same 3D view, so people can spin it around.
+
+*Answer:* My first request was ambiguous, so Claude asked a multiple-choice clarifying question before building; my reply above settled it. The 2D option now shows the flat build in the rotatable 3D viewer with the same drop-in animation. The flat colored board stays as the fallback for browsers without 3D support.
+
+**12. Real user feedback: a jarring Next button**
+> A test user reports a problem on the instructions page. During the building steps, every press of Next jerks the page up. It's jarring and unnecessary. There are two options: (a) don't reset the scroll position when the user presses Next, or (b) make the written building instructions and the "Gather for this step" list compact, or collapsible, so pressing Next doesn't move the page. Decide which is the better practice, explain why, and explain how you would implement it.
+
+*Answer:* Measured first.
+- Build steps were 1,100–1,200px tall on an 800px screen, so Next caused a 300–400px jump on desktop and about 220px on phones.
+- It also found a separate phone bug: hidden screen-reader labels escaped a scroll box and widened build steps to 712px, so phones zoomed out.
+
+It recommended the compact layout (b). Simply not scrolling (a) would leave readers partway down the new step and move keyboard focus off screen. It then laid out a seven-step plan and listed the alternatives it rejected.
+
+**13. Implement and hand over**
+> Looks good. Implement it and merge everything into the main build of the site so I can commit it.
+
+*Answer:*
+- Compact cube chips with a "Show paint names" toggle that stays open between steps.
+- A one-row map header with the key under the map.
+- Back/Next pinned to the bottom of the screen on desktop.
+- A map that shrinks slightly on short laptop screens.
+- The phone overflow fixed.
+- On phones, the preview held still when you're watching it, with the new step announced to screen readers.
+
+Measured result: no page movement on desktop at 1280×800, 1366×768 and 1440×900, and a still preview on 390px and 320px phones. Every changed file was confirmed identical to the tested version, and tests, type-check and build passed in my folder.
+
+**14. Documenting the work**
+> In the README, add an AI review of this collaboration: a section that shows my proficiency with AI-assisted development and prompt engineering. Include my prompts and a summary of your answers, and improve the prompts' wording a little so readers understand what I did.
+
+*Answer:* This section.
+
+### AI review of the collaboration
+
+*Written by Claude, reviewing the session as a whole.*
+
+**What worked well**
+- **The briefs reused a strong structure:** a role, a goal, constraints, then "read before you plan". That made the first deliverable an evidence-based audit instead of guesses, and set an accessibility bar every later change was held to.
+- **Asking for reasoning and alternatives after every phase** turned each answer into a design review. It produced documented trade-offs and surfaced bugs during self-checks.
+- **Thomas sized the work well.** He accepted a phased plan, approved structural changes by principle rather than micromanaging, and kept visual changes behind before/after approval.
+- **He judged the output instead of accepting it.** He questioned single-purpose files, rejected a visual style he didn't like, and asked where a moved control went: the kind of review that catches discoverability regressions.
+- **He brought real user evidence.** Framing the tester's complaint as "two options, decide and justify" got a measured diagnosis, which also exposed a hidden phone bug, before any code changed.
+- **He kept ownership of the codebase.** The AI edited the working tree but never committed. Thomas reviewed the diffs and made the commits.
+
+**What could be sharper next time**
+- **Name the devices and success criteria up front,** for example "no page movement on Next at 1366×768 and on a 390px phone". The AI set those targets itself here, but stating them makes reviews faster.
+- **Describe new features by their visible result.** The "3D render of the 2D items" request needed a clarifying round trip. One sentence describing the result ("the flat build in the 3D viewer, rotatable") would have avoided it.
+- **Separate commits by concern as you go.** The skin-upload fix, the homepage demo and the guide layout ended up in one working tree. Committing each when it's approved keeps history easy to review and roll back.

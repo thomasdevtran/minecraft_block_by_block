@@ -30,6 +30,25 @@ export function whenIdle(fn: () => void): () => void {
 }
 
 // ---------------------------------------------------------------------------------------------
+// 3D support
+// ---------------------------------------------------------------------------------------------
+
+/**
+ * Some browsers and older phones have no usable WebGL; 3D previews fall back to flat views.
+ * The probe creates a real GPU context, so it releases it straight away — browsers only allow a
+ * handful at once, and a leaked one here would eventually starve the actual preview.
+ */
+export function hasWebGL(): boolean {
+  try {
+    const gl = document.createElement('canvas').getContext('webgl2')
+    gl?.getExtension('WEBGL_lose_context')?.loseContext()
+    return !!gl
+  } catch {
+    return false
+  }
+}
+
+// ---------------------------------------------------------------------------------------------
 // Near the viewport
 // ---------------------------------------------------------------------------------------------
 
@@ -38,8 +57,10 @@ export function whenIdle(fn: () => void): () => void {
  *
  * Used to hold back the expensive things — the three.js preview, an ad script — until the reader
  * is actually heading towards them. One-shot on purpose: once loaded, they stay loaded.
+ * `threshold` is the share of `el` that must be visible (0 = any part), for effects that should
+ * start only once the reader can actually see them.
  */
-export function useNearViewport(el: Ref<HTMLElement | null>, rootMargin: string): Ref<boolean> {
+export function useNearViewport(el: Ref<HTMLElement | null>, rootMargin: string, threshold = 0): Ref<boolean> {
   const near = ref(false)
   let observer: IntersectionObserver | null = null
 
@@ -63,7 +84,7 @@ export function useNearViewport(el: Ref<HTMLElement | null>, rootMargin: string)
           near.value = true
           stop()
         },
-        { rootMargin },
+        { rootMargin, threshold },
       )
       observer.observe(element)
     },

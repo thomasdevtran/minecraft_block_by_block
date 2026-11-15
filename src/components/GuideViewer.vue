@@ -4,7 +4,7 @@ import type { BuildModel } from '../engine/model'
 import type { Guide } from '../engine/steps'
 import { rolesForStep } from '../lib/guide'
 import { readStored, rememberBuild, writeStored } from '../lib/storage'
-import { useNearViewport } from '../lib/dom'
+import { hasWebGL, useNearViewport } from '../lib/dom'
 import StepInstructions from './StepInstructions.vue'
 import GuidePrint from './GuidePrint.vue'
 import { showToast } from '../lib/toast'
@@ -33,6 +33,16 @@ const stages = computed(() => [
   }),
 ])
 const currentStage = computed(() => stages.value.filter(s => s.index <= index.value).at(-1)?.label)
+/**
+ * The stage track: one segment per stage, sized by how many steps it holds, each filling as the
+ * reader works through it. It replaces the separate stage buttons and progress bar, which showed
+ * the same position twice in two different places.
+ */
+const segments = computed(() => stages.value.map((stage, i) => {
+  const end = stages.value[i + 1]?.index ?? total.value
+  const steps = end - stage.index
+  return { ...stage, steps, fill: Math.min(1, Math.max(0, (index.value + 1 - stage.index) / steps)) }
+}))
 
 watch(
   () => props.storageKey,
@@ -72,11 +82,24 @@ async function jump(value: number) {
   const currentNavigation = ++navigation
   // Read the visible height before cancelling, so rapid clicks continue from mid-animation.
   const previousHeight = panel.value?.getBoundingClientRect().height
+  // On phones the preview sits under the steps. A reader watching it there sees the build change in
+  // place, so the page keeps the preview exactly where it was instead of pulling them back up to the
+  // step text, even when the new step is taller or shorter.
+  const watching = watchingPreview()
+  const previewTop = previewCard.value?.getBoundingClientRect().top ?? 0
   stopMotion()
   index.value = destination
   await nextTick()
   const card = panel.value
   if (!card || currentNavigation !== navigation) return
+  if (watching) {
+    window.scrollBy({ top: (previewCard.value?.getBoundingClientRect().top ?? previewTop) - previewTop, behavior: 'instant' })
+    // Focus stays on the Next button just used (a heading off screen would hide it); the new step is
+    // announced instead.
+    announcement.value = `${position.value}: ${step.value ? step.value.title : 'What you need'}`
+    return
+  }
+  announcement.value = ''
   const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
   const height = card.getBoundingClientRect().height
   if (!reduceMotion && previousHeight !== undefined && Math.abs(height - previousHeight) > 1) {
@@ -108,6 +131,19 @@ async function jump(value: number) {
   scrollFrame = requestAnimationFrame(scroll)
 }
 const go = (delta: number) => jump(index.value + delta)
+
+/** Spoken only when a step change leaves focus where it was; see jump(). */
+const announcement = ref('')
+/** Phones only: at least half the preview on screen while the step heading has scrolled above it. */
+function watchingPreview() {
+  const card = previewCard.value
+  if (!card || !window.matchMedia('(max-width: 860px)').matches) return false
+  const heading = panel.value?.querySelector('h2')?.getBoundingClientRect()
+  if (heading && heading.top >= 16) return false
+  const bounds = card.getBoundingClientRect()
+  const shown = Math.min(bounds.bottom, window.innerHeight) - Math.max(bounds.top, 0)
+  return shown >= Math.min(bounds.height, window.innerHeight) / 2
+}
 async function printGuide() {
   printing.value = true
   await nextTick()
@@ -159,21 +195,6 @@ function onKey(e: KeyboardEvent) {
 onMounted(() => window.addEventListener('keydown', onKey))
 onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
-/**
- * Some browsers and older phones have no usable WebGL. The written steps still work without it.
- * The probe creates a real GPU context, so it releases it straight away — browsers only allow a
- * handful at once, and a leaked one here would eventually starve the actual preview.
- */
-function hasWebGL() {
-  try {
-    const gl = document.createElement('canvas').getContext('webgl2')
-    gl?.getExtension('WEBGL_lose_context')?.loseContext()
-    return !!gl
-  } catch {
-    return false
-  }
-}
-
 const previewCard = ref<HTMLElement | null>(null)
 // On wide screens the card is already on screen, so this resolves straight after the first paint.
 // On phones the preview sits below the steps, so three.js waits until it is scrolled towards.
@@ -203,34 +224,48 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
 
 <template>
   <section class="guide">
-    <div class="guide-tools">
-      <nav class="stages" aria-label="Build stages">
-        <button v-for="stage in stages" :key="stage.label" type="button" class="stage-button" :aria-current="currentStage === stage.label ? 'step' : undefined" @click="jump(stage.index)">{{ stage.label }}</button>
-      </nav>
-      <div class="utility-actions">
-        <button class="btn" @click="printGuide">Print full guide</button>
-        <button class="btn" @click="shareBuild">{{ skinHash ? 'Copy skin builder link' : 'Copy build link' }}</button>
+    <div class="guide-bar card">
+      <div class="track-head">
+        <span id="stage-track-label" class="track-title">Your progress</span>
+        <span
+          class="track-count"
+          role="progressbar"
+          aria-label="Build progress"
+          :aria-valuenow="index"
+          :aria-valuemin="0"
+          :aria-valuemax="Math.max(1, total - 1)"
+          :aria-valuetext="`Step ${index} of ${total - 1}`"
+        >{{ index === 0 ? 'Not started' : `Step ${index} of ${total - 1}` }}</span>
       </div>
+      <nav class="stage-track" aria-labelledby="stage-track-label">
+        <button
+          v-for="stage in segments"
+          :key="stage.label"
+          type="button"
+          class="segment"
+          :style="{ flexGrow: stage.steps }"
+          :aria-current="currentStage === stage.label ? 'step' : undefined"
+          @click="jump(stage.index)"
+        >
+          <span class="segment-name">{{ stage.label }}</span>
+          <span class="segment-meter" aria-hidden="true"><span :style="{ transform: `scaleX(${stage.fill})` }"></span></span>
+        </button>
+      </nav>
+      <div class="bar-row">
+        <label class="step-picker"><span>Jump to</span>
+          <select :value="index" @change="jump(Number(($event.target as HTMLSelectElement).value))">
+            <option :value="0">Materials · What you need</option>
+            <option v-for="(s, i) in guide.steps" :key="i" :value="i + 1">{{ i + 1 }}. {{ s.title }}</option>
+          </select>
+        </label>
+        <div class="utility-actions">
+          <button type="button" class="btn" @click="printGuide">Print guide</button>
+          <button type="button" class="btn" @click="shareBuild">{{ skinHash ? 'Copy skin link' : 'Copy link' }}</button>
+        </div>
+      </div>
+      <label v-if="shareUrl" class="share-fallback">Copy this link <input readonly :value="shareUrl" @focus="($event.target as HTMLInputElement).select()" /></label>
     </div>
     <SaveBuild :title="title" :path="resumePath" :guide-key="storageKey" :step="index" :total="total - 1" :cubes="guide.materials.totalCubes" :paints="model.palette.length" :skin="!!skinHash" />
-    <label v-if="shareUrl" class="share-fallback">Copy this link <input readonly :value="shareUrl" @focus="($event.target as HTMLInputElement).select()" /></label>
-    <label class="step-picker">Jump to a step
-      <select :value="index" @change="jump(Number(($event.target as HTMLSelectElement).value))">
-        <option :value="0">Materials · What you need</option>
-        <option v-for="(s, i) in guide.steps" :key="i" :value="i + 1">{{ i + 1 }}. {{ s.title }}</option>
-      </select>
-    </label>
-    <div
-      class="progress"
-      role="progressbar"
-      aria-label="Build progress"
-      :aria-valuenow="index"
-      :aria-valuemin="0"
-      :aria-valuemax="Math.max(1, total - 1)"
-      :aria-valuetext="`Step ${index} of ${total - 1}`"
-    >
-      <div class="bar" :style="{ transform: `scaleX(${index / Math.max(1, total - 1)})` }"></div>
-    </div>
 
     <div class="layout">
       <div ref="panel" class="panel card" role="region" aria-label="Current step">
@@ -330,20 +365,48 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
       <span class="visually-hidden">{{ position }}</span>
       <button class="btn primary" :disabled="index === total - 1" @click="go(1)">{{ index === 0 ? 'Start' : 'Next' }} →</button>
     </nav>
+    <p class="visually-hidden" aria-live="polite">{{ announcement }}</p>
     <GuidePrint v-if="printing" :title="title" :model="model" :guide="guide" />
   </section>
 </template>
 
 <style scoped>
-.guide-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
-.stages, .utility-actions { display: flex; flex-wrap: wrap; gap: 6px; }
-.stage-button { border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 6px; padding: 10px 14px; min-height: 44px; cursor: pointer; font-weight: 600; }
-.stage-button[aria-current] { background: var(--current-bg); color: var(--current-ink); border-color: var(--accent); box-shadow: var(--current-bar); }
-.stage-button:not([aria-current]):hover { color: var(--ink); background: var(--surface-2); }
-.utility-actions .btn { font-size: .85rem; }
-.step-picker { display: flex; align-items: center; gap: 12px; font-size: .9rem; margin-bottom: 16px; }
-.step-picker select { max-width: 100%; flex: 1; }
-.share-fallback { display: grid; gap: 8px; margin-bottom: 16px; }
+/* One card holds where you are and what you can do: stage track, step picker, print and share. */
+/* minmax(0, 1fr): a grid column otherwise grows to its widest child, which pushed the card past
+   the screen edge on phones. */
+.guide-bar { padding: 14px 16px 16px; margin-bottom: 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
+.track-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font-size: .85rem; }
+.track-title { font-weight: 700; }
+.track-count { color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.stage-track { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Grows with its share of the steps, but never narrower than its own label. */
+.segment {
+  flex: 1 1 auto;
+  min-width: max-content;
+  display: grid;
+  gap: 6px;
+  padding: 8px 10px;
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--ink-soft);
+  font: 600 .85rem var(--sans);
+  text-align: left;
+  cursor: pointer;
+}
+.segment:hover { color: var(--ink); border-color: var(--field-line); }
+.segment[aria-current] { background: var(--current-bg); color: var(--current-ink); border-color: var(--accent); }
+.segment-meter { display: block; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
+/* Scaled rather than resized, so stepping through the guide never triggers layout. */
+.segment-meter > span { display: block; height: 100%; background: var(--accent); transform-origin: left; transition: transform var(--dur-2) var(--ease-out); }
+.bar-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.step-picker { display: flex; align-items: center; gap: 10px; font-size: .9rem; flex: 1 1 280px; min-width: 0; }
+.step-picker > span { font-weight: 600; white-space: nowrap; }
+.step-picker select { max-width: 100%; flex: 1; min-width: 0; }
+.utility-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.utility-actions .btn { font-size: .85rem; padding: .55em .9em; }
+.share-fallback { display: grid; gap: 8px; }
 .panel { scroll-margin-top: 16px; }
 .panel h2 { font-family: var(--sans); letter-spacing: 0; }
 .mobile-nav { display: none; }
@@ -356,27 +419,15 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
   .mobile-nav { display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 30; align-items: center; gap: 12px; background: var(--surface); border-top: 1px solid var(--line); padding: 10px 16px calc(10px + env(safe-area-inset-bottom)); }
   .mobile-nav .btn { flex: 1; }
   .mobile-nav span { font-size: .8rem; white-space: nowrap; }
-  .step-picker { flex-direction: column; align-items: stretch; gap: 6px; }
+  .utility-actions { flex: 1 1 100%; }
+  .utility-actions .btn { flex: 1; }
+}
+/* Four stage labels side by side on a 320px phone. */
+@media (max-width: 420px) {
+  .guide-bar { padding: 12px; }
+  .segment { padding: 6px 8px; font-size: .8rem; }
 }
 .safety-note { font-size: 0.85rem; padding-bottom: 14px; border-bottom: 1px solid var(--line); }
-.progress {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--surface-2);
-  overflow: hidden;
-  margin-bottom: 16px;
-}
-
-/* Scaled rather than resized: animating `width` is a layout change on every step, animating
-   `transform` is not. Starts full width and shrinks to the current fraction from the left. */
-.bar {
-  width: 100%;
-  height: 100%;
-  background: var(--accent);
-  transform-origin: left;
-  transition: transform var(--dur-2) var(--ease-out);
-}
-
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -505,6 +556,21 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
   flex: 1;
   padding: 0.9em;
   font-size: 1.05rem;
+}
+
+/* Back and Next stay at the bottom of the screen while a tall step scrolls under them, so the
+   button a builder is about to press never moves away from the pointer. The negative side margins
+   let the bar's background span the card's full width. */
+@media (min-width: 861px) {
+  .desktop-nav {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    margin-inline: -20px;
+    padding: 12px 20px;
+    background: var(--surface);
+    box-shadow: 0 -1px 0 var(--line);
+  }
 }
 
 .preview {

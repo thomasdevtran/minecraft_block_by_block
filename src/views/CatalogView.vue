@@ -3,6 +3,7 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import AdSlot from '../components/AdSlot.vue'
 import BlockIcon from '../components/BlockIcon.vue'
+import BuildDemo from '../components/BuildDemo.vue'
 import ViewToggle from '../components/ViewToggle.vue'
 import CraftPhoto from '../components/CraftPhoto.vue'
 import { showcasePhoto, starterBuilds, starterPaintLimit } from '../lib/site'
@@ -74,7 +75,8 @@ function scrollToCatalog() {
   }
 }
 
-const FEATURED =['grass_block', 'poppy', 'diamond_ore', 'tnt', 'cornflower', 'diamond_sword']
+/** Catalog items in the "One pixel, one cube" demo, in picker order. Steve follows them. */
+const FEATURED = ['rose', 'poppy', 'diamond_ore', 'axolotl_bucket']
 
 const featured = computed(() =>
   FEATURED.map((id) => items.value.find((i) => i.id === id)).filter((i): i is ListItem => !!i),
@@ -182,30 +184,10 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
       </div>
       <div class="craft-showcase">
         <CraftPhoto :src="showcasePhoto" alt="Handmade Minecraft cube crafts" />
-        <p></p>
-      <div v-if="featured.length" class="featured">
-        <RouterLink
-          v-for="(item, i) in featured"
-          :key="item.id"
-          :to="`/item/${item.id}`"
-          class="feat"
-          :title="item.name"
-          :aria-label="`Build ${item.name}`"
-          :style="{ '--i': i }"
-        >
-          <BlockIcon v-if="item.block" :src="blockUrl(item, look)!" :size="40" />
-          <img v-else :src="textureUrl(item, look)" alt="" class="pixelated" width="64" height="64" />
-          <span class="feat-label">{{ item.name }}</span>
-        </RouterLink>
-      </div>
       </div>
     </section>
 
-    <ol class="how-it-works" aria-label="How it works">
-      <li><span aria-hidden="true">01</span><div><strong>Pick your build</strong><p>Choose a block, item, flower or player skin.</p></div></li>
-      <li><span aria-hidden="true">02</span><div><strong>Get your materials</strong><p>Use the cube count and matching paint list.</p></div></li>
-      <li><span aria-hidden="true">03</span><div><strong>Build at your pace</strong><p>Follow each step. Come back where you left off.</p></div></li>
-    </ol>
+    <BuildDemo v-if="featured.length" :items="featured" :look="look" />
 
     <section v-if="resumable" class="resume-build card" aria-labelledby="resume-title">
       <div><p class="eyebrow">Your crafting table</p><h2 id="resume-title">{{ resumable.title }}</h2><p class="muted">Last opened at step {{ resumable.step }} of {{ resumable.total }} · saved on this device</p></div>
@@ -307,12 +289,6 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
 </template>
 
 <style scoped>
-.craft-showcase > p { margin: 12px 0; font-size: .9rem; color: var(--ink-soft); text-align: center; }
-.craft-showcase .featured { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
-.craft-showcase .feat { padding: 10px 4px; min-width: 0; min-height: 60px; aspect-ratio: auto; display: flex; justify-content: center; align-items: center; }
-.craft-showcase .feat-label { display: none; }
-.craft-showcase .feat img { width: 32px; height: 32px; }
-.craft-showcase .feat :deep(.block-icon) { transform: scale(.65); }
 .resume-build { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; padding: 24px; margin-bottom: 36px; }
 .resume-build .eyebrow { margin-bottom: 8px; }
 .resume-build p:last-child { margin-bottom: 0; }
@@ -328,7 +304,6 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
 .starter p { font-size: .9rem; color: var(--ink-soft); min-height: 3em; }
 .starter-stats { display: block; font-size: .8rem; color: var(--ink-soft); margin-bottom: 20px; }
 .starter-link { color: var(--accent); font-size: .9rem; }
-@media (max-width: 1000px) { .craft-showcase .featured { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 640px) {
   .starter-grid { grid-template-columns: 1fr; }
   .starter { display: grid; grid-template-columns: 110px minmax(0, 1fr); }
@@ -351,11 +326,6 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
 
 .eyebrow { font-size: 0.8rem; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 16px; }
 .hero-note { font-size: 0.82rem; margin: 16px 0 0; }
-.how-it-works { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; padding: 22px 0; margin: 0 0 36px; gap: 24px; border-block: 1px solid var(--line); }
-.how-it-works li { display: flex; gap: 12px; }
-.how-it-works li > span { font: 700 1.3rem var(--pixel); color: var(--accent); }
-.how-it-works strong { font-size: 0.93rem; }
-.how-it-works p { color: var(--ink-soft); font-size: 0.84rem; margin: 3px 0 0; }
 .results { font-size: 0.85rem; margin: 0 0 4px; min-height: 1.5em; }
 .legend { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; margin: 0 0 16px; }
 .legend .badge { position: static; }
@@ -381,36 +351,6 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
-}
-
-.featured {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.feat {
-  display: grid;
-  place-items: center;
-  aspect-ratio: 1;
-  background: var(--surface);
-  border: 2px solid var(--line);
-  border-radius: var(--radius);
-  transition: transform 0.1s;
-  position: relative;
-  padding: 16px 8px 28px;
-}
-
-.feat-label { position: absolute; bottom: 9px; font-size: 0.72rem; color: var(--ink-soft); text-align: center; }
-
-.feat:hover {
-  transform: translateY(-2px);
-  border-color: var(--accent);
-}
-
-.feat img {
-  width: 58%;
-  height: auto;
 }
 
 .toolbar {
@@ -520,21 +460,9 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
   animation: fade-in var(--dur-2) var(--ease-out);
 }
 
-.featured .feat {
-  animation: rise-in var(--dur-3) var(--ease-out) backwards;
-  animation-delay: calc(var(--i) * 40ms);
-}
-
 @keyframes fade-in {
   from {
     opacity: 0;
-  }
-}
-
-@keyframes rise-in {
-  from {
-    opacity: 0;
-    transform: translateY(6px);
   }
 }
 
@@ -600,20 +528,10 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
 }
 
 @media (max-width: 760px) {
-  .featured { grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
-  .feat { min-height: 64px; padding: 8px; }
-  .feat-label { display: none; }
-  .feat img { width: 85%; }
-  .feat :deep(.block-icon) { transform: scale(0.7); }
-  .how-it-works { gap: 16px; }
   .toolbar-top h2 { flex-basis: 100%; }
   .toolbar-top input { max-width: none; }
 }
 @media (max-width: 520px) {
-  .featured { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .feat { aspect-ratio: 1.6; }
-  .feat img { width: 40px; height: 40px; }
-  .how-it-works { grid-template-columns: 1fr; gap: 14px; margin-bottom: 28px; }
   .hero-actions .btn { flex: 1 1 160px; }
 }
 </style>

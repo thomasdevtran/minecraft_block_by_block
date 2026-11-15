@@ -43,6 +43,8 @@ interface CatalogItem {
 }
 
 const OUT_POT = join(ROOT, 'public', 'textures', 'pot.png')
+/** The default Steve skin (wide arms), shown in the homepage's "One pixel, one cube" preview. */
+const OUT_STEVE = join(ROOT, 'public', 'textures', 'steve.png')
 
 /**
  * Plants by category, in the same order as https://game8.co/games/Minecraft/archives/378440
@@ -376,6 +378,9 @@ function main(reader: JarReader, jar: AdmZip): { items: CatalogItem[]; tints: Ma
     }
   }
   writeFileSync(OUT_POT, PNG.sync.write(renderPot(reader.readTexture('block/flower_pot'), reader.readTexture('block/dirt'))))
+  const steve = reader.read('assets/minecraft/textures/entity/player/wide/steve.png')
+  if (steve) writeFileSync(OUT_STEVE, steve)
+  else console.log('Steve skin not found in this version; the homepage preview will leave it out.')
 
   for (const [reason, list] of excluded) console.log(`Excluded ${list.length} × ${reason}: ${list.join(', ')}`)
   writeFileSync(join(CACHE, 'auto-added-blocks.txt'), autoAdded.sort().join('\n'))

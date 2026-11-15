@@ -53,11 +53,12 @@ const textRows = computed(() => {
       </div>
     </div>
   </section>
-  <p class="grid-key">
-    <strong>Placement map</strong>
-    <span>Letters = painted cubes · {{ PLAIN_CUBE }} = plain cube (no paint) · dashed spaces = leave empty · faded = already built<span v-if="hasSupports"> · + = support cube</span></span>
-  </p>
-  <button class="btn map-zoom" :aria-pressed="enlarged" @click="enlarged = !enlarged">{{ enlarged ? 'Fit map' : 'Enlarge map' }}</button>
+  <!-- Title and zoom share one row, and the key sits under the map: two rows fewer above the map,
+       which is what kept Next on screen. -->
+  <div class="map-head">
+    <h3>Placement map</h3>
+    <button class="btn map-zoom" :aria-pressed="enlarged" @click="enlarged = !enlarged">{{ enlarged ? 'Fit map' : 'Enlarge map' }}</button>
+  </div>
   <p v-if="enlarged" class="zoom-hint muted">Scroll across and down to see the whole map.</p>
   <figure class="step-grid">
     <div :class="['map-window', { enlarged }]" :tabindex="enlarged ? 0 : undefined" :role="enlarged ? 'region' : undefined" :aria-label="enlarged ? 'Enlarged placement map; scroll to explore' : undefined">
@@ -99,7 +100,10 @@ const textRows = computed(() => {
       </g>
     </svg>
     </div>
-    <figcaption>▼ {{ grid.bottomLabel }}</figcaption>
+    <figcaption>
+      <strong>▼ {{ grid.bottomLabel }}</strong>
+      <span class="grid-key">Letters = painted cubes · {{ PLAIN_CUBE }} = plain cube (no paint) · dashed = leave empty · faded = already built<span v-if="hasSupports"> · + = support cube</span></span>
+    </figcaption>
   </figure>
   <details class="grid-text">
     <summary>Cube positions (text version)</summary>
@@ -154,23 +158,33 @@ svg {
 }
 
 figcaption {
+  display: grid;
+  justify-items: center;
+  gap: 2px;
+  text-align: center;
   font-size: 0.85rem;
   color: var(--ink-soft);
-  font-weight: 600;
 }
 .row-focus { padding: 14px; background: var(--surface-2); border-radius: 8px; margin-bottom: 20px; min-width: 0; }
 .row-focus p { font-size: .85rem; margin: 4px 0 12px; }
-.row-scroll { display: flex; overflow-x: auto; gap: 3px; padding-bottom: 8px; }
+/* position: relative makes the strip the containing block of the screen-reader labels inside it.
+   Without it those absolutely positioned labels escaped the scroll box and widened the whole page,
+   so phones zoomed the guide out on every build step. */
+.row-scroll { position: relative; display: flex; overflow-x: auto; gap: 3px; padding-bottom: 8px; }
 .row-column { display: grid; justify-items: center; gap: 4px; flex: 0 0 40px; }
 .column-number { font-size: .8rem; color: var(--ink-soft); }
 .row-cube { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--ink-soft); font-weight: 800; border-radius: 3px; }
 .row-cube.gap { border-style: dashed; opacity: .5; }
-.grid-key { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; }
-.grid-key span { color: var(--ink-soft); font-size: .85rem; }
-.map-zoom { align-self: flex-start; margin-bottom: 12px; font-size: .85rem; }
+.map-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.map-head h3 { font: 700 .95rem/1.4 var(--sans); margin: 0; }
+.grid-key { font-size: .8rem; }
+.map-zoom { font-size: .85rem; padding: 0.45em 0.9em; }
 .map-window { width: 100%; display: grid; justify-items: center; }
 .map-window.enlarged { display: block; max-height: 360px; overflow: auto; }
 .zoom-hint { font-size: .85rem; }
 @media (max-width: 640px) { svg { max-height: 260px; } }
+/* Beside the 3D preview on shorter laptop screens the map gives up a little height, so the step's
+   heading, cube list and whole map fit above the sticky Back/Next bar and Next never has to scroll. */
+@media (min-width: 861px) { svg { max-height: clamp(220px, calc(100vh - 470px), 340px); } }
 @media print { .row-focus, .grid-text, .map-zoom, .zoom-hint { display: none; } svg { max-height: 85mm; } }
 </style>

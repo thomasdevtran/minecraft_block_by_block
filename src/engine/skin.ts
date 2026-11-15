@@ -212,6 +212,7 @@ function regionIsOpaque(img: PixelImage, x: number, y: number, w: number, h: num
 // ---------------------------------------------------------------------------------------------
 
 const MAX_SKIN_BYTES = 1024 * 1024
+const PNG_DATA_URL = 'data:image/png;base64,'
 
 /**
  * Checks a skin file's size and PNG header before any bytes reach the image decoder: a valid
@@ -220,10 +221,17 @@ const MAX_SKIN_BYTES = 1024 * 1024
 export async function readSkinPng(source: Blob | string): Promise<Blob> {
   let blob: Blob
   if (typeof source === 'string') {
-    if (!source.startsWith('data:image/png;base64,') || source.length > 1_400_000) {
+    if (!source.startsWith(PNG_DATA_URL) || source.length > 1_400_000) {
       throw new Error('Choose a valid skin PNG up to 1 MB.')
     }
-    blob = await fetch(source).then(response => response.blob())
+    // Decoded here rather than with fetch(): the site's Content Security Policy only lets fetch
+    // reach the site and Supabase, so fetching a data: URL was blocked and every saved skin failed.
+    try {
+      const bytes = Uint8Array.from(atob(source.slice(PNG_DATA_URL.length)), (char) => char.charCodeAt(0))
+      blob = new Blob([bytes], { type: 'image/png' })
+    } catch {
+      throw new Error('Choose a valid skin PNG up to 1 MB.')
+    }
   } else {
     blob = source
   }
