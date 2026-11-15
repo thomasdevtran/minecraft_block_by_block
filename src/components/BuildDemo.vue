@@ -41,7 +41,7 @@ const VIEWS = [
   { value: '3d' as const, label: '3D', hint: '' },
   { value: '2d' as const, label: '2D', hint: '' },
 ]
-const view = ref<'2d' | '3d'>('3d')
+const view = ref<'2d' | '3d'>('2d')
 /** Probed only when the section comes near, like the guide's own preview. */
 const webgl = ref(true)
 
