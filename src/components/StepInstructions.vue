@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 import type { Step, Recipe } from '../engine/steps'
 import type { PaletteEntry } from '../engine/palette'
-import { cubesForStep } from '../lib/guideDisplay'
+import { cubesForStep } from '../lib/guide'
 import CubeRecipes from './CubeRecipes.vue'
 import SkinAssemblyDiagram from './SkinAssemblyDiagram.vue'
 import StepGrid from './StepGrid.vue'

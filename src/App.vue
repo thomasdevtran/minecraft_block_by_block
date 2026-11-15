@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute } from 'vue-router'
 import ToastHost from './components/ToastHost.vue'
 import VisitorCount from './components/VisitorCount.vue'
@@ -31,12 +31,29 @@ const section = computed(() => {
   if (name === 'account') return 'account'
   return ''
 })
+/**
+ * aria-current for a nav link. RouterLink only sets it on an exact URL match, so a guide page
+ * like /item/poppy left "Items" visually highlighted but unannounced. Styling hangs off this
+ * attribute too, so what is shown and what is announced can't disagree.
+ */
+const current = (name: string) => (section.value === name ? 'page' : undefined)
 
-watch(() => route.path, async () => {
-  menuOpen.value = false
-  await nextTick()
-  document.getElementById('main')?.focus({ preventScroll: true })
-})
+watch(() => route.path, () => (menuOpen.value = false))
+
+/**
+ * Runs as each new page enters (not on the first load). Its heading tells screen-reader users
+ * where they landed; focusing <main> made some readers start reading the whole page. The hook
+ * gets the entering page itself: during the fade the previous page is still in the DOM, so
+ * searching <main> for an h1 found the old heading, and focus was lost when it was removed.
+ * Pages whose heading arrives with their data (item guides) fall back to <main>.
+ */
+function onPageEnter(page: Element) {
+  const heading = page.querySelector<HTMLElement>('h1')
+  if (heading) {
+    heading.tabIndex = -1
+    heading.focus({ preventScroll: true })
+  } else document.getElementById('main')?.focus({ preventScroll: true })
+}
 
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape' && menuOpen.value) {
@@ -86,12 +103,12 @@ async function copyDiscord() {
       </button>
 
       <nav id="site-nav" :class="{ open: menuOpen }" aria-label="Main" @click="closeMenu">
-        <RouterLink to="/" :class="['nav-link', { active: section === 'items' }]">Items</RouterLink>
-        <RouterLink to="/skin" :class="['nav-link', { active: section === 'skins' }]">Skins</RouterLink>
-        <RouterLink to="/library" :class="['nav-link', { active: section === 'library' }]">My Builds</RouterLink>
-        <RouterLink to="/community" :class="['nav-link', { active: section === 'community' }]">Community</RouterLink>
-        <RouterLink to="/account" :class="['nav-link', { active: section === 'account' }]">{{ user ? 'Account' : 'Sign in' }}</RouterLink>
-        <RouterLink to="/support" :class="['nav-link', { active: section === 'support' }]">Support</RouterLink>
+        <RouterLink to="/" class="nav-link" :aria-current="current('items')">Items</RouterLink>
+        <RouterLink to="/skin" class="nav-link" :aria-current="current('skins')">Skins</RouterLink>
+        <RouterLink to="/library" class="nav-link" :aria-current="current('library')">My Builds</RouterLink>
+        <RouterLink to="/community" class="nav-link" :aria-current="current('community')">Community</RouterLink>
+        <RouterLink to="/account" class="nav-link" :aria-current="current('account')">{{ user ? 'Account' : 'Sign in' }}</RouterLink>
+        <RouterLink to="/support" class="nav-link" :aria-current="current('support')">Support</RouterLink>
       </nav>
     </div>
   </header>
@@ -104,7 +121,7 @@ async function copyDiscord() {
            of which hold the old page on screen and delay the new one painting. No transform
            either: it would make this element a containing block and break the guide's sticky
            3D preview. -->
-      <Transition name="page">
+      <Transition name="page" @enter="onPageEnter">
         <component :is="Component" />
       </Transition>
     </RouterView>
@@ -145,7 +162,7 @@ async function copyDiscord() {
 <style scoped>
 .theme-control { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; color: var(--ink-soft); font-size: 0.9rem; }
 .theme-control select { max-width: 100%; }
-.fan-notice { margin: 0; padding: 9px 16px; text-align: center; font-size: 0.75rem; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
+.fan-notice { margin: 0; padding: 9px 16px; text-align: center; font-size: 0.8rem; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
 .skip-link {
   position: absolute;
   left: 8px;
@@ -211,9 +228,10 @@ async function copyDiscord() {
   color: var(--ink);
 }
 
-.nav-link.active {
-  background: var(--accent-soft);
-  color: var(--ink);
+.nav-link[aria-current='page'] {
+  background: var(--current-bg);
+  color: var(--current-ink);
+  box-shadow: var(--current-bar);
 }
 
 .menu-button {
@@ -265,6 +283,11 @@ async function copyDiscord() {
   .nav-link {
     min-height: 48px;
     font-size: 1.05rem;
+  }
+
+  /* In the stacked menu the bar sits on the leading edge, where a list marker would be. */
+  .nav-link[aria-current='page'] {
+    box-shadow: inset 3px 0 0 var(--accent);
   }
 }
 

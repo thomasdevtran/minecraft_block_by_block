@@ -2,12 +2,11 @@
 import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { BuildModel } from '../engine/model'
 import type { Guide } from '../engine/steps'
-import { rolesForStep } from '../lib/roles'
-import { readStored, writeStored } from '../lib/storage'
-import { useNearViewport } from '../lib/visibility'
+import { rolesForStep } from '../lib/guide'
+import { readStored, rememberBuild, writeStored } from '../lib/storage'
+import { useNearViewport } from '../lib/dom'
 import StepInstructions from './StepInstructions.vue'
 import GuidePrint from './GuidePrint.vue'
-import { rememberBuild } from '../lib/recentBuild'
 import { showToast } from '../lib/toast'
 import SaveBuild from './SaveBuild.vue'
 import { RouterLink } from 'vue-router'
@@ -206,7 +205,7 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
   <section class="guide">
     <div class="guide-tools">
       <nav class="stages" aria-label="Build stages">
-        <button v-for="stage in stages" :key="stage.label" class="stage-button" :aria-current="currentStage === stage.label ? 'step' : undefined" @click="jump(stage.index)">{{ stage.label }}</button>
+        <button v-for="stage in stages" :key="stage.label" type="button" class="stage-button" :aria-current="currentStage === stage.label ? 'step' : undefined" @click="jump(stage.index)">{{ stage.label }}</button>
       </nav>
       <div class="utility-actions">
         <button class="btn" @click="printGuide">Print full guide</button>
@@ -339,7 +338,8 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
 .guide-tools { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .stages, .utility-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 .stage-button { border: 1px solid var(--line); background: var(--surface); color: var(--ink-soft); border-radius: 6px; padding: 10px 14px; min-height: 44px; cursor: pointer; font-weight: 600; }
-.stage-button[aria-current] { background: var(--accent-soft); color: var(--ink); border-color: var(--accent); }
+.stage-button[aria-current] { background: var(--current-bg); color: var(--current-ink); border-color: var(--accent); box-shadow: var(--current-bar); }
+.stage-button:not([aria-current]):hover { color: var(--ink); background: var(--surface-2); }
 .utility-actions .btn { font-size: .85rem; }
 .step-picker { display: flex; align-items: center; gap: 12px; font-size: .9rem; margin-bottom: 16px; }
 .step-picker select { max-width: 100%; flex: 1; }

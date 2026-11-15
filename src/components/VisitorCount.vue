@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
-import { whenIdle } from '../lib/schedule'
+import { whenIdle } from '../lib/dom'
 import { loadStats } from '../lib/stats'
 
 withDefaults(defineProps<{ big?: boolean }>(), { big: false })

@@ -1,5 +1,5 @@
 <script setup lang="ts" generic="T extends string">
-/** Segmented 2D / 3D style picker used on the guide pages. */
+/** Segmented single-choice control: 2D/3D and texture pickers on guides, kind filter on the catalog. */
 withDefaults(
   defineProps<{ options: { value: T; label: string; hint: string }[]; label?: string; compact?: boolean }>(),
   { label: 'Build style', compact: false },
@@ -36,6 +36,8 @@ button {
   display: flex;
   flex-direction: column;
   align-items: center;
+  /* Centers the label in the 44px target; compact one-line labels sat at the top edge before. */
+  justify-content: center;
   min-width: 96px;
   min-height: 44px;
   padding: 0.45rem 0.9rem;
@@ -57,8 +59,12 @@ button small {
 }
 
 button.active {
-  background: var(--accent);
-  color: var(--accent-ink);
+  background: var(--pressed-bg);
+  color: var(--pressed-ink);
+}
+
+button:not(.active):hover {
+  color: var(--ink);
 }
 
 .compact {

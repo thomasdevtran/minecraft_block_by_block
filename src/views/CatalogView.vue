@@ -1,17 +1,15 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import AdSlot from '../components/AdSlot.vue'
 import BlockIcon from '../components/BlockIcon.vue'
 import ViewToggle from '../components/ViewToggle.vue'
 import CraftPhoto from '../components/CraftPhoto.vue'
-import { showcasePhoto, starterBuilds, starterPaintLimit } from '../lib/starterBuilds'
-import { readRecentBuild } from '../lib/recentBuild'
+import { showcasePhoto, starterBuilds, starterPaintLimit } from '../lib/site'
 import { currentSkin } from '../lib/skinStore'
-import { hashString } from '../lib/storage'
-import { blockUrl, buildStyles, loadCatalog, textureUrl, type Catalog, type CatalogItem, type Category } from '../lib/catalog'
-import { look as sharedLook } from '../lib/look'
-import { catalogSearchText, matchesCatalogSearch } from '../lib/catalogSearch'
+import { hashString, readRecentBuild } from '../lib/storage'
+import { blockUrl, catalogSearchText, loadCatalog, matchesCatalogSearch, textureUrl, type Catalog, type CatalogItem, type Category } from '../lib/catalog'
+import { look as sharedLook } from '../lib/buildSettings'
 
 const look = computed({ get: () => sharedLook.value, set: (v) => (sharedLook.value = v) })
 const LOOKS = [
@@ -29,11 +27,11 @@ const classicVersion = ref('')
 const error = ref('')
 const loading = ref(true)
 const query = ref('')
-const TABS: [Category | 'all', string][] = [
-  ['all', 'All'],
-  ['block', 'Blocks'],
-  ['plant', 'Plants'],
-  ['item', 'Items'],
+const TABS: { value: Category | 'all'; label: string; hint: string }[] = [
+  { value: 'all', label: 'All', hint: '' },
+  { value: 'block', label: 'Blocks', hint: '' },
+  { value: 'plant', label: 'Plants', hint: '' },
+  { value: 'item', label: 'Items', hint: '' },
 ]
 const category = ref<Category | 'all'>('all')
 /** Selected sub-group (Flowers, Ores…), or null for the whole tab. */
@@ -141,6 +139,28 @@ const showMore = () => (shown.value += PAGE)
 
 // Keep a deliberate page boundary: automatic endless loading makes the footer hard to reach.
 
+/**
+ * The results line is a live region, so its text is what screen readers hear. It used to change
+ * on every keystroke ("1,105 builds", "312 builds", "40 builds"…) and was swapped in and out by
+ * v-if, which recreates the region and can silence it. Now one element always exists and its
+ * text settles once typing pauses, so a search is announced once, with its final count.
+ */
+const ANNOUNCE_DELAY_MS = 450
+const resultsText = computed(() => {
+  if (loading.value) return 'Loading build guides…'
+  if (error.value) return ''
+  const n = filtered.value.length
+  const q = query.value.trim()
+  return `${n.toLocaleString()} ${n === 1 ? 'build' : 'builds'}${q ? ` matching “${q}”` : ''}`
+})
+const announced = ref(resultsText.value)
+let announceTimer: ReturnType<typeof setTimeout> | undefined
+watch(resultsText, (text) => {
+  clearTimeout(announceTimer)
+  announceTimer = setTimeout(() => (announced.value = text), ANNOUNCE_DELAY_MS)
+})
+onBeforeUnmount(() => clearTimeout(announceTimer))
+
 </script>
 
 <template>
@@ -219,18 +239,7 @@ const showMore = () => (shown.value += PAGE)
           <ViewToggle v-model="look" :options="LOOKS" label="Textures" compact :title="`Old textures come from Minecraft ${classicVersion}`" />
         </div>
         <div class="filters">
-          <div class="tabs" role="group" aria-label="Filter by kind">
-            <button
-              v-for="[value, label] in TABS"
-              :key="value"
-              type="button"
-              :aria-pressed="category === value"
-              :class="['tab', { active: category === value }]"
-              @click="selectCategory(value)"
-            >
-              {{ label }}
-            </button>
-          </div>
+          <ViewToggle :model-value="category" :options="TABS" label="Filter by kind" compact @update:model-value="selectCategory" />
         </div>
       </div>
 
@@ -242,12 +251,13 @@ const showMore = () => (shown.value += PAGE)
         </select>
       </label>
       <div v-if="category !== 'all' && groups.length" class="chips" role="group" aria-label="Filter by type">
-        <button :class="['chip', { active: group === null }]" :aria-pressed="group === null" @click="group = null">
+        <button type="button" :class="['chip', { active: group === null }]" :aria-pressed="group === null" @click="group = null">
           All {{ TAB_LABELS[category] }} <span class="count">{{ tabCount }}</span>
         </button>
         <button
           v-for="g in groups"
           :key="g.name"
+          type="button"
           :class="['chip', { active: group === g.name }]"
           :aria-pressed="group === g.name"
           @click="group = g.name"
@@ -256,9 +266,9 @@ const showMore = () => (shown.value += PAGE)
         </button>
       </div>
 
-      <div v-if="error" class="notice error-box" role="alert"><span>{{ error }}</span><button class="btn" @click="fetchCatalog">Try again</button></div>
-      <p v-else-if="loading" class="muted" role="status">Loading build guides…</p>
-      <p v-else class="results muted" role="status">{{ filtered.length.toLocaleString() }} {{ filtered.length === 1 ? 'build' : 'builds' }}<template v-if="query.trim()"> matching “{{ query.trim() }}”</template><span v-if="filtered.length"> · 3D marks builds with a three-dimensional option</span></p>
+      <div v-if="error" class="notice error-box" role="alert"><span>{{ error }}</span><button type="button" class="btn" @click="fetchCatalog">Try again</button></div>
+      <p v-show="!error" class="results muted" role="status">{{ announced }}</p>
+      <p v-if="!loading && !error && filtered.length" class="legend muted"><span class="badge" aria-hidden="true">3D</span> also builds in three dimensions</p>
 
       <div v-if="!loading && !error && items.length && !filtered.length" class="empty card">
         <p>
@@ -271,10 +281,10 @@ const showMore = () => (shown.value += PAGE)
       <ul v-if="!error" class="grid" :class="{ loading }">
         <li v-for="item in visible" :key="item.id" v-memo="[look]">
           <RouterLink :to="`/item/${item.id}`" class="tile card">
-            <span v-if="item.block || item.flower || item.shape" class="badge" :title="`${item.name} can also be built in 3D (${buildStyles(item)})`">3D</span>
+            <span v-if="item.block || item.flower || item.shape" class="badge" aria-hidden="true">3D</span>
             <BlockIcon v-if="item.block" :src="blockUrl(item, look)!" />
             <img v-else :src="textureUrl(item, look)" alt="" class="pixelated" width="48" height="48" loading="lazy" />
-            <span>{{ item.name }}</span>
+            <span>{{ item.name }}<span v-if="item.block || item.flower || item.shape" class="visually-hidden">, also builds in 3D</span></span>
           </RouterLink>
         </li>
       </ul>
@@ -286,7 +296,7 @@ const showMore = () => (shown.value += PAGE)
         </button>
       </div>
       <!-- Placed below the grid and nowhere else. Renders nothing until ads are switched on in
-           src/lib/ads.ts; see that file for what has to be true first. -->
+           src/lib/site.ts (ADS_ENABLED); see the note there for what has to be true first. -->
       <AdSlot unit="catalog-footer" />
 
       <p v-if="version" class="muted small">
@@ -346,7 +356,9 @@ const showMore = () => (shown.value += PAGE)
 .how-it-works li > span { font: 700 1.3rem var(--pixel); color: var(--accent); }
 .how-it-works strong { font-size: 0.93rem; }
 .how-it-works p { color: var(--ink-soft); font-size: 0.84rem; margin: 3px 0 0; }
-.results { font-size: 0.85rem; margin: 0 0 16px; }
+.results { font-size: 0.85rem; margin: 0 0 4px; min-height: 1.5em; }
+.legend { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; margin: 0 0 16px; }
+.legend .badge { position: static; }
 
 @media (max-width: 760px) {
   .hero {
@@ -433,29 +445,6 @@ const showMore = () => (shown.value += PAGE)
   align-items: center;
 }
 
-.tabs {
-  display: flex;
-  background: var(--surface-2);
-  border-radius: var(--radius);
-  padding: 3px;
-}
-
-.tab {
-  min-height: 44px;
-  font: 600 0.9rem var(--sans);
-  border: none;
-  background: none;
-  color: var(--ink-soft);
-  padding: 0.45em 0.9em;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.tab.active {
-  background: var(--surface);
-  color: var(--ink);
-}
-
 .chips {
   display: flex;
   flex-wrap: wrap;
@@ -486,9 +475,9 @@ const showMore = () => (shown.value += PAGE)
 }
 
 .chip.active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-ink);
+  background: var(--pressed-bg);
+  border-color: var(--pressed-bg);
+  color: var(--pressed-ink);
 }
 
 .chip .count {
@@ -582,12 +571,18 @@ const showMore = () => (shown.value += PAGE)
   position: relative;
 }
 
-/* Quiet marker: hundreds of tiles carry it, so it must not compete with the item picture. */
+/* Quiet marker: hundreds of tiles carry it, so it must not compete with the item picture. A
+   small outlined tag keeps it quiet while staying legible (it was ~10px plain text). Its meaning
+   is in the legend above the grid and in each link's name; the old title tooltip reached only
+   mouse users. */
 .badge {
   position: absolute;
   top: 6px;
-  right: 8px;
-  font: 600 0.62rem var(--sans);
+  right: 6px;
+  padding: 1px 5px;
+  border: 1px solid var(--line);
+  border-radius: 4px;
+  font: 700 0.7rem/1.3 var(--sans);
   letter-spacing: 0.04em;
   color: var(--ink-soft);
 }
@@ -620,6 +615,5 @@ const showMore = () => (shown.value += PAGE)
   .feat img { width: 40px; height: 40px; }
   .how-it-works { grid-template-columns: 1fr; gap: 14px; margin-bottom: 28px; }
   .hero-actions .btn { flex: 1 1 160px; }
-  .results span { display: block; margin-top: 4px; }
 }
 </style>

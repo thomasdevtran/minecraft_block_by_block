@@ -13,11 +13,10 @@ import { itemToModel } from '../engine/item'
 import { loadPixels, type PixelImage } from '../engine/pixels'
 import { buildGuide } from '../engine/steps'
 import { assetUrl, blockUrl, loadCatalog, textureUrl, type BuildableItem } from '../lib/catalog'
-import { look } from '../lib/look'
 import { setPageMeta } from '../lib/meta'
 import { readStored, writeStored } from '../lib/storage'
 import NotFoundView from './NotFoundView.vue'
-import { flag, paintLimit } from '../lib/buildSettings'
+import { flag, look, paintLimit } from '../lib/buildSettings'
 
 const props = defineProps<{ id: string }>()
 const route = useRoute()

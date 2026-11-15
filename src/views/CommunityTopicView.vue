@@ -5,6 +5,7 @@ import CommunityPostForm from '../components/CommunityPostForm.vue'
 import CommunityReportForm from '../components/CommunityReportForm.vue'
 import { COMMUNITY_CATEGORIES, communityDate, listCommunityReplies, loadCommunityTopic, type CommunityReply, type CommunityTopic } from '../lib/communityDiscussions'
 import { supabase } from '../lib/supabase'
+import { usePageFocus } from '../lib/dom'
 
 const props = defineProps<{ topicId: string }>()
 const topic = ref<CommunityTopic | null>(null)
@@ -18,6 +19,13 @@ const repliesLoading = ref(false)
 const repliesError = ref('')
 const moreReplies = ref(false)
 const posted = ref(false)
+const replyList = ref<HTMLElement>()
+const repliesMessage = ref<HTMLElement>()
+const pageFocus = usePageFocus(() => [replyList.value, repliesMessage.value])
+function turnPage(delta: number) {
+  page.value += delta
+  pageFocus.request()
+}
 
 watch([() => props.topicId, retryTopic], async ([id], _previous, onCleanup) => {
   let current = true
@@ -54,7 +62,10 @@ watch([() => topic.value?.id, page, reloadReplies], async ([id, currentPage], _p
   } catch (failure) {
     if (current) repliesError.value = failure instanceof Error ? failure.message : 'Could not load replies.'
   } finally {
-    if (current) repliesLoading.value = false
+    if (current) {
+      repliesLoading.value = false
+      void pageFocus.settle()
+    }
   }
 }, { immediate: true })
 
@@ -88,15 +99,15 @@ function replyPosted() {
         <CommunityPostForm v-else :topic-id="topic.id" :return-to="`/community/${topic.id}`" @posted="replyPosted" />
         <p v-if="posted" role="status">Reply posted.</p>
         <p v-if="repliesLoading" role="status">Loading replies…</p>
-        <div v-else-if="repliesError" class="notice">
+        <div v-else-if="repliesError" ref="repliesMessage" class="notice">
           <p role="alert">{{ repliesError }}</p>
           <button class="btn" type="button" @click="reloadReplies++">Try again</button>
         </div>
         <template v-else>
-          <p v-if="!replies.length" class="muted">{{ page ? 'No replies on this page.' : 'No replies yet.' }}</p>
+          <p v-if="!replies.length" ref="repliesMessage" class="muted">{{ page ? 'No replies on this page.' : 'No replies yet.' }}</p>
           <template v-else>
             <p class="muted">Newest replies first</p>
-            <ol class="replies">
+            <ol ref="replyList" class="replies" :aria-label="`Replies, page ${page + 1}`">
               <li v-for="reply in replies" :key="reply.id" class="card">
                 <p class="muted">{{ reply.author ? `@${reply.author.username}` : 'Deleted account' }} · <time :datetime="reply.created_at">{{ communityDate(reply.created_at) }}</time></p>
                 <p class="post-body">{{ reply.body }}</p>
@@ -105,9 +116,9 @@ function replyPosted() {
             </ol>
           </template>
           <nav v-if="page || moreReplies" class="pages" aria-label="Reply pages">
-            <button class="btn" type="button" :disabled="page === 0" @click="page--">Previous</button>
+            <button class="btn" type="button" :disabled="page === 0" @click="turnPage(-1)">Previous</button>
             <span>Page {{ page + 1 }}</span>
-            <button class="btn" type="button" :disabled="!moreReplies" @click="page++">Next</button>
+            <button class="btn" type="button" :disabled="!moreReplies" @click="turnPage(1)">Next</button>
           </nav>
         </template>
       </section>

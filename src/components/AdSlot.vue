@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
-import { ADS_ENABLED, ADSENSE_CLIENT, AD_SIZE } from '../lib/ads'
-import { useNearViewport } from '../lib/visibility'
+import { ADS_ENABLED, ADSENSE_CLIENT, AD_SIZE } from '../lib/site'
+import { useNearViewport } from '../lib/dom'
 
 /** Not named `slot` — that is a reserved attribute in Vue and would never reach this component. */
 const props = defineProps<{ unit: string }>()

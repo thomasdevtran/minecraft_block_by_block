@@ -1,5 +1,5 @@
 import { loader } from './loader'
-import type { Look } from './look'
+import type { Look } from './buildSettings'
 
 export type Category = 'item' | 'plant' | 'block'
 
@@ -72,9 +72,33 @@ export function blockUrl(item: BuildableItem, look: Look = 'current'): string | 
   return assetUrl(useClassic(item, look) && item.classic!.block ? item.classic!.block : item.block)
 }
 
-/** Short label of the build styles an item supports, e.g. "2D · 3D · Pot". */
-export function buildStyles(item: BuildableItem): string | null {
-  if (item.block || item.shape) return '2D · 3D'
-  if (item.flower) return item.flower.pottable ? '2D · 3D · Pot' : '2D · 3D'
-  return null
+// ---------------------------------------------------------------------------------------------
+// Search
+// ---------------------------------------------------------------------------------------------
+
+/** Extra words that find a group by what people call it ("weapons", "armour", "underwater"). */
+const GROUP_KEYWORDS: Record<string, string> = {
+  'Weapons & Combat': 'weapon weapons combat fighting',
+  'Tools & Equipment': 'tool tools equipment mining utility utilities',
+  'Armor & Wearables': 'armor armour wearable wearables protection',
+  'Food & Drinks': 'food foods drink drinks eating',
+  'Potions & Brewing': 'potion potions brewing magic',
+  'Music & Collectibles': 'music collectibles collection disc discs trim trims pattern patterns',
+  'Redstone & Transport': 'redstone transport transportation',
+  'Building & Decoration': 'building decoration decorations decor',
+  'Materials & Ingredients': 'materials ingredients crafting',
+  'Nether Plants': 'nether plant plants fungus fungi',
+  'Aquatic Plants & Coral': 'aquatic underwater ocean coral plants',
+}
+
+const normalize = (text: string) => text.toLowerCase().replace(/[_—–-]/g, ' ').replace(/\s+/g, ' ').trim()
+
+/** Everything an item can be found by, folded once at load so filtering stays cheap per keystroke. */
+export function catalogSearchText(item: CatalogItem): string {
+  return normalize([item.name, item.id, item.category, item.group, GROUP_KEYWORDS[item.group ?? ''], ...(item.aliases ?? [])].filter(Boolean).join(' '))
+}
+
+/** True when every word of `query` appears in the item's search text. */
+export function matchesCatalogSearch(search: string, query: string): boolean {
+  return normalize(query).split(' ').every(word => search.includes(word))
 }

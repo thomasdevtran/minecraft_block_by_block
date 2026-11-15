@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 import { SITE } from '../lib/site'
 import { currentSkin } from '../lib/skinStore'
 import { clearBuildData } from '../lib/storage'
-import { look } from '../lib/look'
+import { look } from '../lib/buildSettings'
 
 const confirming = ref(false)
 const cleared = ref('')

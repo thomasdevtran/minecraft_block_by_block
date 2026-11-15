@@ -80,7 +80,7 @@ Most other non-cube models, including stairs and beds, remain unsupported. The t
 
 ## Craft photos and starter projects
 
-The homepage uses clearly labeled photo placeholders until real crafts are ready. Put photos in `public/crafts/`, then set `showcasePhoto` and the starter entries' `photo` paths in `src/lib/starterBuilds.ts` (for example `/crafts/rose.jpg`). The starter projects are Rose, Emerald and Red Tulip. Empty paths keep the placeholders. Use landscape crops; photos never replace the game-reference thumbnail.
+The homepage uses clearly labeled photo placeholders until real crafts are ready. Put photos in `public/crafts/`, then set `showcasePhoto` and the `starterBuilds` entries' `photo` paths in `src/lib/site.ts` (for example `/crafts/rose.jpg`). The starter projects are Rose, Emerald and Red Tulip. Empty paths keep the placeholders. Use landscape crops; photos never replace the game-reference thumbnail.
 
 Starter counts are calculated from current textures with an eight-color palette. Their links pin the same settings. No untested time or difficulty estimates are shown. Guides provide per-step cube legends, an enlarged current row, saved progress on this device, a full print layout, and links that preserve item build settings. Skin sharing links to the skin builder; uploaded images remain local.
 

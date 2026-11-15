@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GridCell, Recipe, Step } from '../engine/steps'
-import { activeRow, cubesForStep } from './guideDisplay'
+import { activeRow, cubesForStep } from './guide'
 
 const recipes: Recipe[] = [
   { id: 'A', uniform: 0, faces: { front: 0 }, count: 12 },

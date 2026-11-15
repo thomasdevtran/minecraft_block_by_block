@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
-import { loadSkinPixels, readSkinPng } from '../lib/skinImages'
-import { validateSkin } from '../engine/skin'
+import { loadSkinPixels, readSkinPng, validateSkin } from '../engine/skin'
 import { blobToDataUrl, currentSkin, fetchSkinByUsername, setSkin, type LoadedSkin } from '../lib/skinStore'
 import { showToast } from '../lib/toast'
 
@@ -13,7 +12,13 @@ const uploading = ref(false)
 const error = ref('')
 const errorSource = ref<'lookup' | 'upload'>('lookup')
 const invalidUsername = ref(false)
-const dragging = ref(false)
+/**
+ * How many elements inside the drop zone the dragged file is over. dragleave fires every time the
+ * pointer crosses from the zone onto its own heading or button, so a plain true/false flag made the
+ * highlight flicker; counting enters and leaves only clears it when the file leaves the zone.
+ */
+const dragDepth = ref(0)
+const dragging = computed(() => dragDepth.value > 0)
 const fileInput = ref<HTMLInputElement>()
 
 async function useSkin(skin: LoadedSkin) {
@@ -74,7 +79,7 @@ async function upload(file: File | undefined) {
 }
 
 function onDrop(e: DragEvent) {
-  dragging.value = false
+  dragDepth.value = 0
   upload(e.dataTransfer?.files[0])
 }
 </script>
@@ -93,13 +98,13 @@ function onDrop(e: DragEvent) {
         <p class="muted">
           Build the skin of a Java Edition player. We send the username to Mojang; lookups may be cached and logged by our hosting provider. <RouterLink to="/privacy">Privacy</RouterLink>
         </p>
+        <label for="skin-username" class="field-label">Java Edition username</label>
         <div class="row">
-          <label for="skin-username" class="visually-hidden">Minecraft username</label>
           <input
             id="skin-username"
             v-model="username"
             type="text"
-            placeholder="Username, e.g. jeb_"
+            placeholder="e.g. jeb_"
             maxlength="16"
             autocomplete="off"
             autocapitalize="off"
@@ -119,8 +124,9 @@ function onDrop(e: DragEvent) {
 
       <div
         :class="['card', 'option', 'drop', { dragging }]"
-        @dragover.prevent="dragging = true"
-        @dragleave="dragging = false"
+        @dragenter.prevent="dragDepth++"
+        @dragover.prevent
+        @dragleave="dragDepth = Math.max(0, dragDepth - 1)"
         @drop.prevent="onDrop"
       >
         <h2>Upload a skin file</h2>
@@ -183,11 +189,17 @@ function onDrop(e: DragEvent) {
   align-items: flex-start;
 }
 
+/* margin-top: auto keeps the field and button aligned with the upload button in the next card. */
+.field-label {
+  margin-top: auto;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
 .row {
   display: flex;
   gap: 8px;
   width: 100%;
-  margin-top: auto;
 }
 
 .row input {
@@ -211,15 +223,6 @@ function onDrop(e: DragEvent) {
 .drop.dragging {
   border-color: var(--accent);
   background: var(--accent-soft);
-}
-
-.visually-hidden {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  opacity: 0;
-  pointer-events: none;
-  overflow: hidden;
 }
 
 .resume {

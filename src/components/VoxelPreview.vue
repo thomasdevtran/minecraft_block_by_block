@@ -21,7 +21,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import type { BuildModel } from '../engine/model'
 import { dominantColor, FACE_NORMALS, FACES, voxelKey, type Face } from '../engine/voxels'
-import { ROLE } from '../lib/roles'
+import { ROLE } from '../lib/guide'
 
 /** `roles` holds one ROLE value per voxel, in the same order as `model.voxels`. */
 const props = defineProps<{ model: BuildModel; roles: Uint8Array; description: string }>()

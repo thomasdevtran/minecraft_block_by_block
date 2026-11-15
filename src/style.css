@@ -18,6 +18,17 @@
   --error: #b3261e;
   --plain-cube: #d8c3a0;
 
+  /* Two kinds of "selected", used the same way everywhere:
+     - Pressed: a choice the reader made (filters, texture and 2D/3D toggles). Solid accent.
+       Pair with aria-pressed="true".
+     - Current: where the reader is (main nav, guide stage). Soft fill plus an accent bar, so the
+       state never rests on a color difference alone (WCAG 1.4.1). Pair with aria-current. */
+  --pressed-bg: var(--accent);
+  --pressed-ink: var(--accent-ink);
+  --current-bg: var(--accent-soft);
+  --current-ink: var(--ink);
+  --current-bar: inset 0 -3px 0 var(--accent);
+
   --pixel: 'Pixelify Sans', ui-monospace, monospace;
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
   --radius: 10px;
@@ -252,10 +263,16 @@ canvas.pixelated {
 }
 
 :where(input:not([type]), input[type='text'], input[type='search'], input[type='email'],
-  input[type='password'], input[type='url'], select, textarea):focus,
-.btn:focus-visible {
+  input[type='password'], input[type='url'], select, textarea):focus {
   outline: 3px solid var(--accent);
   outline-offset: 1px;
+}
+
+/* 3px leaves a band of page color between the ring and the button. With 1px, the green ring on
+   a green primary button read as a slightly bigger button rather than as focus. */
+.btn:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 3px;
 }
 
 /* A button that reads as a text link, for actions that stay on the page. */
@@ -367,11 +384,20 @@ canvas {
   max-width: 100%;
 }
 
+/* break-word wraps a word only when it can't fit on a line by itself, so headings no longer
+   split words mid-way on narrow screens. User-written text (topic titles, post bodies) keeps
+   `anywhere` in its own components, since it can contain long unbroken strings such as links. */
 h1,
 h2,
 h3,
 p {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+}
+
+/* Headings that receive focus from script (page changes, guide steps) aren't controls, so they
+   don't need a focus ring; screen readers announce them either way. */
+:is(h1, h2)[tabindex='-1']:focus {
+  outline: none;
 }
 
 @media (max-width: 640px) {

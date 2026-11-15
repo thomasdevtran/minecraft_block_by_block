@@ -6,13 +6,12 @@ import PaintControls from '../components/PaintControls.vue'
 import ViewToggle from '../components/ViewToggle.vue'
 import { itemToModel } from '../engine/item'
 import { pixelsToDataUrl, type PixelImage } from '../engine/pixels'
-import { skinFront, skinToModel, validateSkin, type SkinOptions } from '../engine/skin'
+import { loadSkinPixels, skinFront, skinToModel, validateSkin, type SkinOptions } from '../engine/skin'
 import { buildGuide } from '../engine/steps'
 import { currentSkin, setSkin } from '../lib/skinStore'
 import { setPageMeta } from '../lib/meta'
 import { hashString, readStored, writeStored } from '../lib/storage'
 import { flag, paintLimit } from '../lib/buildSettings'
-import { loadSkinPixels } from '../lib/skinImages'
 
 const pixels = shallowRef<PixelImage | null>(null)
 const prefs = reactive(

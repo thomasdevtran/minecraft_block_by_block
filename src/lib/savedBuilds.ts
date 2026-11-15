@@ -1,8 +1,7 @@
-import type { SkinModelType } from '../engine/skin'
+import { readSkinPng, type SkinModelType } from '../engine/skin'
 import { user as signedInUser } from './auth'
 import { loadCatalog } from './catalog'
 import { blobToDataUrl, setSkin, type LoadedSkin } from './skinStore'
-import { readSkinPng } from './skinImages'
 import { requireSupabase } from './supabase'
 import { writeStored } from './storage'
 

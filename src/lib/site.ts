@@ -28,3 +28,33 @@ export const SITE = {
   /** Shown as "last updated" on the legal pages. */
   legalUpdated: '7 November 2026',
 }
+
+/**
+ * Homepage starter projects. Put photos in public/crafts/ and point `photo` (and `showcasePhoto`)
+ * at them; an empty path keeps the labeled placeholder. Use landscape crops.
+ */
+export const starterBuilds = [
+  { id: 'rose', note: 'Bring a classic Minecraft flower to life.', photo: '/crafts/rose.jpg' },
+  { id: 'emerald', note: 'Make a little treasure, one row at a time.', photo: '/crafts/emerald.jpg' },
+  { id: 'red_tulip', note: 'Add a splash of red to your craft collection.', photo: '/crafts/red-tulip.jpg' },
+]
+export const showcasePhoto = '/crafts/showcase.jpg'
+/** Starter links open with this many paints, and the homepage counts use it too. */
+export const starterPaintLimit = 8
+
+/**
+ * Advertising is intentionally off for launch.
+ *
+ * Do not enable by flipping this flag alone. Before launch with ads:
+ * - Review Minecraft usage rules and the actual audience (including COPPA obligations).
+ * - Select a provider and confirm current eligibility, publisher/site approval and ad-unit IDs.
+ * - Implement the required consent choices and child-audience configuration.
+ * - Update privacy disclosures, CSP, third-party contracts and any ads.txt requirements.
+ * - Confirm hosting-plan terms (Vercel Hobby excludes commercial advertising use).
+ * - Verify declined/withdrawn consent prevents ad scripts and requests.
+ *
+ * The existing slot is a placeholder, not a completed or approved ad integration.
+ */
+export const ADS_ENABLED = false
+export const ADSENSE_CLIENT = ''
+export const AD_SIZE = { width: 300, height: 250 } as const

@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { PNG } from 'pngjs'
-import { loadPixels } from '../engine/pixels'
-import { loadSkinPixels, readSkinPng } from './skinImages'
+import { loadPixels } from './pixels'
+import { loadSkinPixels, readSkinPng } from './skin'
 
-vi.mock('../engine/pixels', () => ({ loadPixels: vi.fn() }))
+vi.mock('./pixels', async (importOriginal) => ({ ...await importOriginal<typeof import('./pixels')>(), loadPixels: vi.fn() }))
 beforeEach(() => vi.clearAllMocks())
 afterEach(() => vi.unstubAllGlobals())
 

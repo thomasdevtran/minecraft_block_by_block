@@ -1,8 +1,6 @@
 import { ref } from 'vue'
-import type { SkinModelType } from '../engine/skin'
-import { hashString, readStored, writeStored } from './storage'
-import { readRecentBuild } from './recentBuild'
-import { readSkinPng } from './skinImages'
+import { readSkinPng, type SkinModelType } from '../engine/skin'
+import { hashString, readRecentBuild, readStored, writeStored } from './storage'
 
 export interface LoadedSkin {
   /** The skin PNG as a data URL, so it survives a page refresh. */

@@ -1,5 +1,5 @@
 import { finalizeModel, type BuildModel, type ColorOptions, type PartInfo } from './model'
-import { ALPHA_CUTOFF, getPixel, toHex, type PixelImage, type Rgba } from './pixels'
+import { ALPHA_CUTOFF, getPixel, loadPixels, toHex, type PixelImage, type Rgba } from './pixels'
 import { emptyFaces, faceTexel, type Face, type Voxel } from './voxels'
 
 export type SkinModelType = 'classic' | 'slim'
@@ -205,4 +205,41 @@ function regionIsOpaque(img: PixelImage, x: number, y: number, w: number, h: num
     }
   }
   return true
+}
+
+// ---------------------------------------------------------------------------------------------
+// Skin files
+// ---------------------------------------------------------------------------------------------
+
+const MAX_SKIN_BYTES = 1024 * 1024
+
+/**
+ * Checks a skin file's size and PNG header before any bytes reach the image decoder: a valid
+ * 64×64 or 64×32 PNG up to 1 MB. Accepts a Blob, or a PNG data URL (never a remote URL).
+ */
+export async function readSkinPng(source: Blob | string): Promise<Blob> {
+  let blob: Blob
+  if (typeof source === 'string') {
+    if (!source.startsWith('data:image/png;base64,') || source.length > 1_400_000) {
+      throw new Error('Choose a valid skin PNG up to 1 MB.')
+    }
+    blob = await fetch(source).then(response => response.blob())
+  } else {
+    blob = source
+  }
+  if (blob.size > MAX_SKIN_BYTES) throw new Error('Choose a skin PNG up to 1 MB.')
+  const header = new DataView(await blob.slice(0, 33).arrayBuffer())
+  if (header.byteLength < 33 || header.getUint32(0) !== 0x89504e47 ||
+    header.getUint32(4) !== 0x0d0a1a0a || header.getUint32(8) !== 13 || header.getUint32(12) !== 0x49484452) {
+    throw new Error('This file is not a valid PNG skin.')
+  }
+  if (header.getUint32(16) !== 64 || ![32, 64].includes(header.getUint32(20))) {
+    throw new Error('Use a 64×64 or 64×32 skin PNG.')
+  }
+  return blob
+}
+
+/** Validates a skin file, then decodes it into pixels. */
+export async function loadSkinPixels(source: Blob | string) {
+  return loadPixels(await readSkinPng(source))
 }

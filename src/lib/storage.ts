@@ -37,6 +37,29 @@ export function hashString(s: string): string {
   return (h >>> 0).toString(36)
 }
 
+// ---------------------------------------------------------------------------------------------
+// Most recent build (the homepage's "Continue your build" card)
+// ---------------------------------------------------------------------------------------------
+
+export interface RecentBuild { title: string; path: string; step: number; total: number; skinHash?: string }
+const RECENT_KEY = 'progress:recent'
+
+/** The last guide opened on this device, or null when the record is missing or doesn't validate. */
+export function readRecentBuild(): RecentBuild | null {
+  const value = readStored<RecentBuild | null>(RECENT_KEY, null)
+  if (!value || typeof value.title !== 'string' || value.title.length > 200 ||
+      typeof value.path !== 'string' || !/^\/(item\/[a-z0-9_]+|skin\/guide)(\?[^#]*)?$/.test(value.path) ||
+      !Number.isInteger(value.step) || !Number.isInteger(value.total) || value.total < 1 || value.step < 0 || value.step > value.total ||
+      (value.skinHash !== undefined && typeof value.skinHash !== 'string')) return null
+  return value
+}
+
+export function rememberBuild(value: RecentBuild) { writeStored(RECENT_KEY, value) }
+
+// ---------------------------------------------------------------------------------------------
+// Clearing
+// ---------------------------------------------------------------------------------------------
+
 /** Clear only this app's build records, preserving privacy preferences and unrelated data. */
 export function clearBuildData(): boolean {
   try {

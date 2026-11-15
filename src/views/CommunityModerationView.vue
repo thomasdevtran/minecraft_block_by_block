@@ -5,6 +5,7 @@ import { authReady, user } from '../lib/auth'
 import { communityDate } from '../lib/communityDiscussions'
 import { isCommunityModerator, loadCommunityReportQueue, REPORT_REASONS, reviewCommunityReport, type CommunityReport, type ReviewAction } from '../lib/communityModeration'
 import { supabase } from '../lib/supabase'
+import { usePageFocus } from '../lib/dom'
 
 const filter = ref<'open' | 'reviewed'>('open')
 const page = ref(0)
@@ -18,6 +19,12 @@ const notice = ref('')
 const busy = ref('')
 const notes = ref<Record<string, string>>({})
 let generation = 0
+const reportList = ref<HTMLElement>()
+const pageFocus = usePageFocus(() => [reportList.value])
+function turnPage(delta: number) {
+  page.value += delta
+  pageFocus.request()
+}
 
 watch(() => user.value?.id, () => { notes.value = {}; notice.value = ''; busy.value = '' })
 watch([authReady, () => user.value?.id, () => user.value?.email_confirmed_at, filter, page, retry], async (_value, _old, onCleanup) => {
@@ -43,7 +50,10 @@ watch([authReady, () => user.value?.id, () => user.value?.email_confirmed_at, fi
   } catch (failure) {
     if (current && token === generation) error.value = failure instanceof Error ? failure.message : 'Could not load the report queue.'
   } finally {
-    if (current && token === generation) loading.value = false
+    if (current && token === generation) {
+      loading.value = false
+      void pageFocus.settle()
+    }
   }
 }, { immediate: true })
 
@@ -91,7 +101,7 @@ async function review(report: CommunityReport, action: ReviewAction) {
         <button class="btn" type="button" :disabled="!!busy || loading" @click="retry++">Refresh</button>
       </div>
       <p v-if="!loading && !error && !reports.length" class="notice">{{ filter === 'open' ? 'No reports need review.' : 'No reviewed reports on this page.' }}</p>
-      <ol class="report-list" aria-label="Reports">
+      <ol ref="reportList" class="report-list" :aria-label="`Reports, page ${page + 1}`">
         <li v-for="report in reports" :key="report.report_id" class="card">
           <p class="eyebrow muted">{{ report.reply_id ? 'Reported reply' : 'Reported topic' }} · {{ REPORT_REASONS[report.reason] }}</p>
           <h2>{{ report.content_title }}</h2>
@@ -122,9 +132,9 @@ async function review(report: CommunityReport, action: ReviewAction) {
         </li>
       </ol>
       <nav v-if="page || hasMore" class="queue-tools" aria-label="Report pages">
-        <button class="btn" type="button" :disabled="!page || !!busy" @click="page--">Previous</button>
+        <button class="btn" type="button" :disabled="!page || !!busy" @click="turnPage(-1)">Previous</button>
         <span>Page {{ page + 1 }}</span>
-        <button class="btn" type="button" :disabled="!hasMore || !!busy" @click="page++">Next</button>
+        <button class="btn" type="button" :disabled="!hasMore || !!busy" @click="turnPage(1)">Next</button>
       </nav>
     </template>
   </div>

@@ -1,7 +1,6 @@
 import catalogData from '../../public/data/items.json'
 import { describe, expect, it } from 'vitest'
-import type { Catalog } from './catalog'
-import { catalogSearchText, matchesCatalogSearch } from './catalogSearch'
+import { catalogSearchText, matchesCatalogSearch, type Catalog } from './catalog'
 
 const catalog = catalogData as Catalog
 const find = (query: string) => catalog.items.filter(item => matchesCatalogSearch(catalogSearchText(item), query)).map(item => item.id)

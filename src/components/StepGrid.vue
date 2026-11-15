@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import type { PaletteEntry } from '../engine/palette'
+import { textOn, type PaletteEntry } from '../engine/palette'
 import type { StepGrid } from '../engine/steps'
-import { textOn } from '../lib/colors'
-import { activeRow } from '../lib/guideDisplay'
+import { activeRow } from '../lib/guide'
 
 const props = defineProps<{ grid: StepGrid; palette: PaletteEntry[] }>()
 
@@ -163,11 +162,11 @@ figcaption {
 .row-focus p { font-size: .85rem; margin: 4px 0 12px; }
 .row-scroll { display: flex; overflow-x: auto; gap: 3px; padding-bottom: 8px; }
 .row-column { display: grid; justify-items: center; gap: 4px; flex: 0 0 40px; }
-.column-number { font-size: .75rem; color: var(--ink-soft); }
+.column-number { font-size: .8rem; color: var(--ink-soft); }
 .row-cube { width: 40px; height: 40px; display: grid; place-items: center; border: 1px solid var(--ink-soft); font-weight: 800; border-radius: 3px; }
 .row-cube.gap { border-style: dashed; opacity: .5; }
 .grid-key { display: flex; flex-direction: column; gap: 4px; font-size: .9rem; }
-.grid-key span { color: var(--ink-soft); font-size: .8rem; }
+.grid-key span { color: var(--ink-soft); font-size: .85rem; }
 .map-zoom { align-self: flex-start; margin-bottom: 12px; font-size: .85rem; }
 .map-window { width: 100%; display: grid; justify-items: center; }
 .map-window.enlarged { display: block; max-height: 360px; overflow: auto; }

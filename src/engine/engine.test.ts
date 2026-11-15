@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { ROLE, rolesForStep } from '../lib/roles'
+import { ROLE, rolesForStep } from '../lib/guide'
 import { blockToModel } from './block'
 import { checkConnectivity } from './connectivity'
 import { flowerToModel, pottedSprite } from './flower'
