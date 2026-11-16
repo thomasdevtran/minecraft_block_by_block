@@ -5,7 +5,7 @@ import BlockIcon from './BlockIcon.vue'
 import ViewToggle from './ViewToggle.vue'
 import type { BuildModel } from '../engine/model'
 import type { Look } from '../lib/buildSettings'
-import { blockUrl, textureUrl, type CatalogItem } from '../lib/catalog'
+import { assetUrl, blockUrl, textureUrl, type CatalogItem } from '../lib/catalog'
 import { hasWebGL, useNearViewport } from '../lib/dom'
 import { ROLE } from '../lib/guide'
 import { starterPaintLimit } from '../lib/site'
@@ -22,8 +22,12 @@ const router = useRouter()
 // three.js is the site's largest chunk. It loads only for the 3D view, once the section is near.
 const VoxelPreview = defineAsyncComponent(() => import('./VoxelPreview.vue'))
 
-/** The default skin, written by `npm run extract`. It isn't in the item catalog. */
-const STEVE_SKIN = '/textures/steve.png'
+/**
+ * The default skin, written by `npm run extract`. It isn't in the item catalog, but it shares the
+ * catalog's cache-busting version like every other texture (the demo only renders once the
+ * catalog has loaded).
+ */
+const STEVE_SKIN = assetUrl('textures/steve.png')
 type Entry = { id: string; name: string; item?: CatalogItem }
 const entries = computed<Entry[]>(() => [
   ...props.items.map((item) => ({ id: item.id, name: item.name, item })),
@@ -38,8 +42,8 @@ const selected = computed(() => entries.value.find((entry) => entry.id === selec
 // --- 2D or 3D ----------------------------------------------------------------------------------
 
 const VIEWS = [
-  { value: '3d' as const, label: '3D', hint: '' },
-  { value: '2d' as const, label: '2D', hint: '' },
+  { value: '3d' as const, label: '3D' },
+  { value: '2d' as const, label: '2D' },
 ]
 const view = ref<'2d' | '3d'>('2d')
 /** Probed only when the section comes near, like the guide's own preview. */
@@ -389,7 +393,7 @@ async function openSteve() {
   width: 22px;
   height: 22px;
   /* A faint edge so white or near-background paints (Steve's eyes) still show as a swatch. */
-  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.18);
+  box-shadow: inset 0 0 0 1px var(--swatch-edge);
 }
 
 .actions {

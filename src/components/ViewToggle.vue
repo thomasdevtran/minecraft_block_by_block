@@ -1,7 +1,7 @@
 <script setup lang="ts" generic="T extends string">
 /** Segmented single-choice control: 2D/3D and texture pickers on guides, kind filter on the catalog. */
 withDefaults(
-  defineProps<{ options: { value: T; label: string; hint: string }[]; label?: string; compact?: boolean }>(),
+  defineProps<{ options: { value: T; label: string; hint?: string }[]; label?: string; compact?: boolean }>(),
   { label: 'Build style', compact: false },
 )
 const model = defineModel<T>({ required: true })
@@ -18,7 +18,7 @@ const model = defineModel<T>({ required: true })
       @click="model = o.value"
     >
       <strong>{{ o.label }}</strong>
-      <small v-if="!compact">{{ o.hint }}</small>
+      <small v-if="!compact && o.hint">{{ o.hint }}</small>
     </button>
   </div>
 </template>

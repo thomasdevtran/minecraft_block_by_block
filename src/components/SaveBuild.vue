@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { authReady, user } from '../lib/auth'
+import { ageCheck, authReady, user } from '../lib/auth'
 import { currentSkin } from '../lib/skinStore'
 import { saveBuild, type SavedBuild } from '../lib/savedBuilds'
-import { supabase } from '../lib/supabase'
+import { accountsEnabled } from '../lib/supabase'
 
 const props = defineProps<{
   title: string; path: string; guideKey: string; step: number; total: number
@@ -43,9 +43,13 @@ async function save() {
 </script>
 
 <template>
-  <details v-if="supabase && authReady" class="save-build">
+  <details v-if="accountsEnabled && authReady" class="save-build">
     <summary>{{ saved ? 'Saved to My Builds' : 'Save to My Builds' }}</summary>
-    <form v-if="user" @submit.prevent="save">
+    <p v-if="user && ageCheck === 'needed'">
+      Answer one quick question on your <RouterLink :to="{ path: '/account', query: { next: path } }">Account page</RouterLink> to save builds.
+    </p>
+    <p v-else-if="user && ageCheck === 'failed'">This account can’t save builds. The guide and your progress on this device still work.</p>
+    <form v-else-if="user" @submit.prevent="save">
       <label>Build name <input v-model="name" type="text" maxlength="100" required :disabled="busy" /></label>
       <p v-if="skin" class="muted">Saving uploads this skin to your private library so you can open it on another device.</p>
       <div class="save-actions">

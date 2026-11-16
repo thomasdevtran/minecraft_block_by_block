@@ -1,10 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { PNG } from 'pngjs'
-import { GUIDE_ENGINE_VERSION, openBuild, saveBuild, validateBuildPath, type BuildToSave } from './savedBuilds'
+import { deleteBuild, GUIDE_ENGINE_VERSION, openBuild, saveBuild, validateBuildPath, type BuildToSave, type SavedBuild } from './savedBuilds'
 
 const mocks = vi.hoisted(() => {
   const query = {
-    insert: vi.fn(), update: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), maybeSingle: vi.fn(),
+    insert: vi.fn(), update: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), maybeSingle: vi.fn(), delete: vi.fn(),
   }
   return {
     query, getUser: vi.fn(), upload: vi.fn(), download: vi.fn(), writeStored: vi.fn(), setSkin: vi.fn(),
@@ -33,7 +33,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   mocks.signedInUser.value = { id: 'owner-a' }
   mocks.getUser.mockResolvedValue({ data: { user: { id: 'owner-a' } }, error: null })
-  for (const method of ['insert', 'update', 'select', 'eq'] as const) mocks.query[method].mockReturnValue(mocks.query)
+  for (const method of ['insert', 'update', 'select', 'eq', 'delete'] as const) mocks.query[method].mockReturnValue(mocks.query)
   mocks.query.single.mockImplementation(async () => ({
     data: { id: 'build-id', revision: 0, ...mocks.query.insert.mock.calls.at(-1)?.[0] }, error: null,
   }))
@@ -132,5 +132,23 @@ describe('private saved builds', () => {
 
   it.each(['https://elsewhere.test/', '//elsewhere.test/', '/item/emerald?redirect=bad', '/skin/guide?view=3d#bad'])('rejects an invalid stored route %s', path => {
     expect(() => validateBuildPath(path)).toThrow()
+  })
+})
+
+describe('deleting saved builds', () => {
+  const build = { id: 'build-id', user_id: 'owner-a' } as SavedBuild
+
+  it('deletes the row by id for its owner', async () => {
+    mocks.query.eq.mockResolvedValueOnce({ error: null })
+    await deleteBuild(build)
+    expect(mocks.query.delete).toHaveBeenCalled()
+    expect(mocks.query.eq).toHaveBeenCalledWith('id', 'build-id')
+  })
+
+  it("refuses another account's build and reports server errors", async () => {
+    await expect(deleteBuild({ ...build, user_id: 'owner-b' })).rejects.toThrow('Sign in')
+    expect(mocks.query.delete).not.toHaveBeenCalled()
+    mocks.query.eq.mockResolvedValueOnce({ error: new Error('Network down') })
+    await expect(deleteBuild(build)).rejects.toThrow('Network down')
   })
 })

@@ -16,7 +16,10 @@
   --warn-bg: #fff1cf;
   --warn-line: #e3b54a;
   --error: #b3261e;
+  --error-bg: #fbeae8;
   --plain-cube: #d8c3a0;
+  /* Outline on paint swatches, so a paint close to the card color still shows its edge. */
+  --swatch-edge: rgb(0 0 0 / 0.3);
 
   /* Two kinds of "selected", used the same way everywhere:
      - Pressed: a choice the reader made (filters, texture and 2D/3D toggles). Solid accent.
@@ -60,26 +63,9 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme='light']) {
-    --bg: #1a1815;
-    --surface: #24211d;
-    --surface-2: #2f2b25;
-    --ink: #f1ebe0;
-    --ink-soft: #b3a896;
-    --line: #3f3a32;
-    --field-line: #857965;
-    --accent: #7cc242;
-    --accent-ink: #14200a;
-    --accent-soft: #2b3a1f;
-    --warn-bg: #3a3018;
-    --warn-line: #8a6d25;
-    --error: #ff8a80;
-    --plain-cube: #a8906c;
-    color-scheme: dark;
-  }
-}
-
+/* The theme is always set on <html> as data-theme="light" or "dark": a small script in index.html
+   resolves "Use device setting" before the first paint, and App.vue keeps it in step. Keeping
+   the choice in one attribute means the dark values are written once, here. */
 :root[data-theme='dark'] {
   --bg: #1a1815;
   --surface: #24211d;
@@ -94,7 +80,9 @@
   --warn-bg: #3a3018;
   --warn-line: #8a6d25;
   --error: #ff8a80;
+  --error-bg: #3b2220;
   --plain-cube: #a8906c;
+  --swatch-edge: rgb(255 255 255 / 0.4);
   color-scheme: dark;
 }
 
@@ -182,7 +170,7 @@ canvas.pixelated {
 .build-settings .controls { margin-top: 16px; }
 
 @media print {
-  :root, :root[data-theme], :root:not([data-theme='light']) { --bg: #fff; --surface: #fff; --surface-2: #eee; --ink: #111; --ink-soft: #444; --line: #aaa; --accent: #315919; --accent-soft: #eee; --plain-cube: #ddd; color: #111; background: white; color-scheme: light; font-size: 11pt; }
+  :root, :root[data-theme] { --bg: #fff; --surface: #fff; --surface-2: #eee; --ink: #111; --ink-soft: #444; --line: #aaa; --accent: #315919; --accent-soft: #eee; --plain-cube: #ddd; color: #111; background: white; color-scheme: light; font-size: 11pt; }
   .site-header, .site-footer, .fan-notice, .skip-link, .toast-host { display: none !important; }
   #main > .container > :not(.guide-slot) { display: none !important; }
   .guide > :not(.guide-print) { display: none !important; }
@@ -208,15 +196,18 @@ canvas.pixelated {
   transition: transform 0.05s, background 0.15s;
 }
 
-.btn:hover:not(:disabled) {
+.btn:hover:not(:disabled, [aria-disabled='true']) {
   background: var(--surface-2);
 }
 
-.btn:active:not(:disabled) {
+.btn:active:not(:disabled, [aria-disabled='true']) {
   transform: translateY(1px);
 }
 
-.btn:disabled {
+/* aria-disabled keeps a button focusable; use it where the reader's focus is already on the
+   button when it becomes unavailable (guide Back/Next), so focus isn't thrown to the page top. */
+.btn:disabled,
+.btn[aria-disabled='true'] {
   opacity: 0.45;
   cursor: not-allowed;
 }
@@ -227,7 +218,7 @@ canvas.pixelated {
   color: var(--accent-ink);
 }
 
-.btn.primary:hover:not(:disabled) {
+.btn.primary:hover:not(:disabled, [aria-disabled='true']) {
   background: var(--accent);
   filter: brightness(1.08);
 }
@@ -340,6 +331,7 @@ summary:focus-visible,
   color: var(--error);
 }
 
+/* Errors get their own color so they never look like the yellow tips and notices around them. */
 .error-box {
   display: flex;
   flex-wrap: wrap;
@@ -347,7 +339,12 @@ summary:focus-visible,
   justify-content: space-between;
   gap: 10px;
   border-color: var(--error);
+  background: var(--error-bg);
   margin-bottom: 16px;
+}
+
+.error-box > p {
+  margin: 0;
 }
 
 /* "← All items" style links at the top of guide pages. */
@@ -479,7 +476,7 @@ p {
   width: 1.1em;
   height: 1.1em;
   border-radius: 3px;
-  border: 1px solid rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--swatch-edge);
   vertical-align: -0.2em;
   flex: none;
 }

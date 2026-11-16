@@ -57,7 +57,8 @@ const textRows = computed(() => {
        which is what kept Next on screen. -->
   <div class="map-head">
     <h3>Placement map</h3>
-    <button class="btn map-zoom" :aria-pressed="enlarged" @click="enlarged = !enlarged">{{ enlarged ? 'Fit map' : 'Enlarge map' }}</button>
+    <!-- One fixed label plus the pressed state; a label that also flipped was read as "Fit map, pressed". -->
+    <button type="button" class="btn map-zoom" :aria-pressed="enlarged" @click="enlarged = !enlarged">Enlarge map</button>
   </div>
   <p v-if="enlarged" class="zoom-hint muted">Scroll across and down to see the whole map.</p>
   <figure class="step-grid">
@@ -179,6 +180,7 @@ figcaption {
 .map-head h3 { font: 700 .95rem/1.4 var(--sans); margin: 0; }
 .grid-key { font-size: .8rem; }
 .map-zoom { font-size: .85rem; padding: 0.45em 0.9em; }
+.map-zoom[aria-pressed='true'] { background: var(--pressed-bg); border-color: var(--pressed-bg); color: var(--pressed-ink); }
 .map-window { width: 100%; display: grid; justify-items: center; }
 .map-window.enlarged { display: block; max-height: 360px; overflow: auto; }
 .zoom-hint { font-size: .85rem; }

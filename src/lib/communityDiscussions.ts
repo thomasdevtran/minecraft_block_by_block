@@ -53,7 +53,7 @@ function pageOf<T>(rows: T[]) {
 }
 
 export async function listCommunityTopics(category: CommunityCategory | '', page = 0) {
-  let query = requireSupabase().from('community_topics').select(TOPIC_FIELDS)
+  let query = (await requireSupabase()).from('community_topics').select(TOPIC_FIELDS)
   if (category) query = query.eq('category', category)
   const start = page * PAGE_SIZE
   const { data, error } = await query.order('created_at', { ascending: false }).order('id', { ascending: false })
@@ -64,7 +64,7 @@ export async function listCommunityTopics(category: CommunityCategory | '', page
 
 export async function loadCommunityTopic(id: string): Promise<CommunityTopic | null> {
   if (!UUID.test(id)) return null
-  const { data, error } = await requireSupabase().from('community_topics').select(`${TOPIC_FIELDS},body,locked`)
+  const { data, error } = await (await requireSupabase()).from('community_topics').select(`${TOPIC_FIELDS},body,locked`)
     .eq('id', id).maybeSingle().overrideTypes<CommunityTopic, { merge: false }>()
   if (error) throw readError(error.code)
   return data
@@ -73,7 +73,7 @@ export async function loadCommunityTopic(id: string): Promise<CommunityTopic | n
 export async function listCommunityReplies(id: string, page = 0) {
   if (!UUID.test(id)) return pageOf<CommunityReply>([])
   const start = page * PAGE_SIZE
-  const { data, error } = await requireSupabase().from('community_replies')
+  const { data, error } = await (await requireSupabase()).from('community_replies')
     .select('id,body,created_at,author:community_profiles(username)').eq('topic_id', id)
     .order('created_at', { ascending: false }).order('id', { ascending: false })
     .range(start, start + PAGE_SIZE).overrideTypes<CommunityReply[], { merge: false }>()
@@ -91,9 +91,10 @@ async function publish(rpc: 'create_community_topic' | 'create_community_reply',
   const account = user.value
   if (!account) throw new Error('Sign in to post in Community.')
   if (!account.email_confirmed_at) throw new Error('Confirm your email before posting.')
-  const { data, error } = await requireSupabase().rpc(rpc, { ...fields, expected_user_id: account.id })
+  const { data, error } = await (await requireSupabase()).rpc(rpc, { ...fields, expected_user_id: account.id })
   if (user.value?.id !== account.id) throw new Error('Your sign-in changed. Please try again.')
   if (error?.code === 'PT403') throw new Error('Choose a community username before posting.')
+  if (error?.code === 'PT412') throw new Error('Answer the question on your Account page before posting.')
   if (error?.code === 'PT409') throw new Error('This topic is closed or unavailable.')
   if (error?.code === 'PT429') throw new Error(postingLimits.has(error.message) ? error.message : 'You’ve reached a posting limit. Try again later.')
   if (error?.code === '42501') throw new Error('Sign in with a confirmed email before posting.')

@@ -38,11 +38,12 @@ const reportLimits = new Set(['Wait 10 seconds between reports.', 'You can submi
 async function accountRpc(name: string, args: Record<string, unknown>) {
   const account = user.value
   if (!account?.email_confirmed_at) throw new Error('Sign in with a confirmed email to continue.')
-  const { data, error } = await requireSupabase().rpc(name, { ...args, expected_user_id: account.id })
+  const { data, error } = await (await requireSupabase()).rpc(name, { ...args, expected_user_id: account.id })
   if (user.value?.id !== account.id) throw new Error('Your sign-in changed. Please try again.')
   if (error?.code === 'PGRST202' || error?.code === '42883') throw new Error('Reporting and moderation are not available yet. Please check back later.')
   if (error?.code === '42501') throw new Error('You do not have permission to do this. Check your sign-in and refresh the page.')
   if (error?.code === 'PT404') throw new Error('This content is no longer available.')
+  if (error?.code === 'PT412') throw new Error('Answer the question on your Account page first.')
   if (error?.code === 'PT409') throw new Error('This report or content changed. Refresh the queue before reviewing it.')
   if (error?.code === 'PT429') throw new Error(reportLimits.has(error.message) ? error.message : 'You’ve reached a reporting limit. Try again later.')
   if (error) throw new Error('Could not complete this action. Please try again.')

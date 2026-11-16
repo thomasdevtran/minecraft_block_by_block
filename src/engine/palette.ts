@@ -70,6 +70,9 @@ const COLOR_NAMES: [string, string][] = [
   ['Forest Green', '#123d14'], ['Espresso', '#2b1b10'], ['Dark Olive', '#3b4a1a'], ['Midnight Blue', '#141a3d'],
   ['Dark Purple', '#3a1a4d'], ['Dark Teal', '#0f3d3b'], ['Burgundy', '#4a0f1a'], ['Slate', '#4b5a6b'],
   ['Khaki', '#948150'], ['Off White', '#d6d8cc'],
+  // Blue-greens: without these, diamond's pale cyan was named "Off White" and its darkest shade
+  // "Espresso", which sends a builder to the wrong paint.
+  ['Turquoise', '#2fd6bd'], ['Pale Aqua', '#b4fbf0'], ['Mint', '#9be8b5'], ['Deep Teal', '#0a2a25'],
 ]
 const NAMED_LABS = COLOR_NAMES.map(([name, hex]) => [name, hexToOklab(hex)] as const)
 

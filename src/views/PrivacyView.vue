@@ -35,7 +35,7 @@ function eraseBuilds() {
     <p>The site uses local storage to remember the features you use: paint and build settings, your place in a guide, your texture choice, and your last skin image and its username or file label. Your appearance choice is also saved. The application does not set cookies.</p>
     <p>These records stay until you clear them or your browser removes them. Someone using the same browser profile could see them. Uploaded skins are processed on your device. Choosing “Save to My Builds” while signed in uploads the selected skin and saves the build settings and current step to your private account library.</p>
     <h2>Accounts and My Builds</h2>
-    <p>Supabase provides account sign-in, the saved-build database, and private skin storage. Creating an account sends your email and authentication information to Supabase. A session is stored in this browser to keep you signed in. Signing out on this device removes that session and clears the active skin opened from your private library.</p>
+    <p>Supabase provides account sign-in, the saved-build database, and private skin storage. Creating an account sends your email and authentication information to Supabase. Account sign-up also asks for your birth month and year: they are used once to check that you are 13 or older and are not stored, only the result is. A session is stored in this browser to keep you signed in. Signing out on this device removes that session and clears the active skin opened from your private library.</p>
     <p>Your library stores build names, item references, settings, material counts, the step you explicitly save, and uploaded skins for saved skin builds. Sign in on another device to open these builds. Clearing browser build data below affects local records. Contact us to request deletion of your account and cloud records.</p>
     <div class="card data-controls">
       <strong>Manage saved builds</strong>
@@ -70,7 +70,7 @@ function eraseBuilds() {
     <p><a href="https://ko-fi.com/home/privacy" target="_blank" rel="noopener noreferrer">Ko-fi privacy policy</a> · <a href="https://www.paypal.com/us/legalhub/paypal/privacy-full" target="_blank" rel="noopener noreferrer">PayPal privacy statement</a></p>
 
     <h2>Children and families</h2>
-    <p>Children should use the craft guides with an adult, who can manage any saved builds and account information. A parent or guardian can contact us about information a child may have provided. Visit counting is limited to aggregate service measurement and is not used to contact or profile children.</p>
+    <p>The build guides need no account and work for everyone. Accounts, saved cloud builds and Community are not offered to children under 13: anyone who gives a birth date under 13 at sign-up is not given an account, and nothing they entered is sent to us. Children should use the craft guides with an adult. A parent or guardian can contact us about information a child may have provided, and we will delete it. Visit counting is limited to aggregate service measurement and is not used to contact or profile children.</p>
 
     <h2 id="rights">Your rights and choices</h2>
     <p>We do not sell personal information or share it for cross-context behavioral advertising. Depending on your location and the laws that apply, you may have rights to access, correct, delete or receive personal information, restrict or object to processing, withdraw consent, or complain to a privacy regulator. We do not deny access to guides for exercising privacy choices.</p>

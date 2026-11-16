@@ -457,7 +457,8 @@ async function addRose(items: CatalogItem[]): Promise<void> {
     flower: { pottable: true },
     note: `Removed from the game in 1.7.2, when the Poppy replaced it. Texture from Minecraft ${ROSE.version}.`,
   })
-  items.sort((a, b) => a.id.localeCompare(b.id))
+  // By the name readers see, so "Raw Beef" files under R rather than beside "Bee Nest" (id beef).
+  items.sort((a, b) => a.name.localeCompare(b.name, 'en') || a.id.localeCompare(b.id))
 }
 
 function tintColor(tint: Json | undefined): number | null {

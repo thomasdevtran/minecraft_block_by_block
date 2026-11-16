@@ -179,12 +179,9 @@ async function shareBuild() {
   }
 }
 
+// Ctrl/Cmd+P is left to the browser: beforeprint renders the full guide, and Vue's update runs as
+// a microtask straight after that event, before the browser lays out the printed pages.
 function onKey(e: KeyboardEvent) {
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p') {
-    e.preventDefault()
-    void printGuide()
-    return
-  }
   if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return
   if (e.target instanceof HTMLElement && (e.target.isContentEditable || e.target.closest('input, select, textarea, button, a, summary, [tabindex]:not([tabindex="-1"])'))) return
   if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
@@ -332,8 +329,8 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
         </div>
 
         <div class="nav desktop-nav">
-          <button class="btn" :disabled="index === 0" @click="go(-1)">← Back</button>
-          <button class="btn primary" :disabled="index === total - 1" @click="go(1)">
+          <button type="button" class="btn" :aria-disabled="index === 0" @click="go(-1)">← Back</button>
+          <button type="button" class="btn primary" :aria-disabled="index === total - 1" @click="go(1)">
             {{ index === 0 ? 'Start painting' : 'Next step' }} →
           </button>
         </div>
@@ -360,10 +357,12 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
       </div>
     </div>
     <nav class="mobile-nav" aria-label="Step navigation">
-      <button class="btn" :disabled="index === 0" @click="go(-1)">← Back</button>
+      <!-- aria-disabled rather than disabled: a disabled button drops keyboard focus to the top of
+           the page, and on phones focus stays on these buttons after each step change. -->
+      <button type="button" class="btn" :aria-disabled="index === 0" @click="go(-1)">← Back</button>
       <span aria-hidden="true">{{ index }} / {{ total - 1 }}</span>
       <span class="visually-hidden">{{ position }}</span>
-      <button class="btn primary" :disabled="index === total - 1" @click="go(1)">{{ index === 0 ? 'Start' : 'Next' }} →</button>
+      <button type="button" class="btn primary" :aria-disabled="index === total - 1" @click="go(1)">{{ index === 0 ? 'Start' : 'Next' }} →</button>
     </nav>
     <p class="visually-hidden" aria-live="polite">{{ announcement }}</p>
     <GuidePrint v-if="printing" :title="title" :model="model" :guide="guide" />

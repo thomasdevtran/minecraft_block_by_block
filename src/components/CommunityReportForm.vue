@@ -52,7 +52,7 @@ async function submit() {
         <label>Details (optional)<textarea v-model="details" rows="3" maxlength="1000" /></label>
         <button class="btn" type="submit">{{ busy ? 'Sending…' : 'Send report' }}</button>
       </fieldset>
-      <p v-if="error" class="notice" role="alert">{{ error }}</p>
+      <p v-if="error" class="notice error-box" role="alert">{{ error }}</p>
     </form>
   </details>
 </template>

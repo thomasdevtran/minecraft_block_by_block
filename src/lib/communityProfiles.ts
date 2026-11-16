@@ -32,7 +32,7 @@ function checkAccount(accountId: string): void {
 async function communityAccount() {
   const expectedAccountId = signedInUser.value?.id
   if (!expectedAccountId) throw new Error('Sign in to manage your community username.')
-  const client = requireSupabase()
+  const client = await requireSupabase()
   const { data: { user }, error } = await client.auth.getUser()
   if (error || !user) throw new Error('Sign in to manage your community username.')
   checkAccount(expectedAccountId)
@@ -62,6 +62,7 @@ export async function saveMyCommunityUsername(value: string): Promise<CommunityP
   }).single()
   checkAccount(account.id)
   if (error?.code === '23505') throw new Error('That username is already taken. Choose another one.')
+  if (error?.code === 'PT412') throw new Error('Answer the question on your Account page before choosing a username.')
   if (error?.code === '42501') throw new Error('Sign in with a confirmed email before choosing a community username.')
   if (error?.code === 'PGRST202' || error?.code === '42883') {
     throw new Error('Community usernames are not available yet. Please check back later.')

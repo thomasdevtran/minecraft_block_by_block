@@ -15,6 +15,14 @@
     <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#fffdf8" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#24211d" media="(prefers-color-scheme: dark)" />
+    <script>(function () {
+        // Sets the theme before the first paint, so a saved Dark choice never flashes light.
+        // App.vue takes over once it loads. Its hash is allowed in vercel.json's CSP.
+        var theme = 'system'
+        try { theme = JSON.parse(localStorage.getItem('appearance:theme')) || theme } catch (e) {}
+        if (theme !== 'light' && theme !== 'dark') theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        document.documentElement.dataset.theme = theme
+      })()</script>
 
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Block by Cube" />

@@ -57,7 +57,7 @@ async function digest(value: string | ArrayBuffer) {
 }
 
 export async function saveBuild(input: BuildToSave, previous: SavedBuild | null): Promise<SavedBuild> {
-  const client = requireSupabase()
+  const client = await requireSupabase()
   const { data: { user }, error: authFailure } = await client.auth.getUser()
   if (authFailure || !user) throw new Error('Sign in to save this build.')
   const title = input.title.trim()
@@ -95,6 +95,8 @@ export async function saveBuild(input: BuildToSave, previous: SavedBuild | null)
     if (existing.error) throw existing.error
     return existing.data as SavedBuild
   }
+  // A restrictive policy turns away accounts that haven't answered the age question.
+  if (error?.code === '42501') throw new Error('Answer the question on your Account page before saving builds.')
   if (error?.code === '23514' && error.message === 'Your library can store up to 100 builds.') {
     throw new Error(error.message)
   }
@@ -110,7 +112,7 @@ export async function openBuild(build: SavedBuild): Promise<{ path: string; upda
   let skin: LoadedSkin | null = null
   if (build.kind === 'skin') {
     if (!build.image_path || !build.skin_model) throw new Error('The saved skin is incomplete.')
-    const { data, error } = await requireSupabase().storage.from('build-skins').download(build.image_path)
+    const { data, error } = await (await requireSupabase()).storage.from('build-skins').download(build.image_path)
     if (error) throw error
     if (signedInUser.value?.id !== build.user_id) throw new Error('Your sign-in changed. Open My Builds again.')
     const image = await readSkinPng(data)
@@ -121,4 +123,14 @@ export async function openBuild(build: SavedBuild): Promise<{ path: string; upda
   if (skin) setSkin(skin)
   writeStored(`progress:${build.guide_key}`, updated ? 0 : build.current_step)
   return { path: build.resume_path, updated }
+}
+
+/**
+ * Removes a build from the signed-in account's library. Only the database row goes: a skin image
+ * may be shared by several saved builds, and storage has no delete policy yet.
+ */
+export async function deleteBuild(build: SavedBuild): Promise<void> {
+  if (signedInUser.value?.id !== build.user_id) throw new Error('Sign in to manage your saved builds.')
+  const { error } = await (await requireSupabase()).from('saved_builds').delete().eq('id', build.id)
+  if (error) throw error
 }

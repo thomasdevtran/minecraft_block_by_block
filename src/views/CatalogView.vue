@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRoute, useRouter } from 'vue-router'
 import AdSlot from '../components/AdSlot.vue'
 import BlockIcon from '../components/BlockIcon.vue'
 import BuildDemo from '../components/BuildDemo.vue'
@@ -10,13 +10,10 @@ import { showcasePhoto, starterBuilds, starterPaintLimit } from '../lib/site'
 import { currentSkin } from '../lib/skinStore'
 import { hashString, readRecentBuild } from '../lib/storage'
 import { blockUrl, catalogSearchText, loadCatalog, matchesCatalogSearch, textureUrl, type Catalog, type CatalogItem, type Category } from '../lib/catalog'
-import { look as sharedLook } from '../lib/buildSettings'
+import { LOOK_OPTIONS, look } from '../lib/buildSettings'
 
-const look = computed({ get: () => sharedLook.value, set: (v) => (sharedLook.value = v) })
-const LOOKS = [
-  { value: 'current' as const, label: 'New textures', hint: '' },
-  { value: 'classic' as const, label: 'Old textures', hint: '' },
-]
+const route = useRoute()
+const router = useRouter()
 
 /** `search` is folded in once at load so filtering doesn't lowercase 2,210 strings per keystroke. */
 type ListItem = CatalogItem & { search: string }
@@ -27,16 +24,56 @@ const version = ref('')
 const classicVersion = ref('')
 const error = ref('')
 const loading = ref(true)
-const query = ref('')
-const TABS: { value: Category | 'all'; label: string; hint: string }[] = [
-  { value: 'all', label: 'All', hint: '' },
-  { value: 'block', label: 'Blocks', hint: '' },
-  { value: 'plant', label: 'Plants', hint: '' },
-  { value: 'item', label: 'Items', hint: '' },
+const TABS: { value: Category | 'all'; label: string }[] = [
+  { value: 'all', label: 'All' },
+  { value: 'block', label: 'Blocks' },
+  { value: 'plant', label: 'Plants' },
+  { value: 'item', label: 'Items' },
 ]
-const category = ref<Category | 'all'>('all')
+
+/**
+ * The search and filters live in the URL (?q=sword&kind=item&type=Combat), so Back from a guide,
+ * a refresh or a shared link reopens the same list instead of the whole catalog.
+ */
+function filtersFromUrl() {
+  const text = (key: string) => (typeof route.query[key] === 'string' ? (route.query[key] as string) : '')
+  const kind = text('kind') as Category | 'all'
+  const valid = TABS.some((tab) => tab.value === kind)
+  return { q: text('q'), kind: valid ? kind : 'all', type: valid && kind !== 'all' ? text('type') || null : null }
+}
+const initial = filtersFromUrl()
+const query = ref(initial.q)
+const category = ref<Category | 'all'>(initial.kind)
 /** Selected sub-group (Flowers, Ores…), or null for the whole tab. */
-const group = ref<string | null>(null)
+const group = ref<string | null>(initial.type)
+
+let urlTimer: ReturnType<typeof setTimeout> | undefined
+watch([query, category, group], () => {
+  clearTimeout(urlTimer)
+  // Typing updates the address once per pause rather than on every key.
+  urlTimer = setTimeout(() => {
+    if (route.name !== 'catalog') return
+    const next = {
+      ...route.query,
+      q: query.value.trim() || undefined,
+      kind: category.value === 'all' ? undefined : category.value,
+      type: group.value ?? undefined,
+    }
+    const same = (['q', 'kind', 'type'] as const).every((key) => (route.query[key] ?? undefined) === next[key])
+    if (!same) void router.replace({ query: next, hash: route.hash })
+  }, 300)
+})
+/** The other direction: the header's Items link (a plain "/") clears the filters. */
+watch(() => route.query, () => {
+  if (route.name !== 'catalog') return
+  const wanted = filtersFromUrl()
+  if (wanted.q === query.value.trim() && wanted.kind === category.value && wanted.type === group.value) return
+  clearTimeout(urlTimer)
+  query.value = wanted.q
+  category.value = wanted.kind
+  group.value = wanted.type
+})
+onBeforeUnmount(() => clearTimeout(urlTimer))
 
 function selectCategory(value: Category | 'all') {
   category.value = value
@@ -133,10 +170,17 @@ const filtered = computed(() => {
  * more importantly, means an unrendered tile has no image to fetch at all.
  */
 const PAGE = 60
-const shown = ref(PAGE)
+/**
+ * How far "Show more" had got is kept in this history entry rather than the URL, so returning with
+ * Back reopens the same rows and the browser can restore the scroll position into them.
+ */
+const savedShown = Number((history.state as { catalogShown?: unknown } | null)?.catalogShown)
+const shown = ref(Number.isInteger(savedShown) && savedShown > PAGE ? savedShown : PAGE)
 const visible = computed(() => filtered.value.slice(0, shown.value))
 const hasMore = computed(() => shown.value < filtered.value.length)
-watch(filtered, () => (shown.value = PAGE))
+// Reset on a new search or filter only; the catalog arriving must not undo a restored count.
+watch([() => query.value.trim(), category, group], () => (shown.value = PAGE))
+watch(shown, (count) => history.replaceState({ ...history.state, catalogShown: count }, ''))
 const showMore = () => (shown.value += PAGE)
 
 // Keep a deliberate page boundary: automatic endless loading makes the footer hard to reach.
@@ -183,16 +227,17 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
         <p class="hero-note muted">Free build guides · No account needed · Unofficial fan project</p>
       </div>
       <div class="craft-showcase">
-        <CraftPhoto :src="showcasePhoto" alt="Handmade Minecraft cube crafts" />
+        <CraftPhoto :photo="showcasePhoto" alt="Handmade Minecraft cube crafts" sizes="(max-width: 760px) calc(100vw - 32px), 460px" priority />
       </div>
     </section>
 
-    <BuildDemo v-if="featured.length" :items="featured" :look="look" />
-
+    <!-- Straight under the hero: a returning builder's next step shouldn't sit below the demo. -->
     <section v-if="resumable" class="resume-build card" aria-labelledby="resume-title">
       <div><p class="eyebrow">Your crafting table</p><h2 id="resume-title">{{ resumable.title }}</h2><p class="muted">Last opened at step {{ resumable.step }} of {{ resumable.total }} · saved on this device</p></div>
       <RouterLink :to="resumable.path" class="btn primary">Continue your build →</RouterLink>
     </section>
+
+    <BuildDemo v-if="featured.length" :items="featured" :look="look" />
 
     <section v-if="starters.length" id="first-build" class="first-build" aria-labelledby="first-build-title">
       <p class="eyebrow">Start small. Make something you love.</p>
@@ -200,7 +245,7 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
       <p class="muted">Start with a rose, emerald or red tulip. Each is a flat build with one color per cube and a smaller paint palette.</p>
       <div class="starter-grid">
         <RouterLink v-for="starter in starters" :key="starter.id" :to="`/item/${starter.id}?view=2d&look=current&paints=${starterPaintLimit}`" class="starter card">
-          <CraftPhoto :src="starter.photo" :alt="`Handmade ${starter.item.name}`" />
+          <CraftPhoto :photo="starter.photo" :alt="`Handmade ${starter.item.name}`" sizes="(max-width: 640px) 110px, 370px" />
           <div class="starter-body">
             <img :src="textureUrl(starter.item, 'current')" :alt="`${starter.item.name} game texture reference`" width="40" height="40" class="pixelated" />
             <h3>{{ starter.item.name }}</h3>
@@ -218,7 +263,7 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
         <div class="toolbar-top">
           <h2 id="catalog-heading">Find your next build</h2>
           <input v-model="query" type="search" :placeholder="`Search ${items.length ? items.length.toLocaleString() : ''} items…`" aria-label="Search items" />
-          <ViewToggle v-model="look" :options="LOOKS" label="Textures" compact :title="`Old textures come from Minecraft ${classicVersion}`" />
+          <ViewToggle v-model="look" :options="LOOK_OPTIONS" label="Textures" compact :title="`Old textures come from Minecraft ${classicVersion}`" />
         </div>
         <div class="filters">
           <ViewToggle :model-value="category" :options="TABS" label="Filter by kind" compact @update:model-value="selectCategory" />
@@ -324,7 +369,6 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
   padding: 16px 0 0;
 }
 
-.eyebrow { font-size: 0.8rem; font-weight: 700; color: var(--accent); letter-spacing: 0.05em; margin-bottom: 16px; }
 .hero-note { font-size: 0.82rem; margin: 16px 0 0; }
 .results { font-size: 0.85rem; margin: 0 0 4px; min-height: 1.5em; }
 .legend { display: flex; align-items: center; gap: 6px; font-size: 0.85rem; margin: 0 0 16px; }
@@ -420,9 +464,9 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
   color: var(--pressed-ink);
 }
 
+/* Lighter weight, not lower opacity: at 70% opacity the count on a pressed chip fell to 3.6:1. */
 .chip .count {
-  font-weight: 500;
-  opacity: 0.7;
+  font-weight: 400;
   margin-left: 0.2em;
 }
 
@@ -492,11 +536,8 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
   font-size: 0.88rem;
   text-align: center;
   height: 100%;
-  transition: border-color 0.1s;
-}
-
-.tile {
   position: relative;
+  transition: border-color 0.1s;
 }
 
 /* Quiet marker: hundreds of tiles carry it, so it must not compete with the item picture. A

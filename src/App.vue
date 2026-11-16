@@ -14,9 +14,21 @@ const menuButton = ref<HTMLButtonElement>()
 const year = new Date().getFullYear()
 const savedTheme = readStored('appearance:theme', 'system')
 const theme = ref(['system', 'light', 'dark'].includes(savedTheme) ? savedTheme : 'system')
+/**
+ * <html data-theme> always holds the theme in use: "Use device setting" is resolved here (and by
+ * the matching script in index.html before the first paint), and follows the device if it changes.
+ * The browser bar color follows the same choice.
+ */
+const prefersDark = window.matchMedia('(prefers-color-scheme: dark)')
+function applyTheme() {
+  const resolved = theme.value === 'system' ? (prefersDark.matches ? 'dark' : 'light') : theme.value
+  document.documentElement.dataset.theme = resolved
+  for (const meta of document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]')) {
+    meta.content = resolved === 'dark' ? '#24211d' : '#fffdf8'
+  }
+}
 watch(theme, (value) => {
-  if (value === 'system') delete document.documentElement.dataset.theme
-  else document.documentElement.dataset.theme = value
+  applyTheme()
   writeStored('appearance:theme', value)
 }, { immediate: true })
 
@@ -66,8 +78,14 @@ function closeMenu() {
   menuOpen.value = false
   menuButton.value?.focus()
 }
-onMounted(() => window.addEventListener('keydown', onKey))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
+onMounted(() => {
+  window.addEventListener('keydown', onKey)
+  prefersDark.addEventListener('change', applyTheme)
+})
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', onKey)
+  prefersDark.removeEventListener('change', applyTheme)
+})
 
 async function copyDiscord() {
   try {
@@ -111,9 +129,9 @@ async function copyDiscord() {
         <RouterLink to="/support" class="nav-link" :aria-current="current('support')">Support</RouterLink>
       </nav>
     </div>
+    <!-- Inside the banner landmark, so screen-reader users navigating by region don't skip it. -->
+    <p class="fan-notice">Independent fan project. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</p>
   </header>
-
-  <p class="fan-notice">Independent fan project. Not an official Minecraft product. Not approved by or associated with Mojang or Microsoft.</p>
 
   <main id="main" tabindex="-1">
     <RouterView v-slot="{ Component }">
@@ -162,7 +180,7 @@ async function copyDiscord() {
 <style scoped>
 .theme-control { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; color: var(--ink-soft); font-size: 0.9rem; }
 .theme-control select { max-width: 100%; }
-.fan-notice { margin: 0; padding: 9px 16px; text-align: center; font-size: 0.8rem; color: var(--ink-soft); border-bottom: 1px solid var(--line); }
+.fan-notice { margin: 0; padding: 9px 16px; text-align: center; font-size: 0.8rem; color: var(--ink-soft); border-top: 1px solid var(--line); background: var(--bg); }
 .skip-link {
   position: absolute;
   left: 8px;
@@ -186,7 +204,9 @@ async function copyDiscord() {
   z-index: 50;
 }
 
+/* The mobile menu hangs from the bar, over the fan notice below it. */
 .bar {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -205,6 +225,7 @@ async function copyDiscord() {
   line-height: 1.2;
   min-height: 44px;
   min-width: 0;
+  white-space: nowrap;
 }
 
 .site-header nav {
@@ -216,6 +237,7 @@ async function copyDiscord() {
 .nav-link {
   display: flex;
   align-items: center;
+  white-space: nowrap;
   min-height: 40px;
   padding: 0.4rem 0.8rem;
   border-radius: 8px;
@@ -253,7 +275,9 @@ async function copyDiscord() {
   fill: none;
 }
 
-@media (max-width: 720px) {
+/* Six links and the brand need about 860px on one line; below that the menu button takes over,
+   rather than letting "My Builds" and "Sign in" break onto two lines each. */
+@media (max-width: 900px) {
   .brand {
     font-size: 1.15rem;
   }

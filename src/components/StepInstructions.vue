@@ -105,7 +105,7 @@ h3 { font: 700 .95rem/1.4 var(--sans); margin-bottom: 8px; }
 }
 .chip-count { font-weight: 700; font-variant-numeric: tabular-nums; }
 /* The faint inset edge keeps white and very light paints visible against the card. */
-.chip-swatch { width: 16px; height: 16px; border-radius: 3px; box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.25); }
+.chip-swatch { width: 16px; height: 16px; border-radius: 3px; box-shadow: inset 0 0 0 1px var(--swatch-edge); }
 .gather-names { font-size: .9rem; }
 .gather-names[open] { flex-basis: 100%; }
 .gather-names summary { cursor: pointer; min-height: 44px; padding: 10px 0; color: var(--accent); font-weight: 600; }

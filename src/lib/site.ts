@@ -26,19 +26,25 @@ export const SITE = {
   },
 
   /** Shown as "last updated" on the legal pages. */
-  legalUpdated: '7 November 2026',
+  legalUpdated: '15 November 2026',
 }
 
 /**
- * Homepage starter projects. Put photos in public/crafts/ and point `photo` (and `showcasePhoto`)
- * at them; an empty path keeps the labeled placeholder. Use landscape crops.
+ * A craft photo: a landscape (16:10) JPEG in public/crafts/, plus optional smaller WebP copies
+ * beside it named `<name>-<width>.webp` (rose.jpg → rose-480.webp, rose-960.webp, rose-1440.webp).
+ * List the widths you made in `webp`; browsers then download the smallest copy that fills the
+ * space, about a tenth of the JPEG's size. Without `webp` only the JPEG is used.
  */
-export const starterBuilds = [
-  { id: 'rose', note: 'Bring a classic Minecraft flower to life.', photo: '/crafts/rose.jpg' },
-  { id: 'emerald', note: 'Make a little treasure, one row at a time.', photo: '/crafts/emerald.jpg' },
-  { id: 'red_tulip', note: 'Add a splash of red to your craft collection.', photo: '/crafts/red-tulip.jpg' },
+export interface Photo { jpg: string; webp?: number[] }
+const WEBP_WIDTHS = [480, 960, 1440]
+
+/** Homepage starter projects. Leave `photo` out to show the labeled placeholder. */
+export const starterBuilds: { id: string; note: string; photo?: Photo }[] = [
+  { id: 'rose', note: 'Bring a classic Minecraft flower to life.', photo: { jpg: '/crafts/rose.jpg', webp: WEBP_WIDTHS } },
+  { id: 'emerald', note: 'Make a little treasure, one row at a time.', photo: { jpg: '/crafts/emerald.jpg', webp: WEBP_WIDTHS } },
+  { id: 'red_tulip', note: 'Add a splash of red to your craft collection.', photo: { jpg: '/crafts/red-tulip.jpg', webp: WEBP_WIDTHS } },
 ]
-export const showcasePhoto = '/crafts/showcase.jpg'
+export const showcasePhoto: Photo = { jpg: '/crafts/showcase.jpg', webp: WEBP_WIDTHS }
 /** Starter links open with this many paints, and the homepage counts use it too. */
 export const starterPaintLimit = 8
 

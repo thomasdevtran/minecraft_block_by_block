@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { authReady, user } from '../lib/auth'
+import { ageCheck, authReady, user } from '../lib/auth'
 import { COMMUNITY_CATEGORIES, createCommunityReply, createCommunityTopic, type CommunityCategory } from '../lib/communityDiscussions'
 import { loadMyCommunityProfile } from '../lib/communityProfiles'
 
@@ -71,7 +71,9 @@ async function submit() {
   <p v-if="!authReady || checkingProfile" role="status">Checking your account…</p>
   <p v-else-if="!user" class="notice"><RouterLink :to="accountLink">Sign in</RouterLink> to {{ topicId ? 'reply' : 'start a topic' }}.</p>
   <p v-else-if="!user.email_confirmed_at" class="notice">Confirm your email before posting.</p>
-  <div v-else-if="profileError" class="notice">
+  <p v-else-if="ageCheck === 'needed'" class="notice">Answer one quick question on your <RouterLink :to="accountLink">Account page</RouterLink> before posting.</p>
+  <p v-else-if="ageCheck === 'failed'" class="notice">This account can’t post in Community. You can still read every discussion.</p>
+  <div v-else-if="profileError" class="notice error-box">
     <p role="alert">{{ profileError }}</p>
     <button class="btn" type="button" @click="loadProfile">Try again</button>
   </div>
@@ -92,7 +94,7 @@ async function submit() {
       </label>
       <button class="btn primary" type="submit">{{ saving ? 'Posting…' : topicId ? 'Post reply' : 'Post topic' }}</button>
     </fieldset>
-    <p v-if="error" class="notice" role="alert">{{ error }}</p>
+    <p v-if="error" class="notice error-box" role="alert">{{ error }}</p>
   </form>
 </template>
 

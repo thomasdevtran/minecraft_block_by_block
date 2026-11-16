@@ -2,7 +2,7 @@
 import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { COMMUNITY_CATEGORIES, communityDate, listCommunityTopics, type CommunityCategory, type TopicSummary } from '../lib/communityDiscussions'
-import { supabase } from '../lib/supabase'
+import { accountsEnabled } from '../lib/supabase'
 import { authReady, user } from '../lib/auth'
 import { isCommunityModerator } from '../lib/communityModeration'
 import { usePageFocus } from '../lib/dom'
@@ -28,7 +28,7 @@ watch([authReady, () => user.value?.id], async (_value, _old, onCleanup) => {
   let current = true
   onCleanup(() => { current = false })
   moderator.value = false
-  if (!supabase || !authReady.value || !user.value) return
+  if (!accountsEnabled || !authReady.value || !user.value) return
   try {
     const allowed = await isCommunityModerator()
     if (current) moderator.value = allowed
@@ -36,7 +36,7 @@ watch([authReady, () => user.value?.id], async (_value, _old, onCleanup) => {
 }, { immediate: true })
 
 watch([category, page, retry], async ([filter, currentPage], _previous, onCleanup) => {
-  if (!supabase) return
+  if (!accountsEnabled) return
   let current = true
   onCleanup(() => { current = false })
   loading.value = true
@@ -65,7 +65,7 @@ watch([category, page, retry], async ([filter, currentPage], _previous, onCleanu
     <h1>Community</h1>
     <p>Ask for build help, show what you made, or suggest the next guide.</p>
     <p v-if="moderator"><RouterLink to="/community/moderation">Review reports</RouterLink></p>
-    <p v-if="!supabase" class="notice">Discussions are not available yet. Please check back later.</p>
+    <p v-if="!accountsEnabled" class="notice">Discussions are not available yet. Please check back later.</p>
     <div v-else class="board-tools">
       <label>Category
         <select v-model="category" @change="page = 0">
@@ -76,11 +76,11 @@ watch([category, page, retry], async ([filter, currentPage], _previous, onCleanu
       <RouterLink v-if="!loading && !error" class="btn primary" to="/community/new">New topic</RouterLink>
     </div>
     <p v-if="loading" role="status">Loading topics…</p>
-    <div v-else-if="error" ref="errorBox" class="notice">
+    <div v-else-if="error" ref="errorBox" class="notice error-box">
       <p role="alert">{{ error }}</p>
       <button class="btn" type="button" @click="retry++">Try again</button>
     </div>
-    <template v-else-if="supabase">
+    <template v-else-if="accountsEnabled">
       <p v-if="!topics.length" ref="emptyNotice" class="notice">{{ page ? 'No topics on this page.' : 'No topics here yet. Start a conversation with New topic.' }}</p>
       <ul v-else ref="list" class="topic-list" :aria-label="`Discussion topics, page ${page + 1}`">
         <li v-for="topic in topics" :key="topic.id" class="card">

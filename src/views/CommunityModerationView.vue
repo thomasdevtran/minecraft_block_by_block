@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 import { authReady, user } from '../lib/auth'
 import { communityDate } from '../lib/communityDiscussions'
 import { isCommunityModerator, loadCommunityReportQueue, REPORT_REASONS, reviewCommunityReport, type CommunityReport, type ReviewAction } from '../lib/communityModeration'
-import { supabase } from '../lib/supabase'
+import { accountsEnabled } from '../lib/supabase'
 import { usePageFocus } from '../lib/dom'
 
 const filter = ref<'open' | 'reviewed'>('open')
@@ -36,7 +36,7 @@ watch([authReady, () => user.value?.id, () => user.value?.email_confirmed_at, fi
   allowed.value = false
   error.value = ''
   loading.value = false
-  if (!supabase || !authReady.value || !user.value) return
+  if (!accountsEnabled || !authReady.value || !user.value) return
   loading.value = true
   try {
     const moderator = await isCommunityModerator()
@@ -82,11 +82,11 @@ async function review(report: CommunityReport, action: ReviewAction) {
     <RouterLink to="/community" class="back">← Community</RouterLink>
     <h1>Report queue</h1>
     <p>Review reported content. Every decision is recorded for moderators.</p>
-    <p v-if="!supabase" class="notice">Reporting and moderation are not available yet.</p>
+    <p v-if="!accountsEnabled" class="notice">Reporting and moderation are not available yet.</p>
     <p v-else-if="!authReady || loading" role="status">Checking the report queue…</p>
     <p v-else-if="!user" class="notice"><RouterLink to="/account?next=/community/moderation">Sign in</RouterLink> with a moderator account.</p>
     <p v-else-if="!allowed && !error" class="notice">Moderator access required.</p>
-    <div v-if="error" class="notice">
+    <div v-if="error" class="notice error-box">
       <p role="alert">{{ error }}</p>
       <button class="btn" type="button" :disabled="!!busy" @click="retry++">Refresh queue</button>
     </div>

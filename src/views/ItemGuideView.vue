@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, reactive, ref, shallowRef, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import BlockIcon from '../components/BlockIcon.vue'
 import GuideViewer from '../components/GuideViewer.vue'
 import PaintControls from '../components/PaintControls.vue'
@@ -16,11 +16,25 @@ import { assetUrl, blockUrl, loadCatalog, textureUrl, type BuildableItem } from 
 import { setPageMeta } from '../lib/meta'
 import { readStored, writeStored } from '../lib/storage'
 import NotFoundView from './NotFoundView.vue'
-import { flag, look, paintLimit } from '../lib/buildSettings'
+import { flag, look, LOOK_OPTIONS, paintLimit } from '../lib/buildSettings'
 
 const props = defineProps<{ id: string }>()
 const route = useRoute()
 const router = useRouter()
+
+/**
+ * "All items" returns to the list the reader came from, search, filters, rows and scroll intact,
+ * by going back in history. vue-router keeps the previous address in history.state.back.
+ */
+const previous = (history.state as { back?: unknown } | null)?.back
+const fromCatalog = typeof previous === 'string' && /^\/(?:[?#]|$)/.test(previous)
+const catalogHref = fromCatalog ? (previous as string) : '/'
+function backToCatalog(event: MouseEvent) {
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return
+  event.preventDefault()
+  if (fromCatalog) router.back()
+  else void router.push('/')
+}
 
 const item = ref<BuildableItem | null>(null)
 /** Pot textures for today's and the classic look. */
@@ -134,11 +148,6 @@ const retry = () => (item.value ? loadTextures() : loadItem(props.id))
 watch(() => props.id, loadItem, { immediate: true })
 watch([item, activeLook], loadTextures)
 
-const lookModel = computed({ get: () => look.value, set: (v) => (look.value = v) })
-const LOOKS = [
-  { value: 'current' as const, label: 'New textures', hint: '' },
-  { value: 'classic' as const, label: 'Old textures', hint: '' },
-]
 
 const model = computed(() => {
   const sprite = flatPixels.value
@@ -196,7 +205,7 @@ const description = computed(() => {
 <template>
   <NotFoundView v-if="notFound" :message="`There's no item called “${id}” in the catalog. It may have been renamed or removed.`" />
   <div v-else class="container">
-    <RouterLink to="/" class="back muted">← All items</RouterLink>
+    <a :href="catalogHref" class="back muted" @click="backToCatalog">← All items</a>
     <div v-if="error" class="notice error-box" role="alert">
       <span>{{ error }}</span>
       <button class="btn" @click="retry">Try again</button>
@@ -227,8 +236,8 @@ const description = computed(() => {
           <ViewToggle v-if="has3d" v-model="view" :options="VIEWS" />
           <ViewToggle
             v-if="item.classic"
-            v-model="lookModel"
-            :options="LOOKS"
+            v-model="look"
+            :options="LOOK_OPTIONS"
             label="Textures"
             compact
             :title="`Old textures come from Minecraft ${classicVersion}`"
@@ -287,13 +296,10 @@ const description = computed(() => {
 
 .head {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
   align-items: center;
   margin-bottom: 16px;
-}
-
-.head {
-  flex-wrap: wrap;
 }
 
 .icon {

@@ -23,7 +23,11 @@ beforeAll(async () => {
     create role anon nologin;
     create role authenticated nologin;
     create schema auth;
-    create table auth.users (id uuid primary key, email text, email_confirmed_at timestamptz);
+    -- Test accounts answer the age screen as adults unless a test says otherwise.
+    create table auth.users (
+      id uuid primary key, email text, email_confirmed_at timestamptz,
+      raw_user_meta_data jsonb not null default '{"birth_month": 1, "birth_year": 1990}'
+    );
     create function auth.uid() returns uuid language sql stable as $$
       select (nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub')::uuid;
     $$;
@@ -73,20 +77,21 @@ beforeAll(async () => {
   `)
   existingDiscussions = (await db.query(existingDiscussionsSql)).rows
   await db.exec(sqlFile('migrations/202611100002_community_moderation.sql'))
+  await db.exec(sqlFile('migrations/202611150001_age_screen.sql'))
 }, 30_000)
 
 afterAll(async () => { await db?.close() })
 
-describe('community migration with existing library policies', () => {
+describe('account migrations with existing library and community data', () => {
   it('preserves pre-existing build progress, private image records, and bucket settings', async () => {
     expect((await db.query(existingLibrarySql)).rows).toEqual(existingLibrary)
   })
 
-  it('preserves existing topics and replies when adding moderation', async () => {
+  it('preserves existing topics and replies when adding moderation and the age screen', async () => {
     expect((await db.query(existingDiscussionsSql)).rows).toEqual(existingDiscussions)
   })
 
-  it.each(['saved_builds', 'library_limits', 'community_profiles', 'community_discussions', 'community_moderation'])('passes the %s SQL regression checks', async name => {
+  it.each(['saved_builds', 'library_limits', 'community_profiles', 'community_discussions', 'community_moderation', 'age_screen'])('passes the %s SQL regression checks', async name => {
     try {
       const results = await db.exec(sqlFile(`tests/${name}.sql`))
       expect(results.some(result => result.rows.some(row => typeof row.result === 'string' && row.result.includes('passed')))).toBe(true)

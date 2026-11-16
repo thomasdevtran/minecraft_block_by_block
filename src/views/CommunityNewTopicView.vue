@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterLink, useRouter } from 'vue-router'
 import CommunityPostForm from '../components/CommunityPostForm.vue'
-import { supabase } from '../lib/supabase'
+import { accountsEnabled } from '../lib/supabase'
 
 const router = useRouter()
 function openTopic(id: string) {
@@ -14,7 +14,7 @@ function openTopic(id: string) {
     <RouterLink to="/community" class="back">← Community</RouterLink>
     <h1>New topic</h1>
     <p>Pick the category that fits your post. For build help, include the guide name and the step you’re on.</p>
-    <CommunityPostForm v-if="supabase" return-to="/community/new" @posted="openTopic" />
+    <CommunityPostForm v-if="accountsEnabled" return-to="/community/new" @posted="openTopic" />
     <p v-else class="notice">Discussions are not available yet. Please check back later.</p>
   </div>
 </template>

@@ -4,7 +4,7 @@ import { blockToModel } from './block'
 import { checkConnectivity } from './connectivity'
 import { flowerToModel, pottedSprite } from './flower'
 import { itemToModel } from './item'
-import { buildPalette } from './palette'
+import { buildPalette, nearestColorName } from './palette'
 import { fromHex, getPixel, type PixelImage } from './pixels'
 import { faceUv, skinFront, skinToModel, type SkinOptions } from './skin'
 import { buildGuide, recipeCode } from './steps'
@@ -319,5 +319,21 @@ describe('skin assembly alignment', () => {
     expect(roles[model.voxels.findIndex(cube => cube.part === 'rightArm')]).toBe(ROLE.focus)
     expect(roles[model.voxels.findIndex(cube => cube.part === 'body')]).toBe(ROLE.solid)
     expect(roles[model.voxels.findIndex(cube => cube.part === 'head')]).toBe(ROLE.hidden)
+  })
+})
+
+describe('paint names', () => {
+  it('names blue-greens by their hue, not as white or brown', () => {
+    // Shades from the diamond sword, which were once called "Off White" and "Espresso".
+    expect(nearestColorName('#a4fdf0')).toBe('Pale Aqua')
+    expect(nearestColorName('#082520')).toBe('Deep Teal')
+    expect(nearestColorName('#33ebcb')).toBe('Turquoise')
+  })
+
+  it('keeps the established names for common colors', () => {
+    expect(nearestColorName('#ffffff')).toBe('White')
+    expect(nearestColorName('#d6d8cc')).toBe('Off White')
+    expect(nearestColorName('#2b1b10')).toBe('Espresso')
+    expect(nearestColorName('#1f8a86')).toBe('Teal')
   })
 })

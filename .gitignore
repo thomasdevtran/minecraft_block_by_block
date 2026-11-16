@@ -28,3 +28,7 @@ dist-ssr
 
 # Downloaded Minecraft client jars
 scripts/.cache
+
+# Supabase CLI link state (project ref, local caches)
+supabase/.temp
+supabase/.branches

@@ -21,11 +21,43 @@ Accounts use Supabase Auth. The private `saved_builds` table stores item/skin se
 
 Copy `.env.example` to `.env.local` and set the project's URL and publishable key. Set the same `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` in the hosting build environment. These are browser-facing values. The frontend uses row-level access policies for every user's data.
 
-For a new Supabase project, apply `supabase/migrations/202611070001_saved_builds.sql`, then run `supabase/tests/saved_builds.sql` in its SQL editor. The test rolls back its temporary records. Configure Authentication URL settings to allow the local and deployed `/account` callback URLs. Email confirmation and password recovery use these callbacks. Set the project's exact HTTPS origin in `vercel.json`'s `connect-src` when switching projects.
+Apply the database schema with the Supabase CLI (see **Database migrations** below), not by pasting files into the SQL editor. Configure Authentication URL settings to allow the local and deployed `/account` callback URLs. Email confirmation and password recovery use these callbacks. Set the project's exact HTTPS origin in `vercel.json`'s `connect-src` when switching projects.
 
 Saving the same build again updates its place after checking the saved revision. Concurrent changes produce a reload message. Generation changes that alter recipes or steps must bump `GUIDE_ENGINE_VERSION` in `src/lib/savedBuilds.ts`. A mismatched engine or catalog version reopens at Materials.
 
 Apply `supabase/migrations/202611070002_library_limits.sql` after the initial schema, then run `supabase/tests/library_limits.sql`. Initial server-enforced limits are 100 saved builds and 100 private skin images per account, with the bucket's 1 MB file limit. The database serializes quota checks per owner. Duplicate saves and reusing an existing image remain supported at the limit. Contact the operator to remove unused cloud images when necessary.
+
+### Database migrations
+
+`supabase/migrations/` holds every schema change, applied in filename order. The Supabase CLI records which ones the hosted database already has, so each runs exactly once. The `db:*` scripts run the CLI through `npx`; nothing extra is installed.
+
+One-time setup on a computer (it asks for the database password from the dashboard's Database settings):
+
+```sh
+npm run db:link
+```
+
+The first three migrations were applied by hand in the SQL editor before the CLI was used, so mark them as applied once, then check the list:
+
+```sh
+npx --yes supabase@3 migration repair --status applied 202611070001 202611070002 202611070003
+npm run db:status   # Local and Remote columns; anything with no Remote entry is pending
+```
+
+To release schema changes, run the checks, then push:
+
+```sh
+npm test -- tests/community-database.test.ts   # every migration and supabase/tests/*.sql on a throwaway Postgres
+npm run db:push                                 # lists the pending migrations and asks before applying them
+```
+
+Push migrations before deploying code that needs them. Never edit a migration that has been pushed; add a new one. `supabase/config.toml` only configures a local `npx supabase start` stack. The hosted project's Auth, SMTP and URL settings are managed in the dashboard, so don't run `supabase config push`.
+
+### Age screen
+
+Sign-up asks everyone for a birth month and year, with nothing pre-filled. Under 13, no account is created and nothing is sent; the browser only remembers that the question was answered (`account:age-declined`), so the form doesn't reappear. Otherwise the answer goes with the sign-up, and `202611150001_age_screen.sql` checks it again in a trigger on `auth.users`, rejects under-13 sign-ups, records only the outcome in `craft_private.age_screens`, and removes the month and year before the account row is stored. The month of a 13th birthday counts as under 13 because the day isn't asked; `oldEnough()` in `src/lib/auth.ts` and `craft_private.at_least_13` apply the same rule.
+
+Accounts created earlier, or from the dashboard, answer once on `/account` through `confirm_age`; the first answer is final. Saving and updating builds, uploading skins, choosing a username, posting and reporting all require a passed check in the database. Reading and deleting saved builds don't, so anyone can still remove what they saved. An account that fails the check stays in place so a parent or guardian can ask for its deletion.
 
 ### Community development: usernames
 

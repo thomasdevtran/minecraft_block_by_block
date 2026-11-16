@@ -121,7 +121,15 @@ export const router = createRouter({
     },
   ],
   scrollBehavior(to, from, saved) {
-    if (saved) return saved
+    if (saved) {
+      // Back to the catalog: its rows only exist once the item list has loaded, and restoring the
+      // position before that would land on a page too short to reach it.
+      if (to.meta.needsCatalog) {
+        const settled = () => new Promise<typeof saved>((done) => requestAnimationFrame(() => requestAnimationFrame(() => done(saved))))
+        return loadCatalog().then(settled, settled)
+      }
+      return saved
+    }
     if (to.hash) return { el: to.hash, behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth', top: 16 }
     // Switching 2D/3D or textures only changes the query, so keep the reader where they are.
     if (to.path === from.path) return false

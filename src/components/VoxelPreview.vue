@@ -364,15 +364,17 @@ onBeforeUnmount(() => {
     :title="cameraControls === 'full' ? 'Drag to rotate, scroll to zoom' : 'Drag to rotate'"
   ></div>
   <p v-if="failed" class="preview-error muted" role="status">The 3D preview could not start. You can still follow every written step.</p>
-  <div v-else class="camera-controls" role="group" aria-label="3D camera controls">
-    <button type="button" aria-label="Rotate preview left" @click="moveCamera(-Math.PI / 8)">↶ Left</button>
-    <button type="button" aria-label="Rotate preview right" @click="moveCamera(Math.PI / 8)">Right ↷</button>
+  <div v-else class="camera-controls" role="group" aria-label="Turn and zoom the 3D preview">
+    <!-- The accessible name is the visible word itself (WCAG 2.5.3), so a voice user can say what
+         they see; the arrows are decoration and the group label says what is being moved. -->
+    <button type="button" @click="moveCamera(-Math.PI / 8)"><span aria-hidden="true">↶ </span>Left</button>
+    <button type="button" @click="moveCamera(Math.PI / 8)">Right<span aria-hidden="true"> ↷</span></button>
     <template v-if="cameraControls === 'full'">
-      <button type="button" aria-label="Tilt preview up" @click="moveCamera(0, -Math.PI / 12)">↑ Up</button>
-      <button type="button" aria-label="Tilt preview down" @click="moveCamera(0, Math.PI / 12)">↓ Down</button>
-      <button type="button" aria-label="Zoom preview in" @click="moveCamera(0, 0, 0.8)">+ Zoom in</button>
-      <button type="button" aria-label="Zoom preview out" @click="moveCamera(0, 0, 1.25)">− Zoom out</button>
-      <button type="button" aria-label="Reset preview view" @click="frameModel">Reset</button>
+      <button type="button" @click="moveCamera(0, -Math.PI / 12)"><span aria-hidden="true">↑ </span>Up</button>
+      <button type="button" @click="moveCamera(0, Math.PI / 12)"><span aria-hidden="true">↓ </span>Down</button>
+      <button type="button" @click="moveCamera(0, 0, 0.8)"><span aria-hidden="true">+ </span>Zoom in</button>
+      <button type="button" @click="moveCamera(0, 0, 1.25)"><span aria-hidden="true">− </span>Zoom out</button>
+      <button type="button" @click="frameModel">Reset view</button>
     </template>
   </div>
   </div>

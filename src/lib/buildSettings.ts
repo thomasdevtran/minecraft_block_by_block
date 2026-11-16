@@ -19,6 +19,12 @@ const LOOK_KEY = 'prefs:look'
 export const look = ref<Look>(readStored<Look>(LOOK_KEY, 'current') === 'classic' ? 'classic' : 'current')
 watch(look, (v) => writeStored(LOOK_KEY, v))
 
+/** The texture switch's choices, shared by the catalog and the item guides. */
+export const LOOK_OPTIONS: { value: Look; label: string }[] = [
+  { value: 'current', label: 'New textures' },
+  { value: 'classic', label: 'Old textures' },
+]
+
 // ---------------------------------------------------------------------------------------------
 // Settings in build links
 // ---------------------------------------------------------------------------------------------

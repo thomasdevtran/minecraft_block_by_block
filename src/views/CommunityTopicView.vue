@@ -4,7 +4,7 @@ import { RouterLink } from 'vue-router'
 import CommunityPostForm from '../components/CommunityPostForm.vue'
 import CommunityReportForm from '../components/CommunityReportForm.vue'
 import { COMMUNITY_CATEGORIES, communityDate, listCommunityReplies, loadCommunityTopic, type CommunityReply, type CommunityTopic } from '../lib/communityDiscussions'
-import { supabase } from '../lib/supabase'
+import { accountsEnabled } from '../lib/supabase'
 import { usePageFocus } from '../lib/dom'
 
 const props = defineProps<{ topicId: string }>()
@@ -34,7 +34,7 @@ watch([() => props.topicId, retryTopic], async ([id], _previous, onCleanup) => {
   posted.value = false
   page.value = 0
   topicError.value = ''
-  if (!supabase) return
+  if (!accountsEnabled) return
   topicLoading.value = true
   try {
     const result = await loadCommunityTopic(id)
@@ -79,9 +79,9 @@ function replyPosted() {
 <template>
   <div class="container topic-page">
     <RouterLink to="/community" class="back">← Community</RouterLink>
-    <p v-if="!supabase" class="notice">Discussions are not available yet. Please check back later.</p>
+    <p v-if="!accountsEnabled" class="notice">Discussions are not available yet. Please check back later.</p>
     <p v-else-if="topicLoading" role="status">Loading topic…</p>
-    <div v-else-if="topicError" class="notice">
+    <div v-else-if="topicError" class="notice error-box">
       <p role="alert">{{ topicError }}</p>
       <button class="btn" type="button" @click="retryTopic++">Try again</button>
     </div>
@@ -99,7 +99,7 @@ function replyPosted() {
         <CommunityPostForm v-else :topic-id="topic.id" :return-to="`/community/${topic.id}`" @posted="replyPosted" />
         <p v-if="posted" role="status">Reply posted.</p>
         <p v-if="repliesLoading" role="status">Loading replies…</p>
-        <div v-else-if="repliesError" ref="repliesMessage" class="notice">
+        <div v-else-if="repliesError" ref="repliesMessage" class="notice error-box">
           <p role="alert">{{ repliesError }}</p>
           <button class="btn" type="button" @click="reloadReplies++">Try again</button>
         </div>

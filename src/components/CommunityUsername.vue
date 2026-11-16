@@ -68,7 +68,7 @@ async function saveUsername() {
       <p id="community-username-rules" class="muted">Use 3–24 letters, numbers, or underscores. Start with a letter.</p>
       <button class="btn primary" type="submit" :disabled="saving">{{ saving ? 'Saving…' : 'Save username' }}</button>
     </form>
-    <p v-if="error" class="notice" role="alert">{{ error }}</p>
+    <p v-if="error" class="notice error-box" role="alert">{{ error }}</p>
     <p v-if="saved" role="status">{{ saved }}</p>
   </details>
 </template>
