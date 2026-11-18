@@ -1,0 +1,374 @@
+{
+  "schemaVersion": 1,
+  "startup": {
+    "js": [
+      "assets/index-BMBneHl6.js",
+      "assets/model-xqAJhn9h.js",
+      "assets/pixels-Q5wY35xn.js",
+      "assets/reactivity.esm-bundler-kJHA3NAP.js",
+      "assets/runtime-core.esm-bundler-CWANg9kf.js",
+      "assets/skin-gltElBMa.js",
+      "assets/skinStore-dqo3i_8_.js",
+      "assets/voxels-BzBmVdiE.js"
+    ],
+    "css": [
+      "assets/index-DngHyqv0.css"
+    ],
+    "jsBytes": 137110,
+    "jsGzipBytes": 55697,
+    "cssBytes": 12704,
+    "cssGzipBytes": 3653
+  },
+  "routes": {
+    "src/views/AccountView.vue": {
+      "js": [
+        "assets/AccountView-D180rztk.js",
+        "assets/communityDiscussions-CP2fALF_.js",
+        "assets/communityProfiles-Ch_9UJs8.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/AccountView-CpY8aL61.css",
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 153116,
+      "jsGzipBytes": 62078,
+      "cssBytes": 13907,
+      "cssGzipBytes": 4098
+    },
+    "src/views/CatalogView.vue": {
+      "js": [
+        "assets/BlockIcon-BCPDqy-8.js",
+        "assets/CatalogView-DJLo2xjy.js",
+        "assets/ViewToggle-DDQg0mYt.js",
+        "assets/buildSettings-CNm66z_F.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/BlockIcon-CPjBrHkr.css",
+        "assets/CatalogView--WNvfl99.css",
+        "assets/ViewToggle-Dnv984hy.css",
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 162249,
+      "jsGzipBytes": 66241,
+      "cssBytes": 23441,
+      "cssGzipBytes": 6809
+    },
+    "src/views/CommunityModerationView.vue": {
+      "js": [
+        "assets/CommunityModerationView-CTZS26eb.js",
+        "assets/communityDiscussions-CP2fALF_.js",
+        "assets/communityModeration-DmKRFKvI.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/CommunityModerationView-BvRhfo-7.css",
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 149585,
+      "jsGzipBytes": 60907,
+      "cssBytes": 13461,
+      "cssGzipBytes": 4003
+    },
+    "src/views/CommunityNewTopicView.vue": {
+      "js": [
+        "assets/CommunityNewTopicView-r5YzzKbi.js",
+        "assets/CommunityPostForm-CK1l-KE_.js",
+        "assets/communityDiscussions-CP2fALF_.js",
+        "assets/communityProfiles-Ch_9UJs8.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/CommunityNewTopicView-COpAFU1r.css",
+        "assets/CommunityPostForm-jhDtrJl4.css",
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 147148,
+      "jsGzipBytes": 60316,
+      "cssBytes": 13271,
+      "cssGzipBytes": 3999
+    },
+    "src/views/CommunityTopicView.vue": {
+      "js": [
+        "assets/CommunityPostForm-CK1l-KE_.js",
+        "assets/CommunityTopicView-BhoxgdXW.js",
+        "assets/communityDiscussions-CP2fALF_.js",
+        "assets/communityModeration-DmKRFKvI.js",
+        "assets/communityProfiles-Ch_9UJs8.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/CommunityPostForm-jhDtrJl4.css",
+        "assets/CommunityTopicView-DRkz-rzt.css",
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 155149,
+      "jsGzipBytes": 63562,
+      "cssBytes": 14257,
+      "cssGzipBytes": 4349
+    },
+    "src/views/CommunityView.vue": {
+      "js": [
+        "assets/CommunityView-DWSRsF_6.js",
+        "assets/communityDiscussions-CP2fALF_.js",
+        "assets/communityModeration-DmKRFKvI.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/CommunityView-C5oW_jqJ.css",
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 146674,
+      "jsGzipBytes": 60120,
+      "cssBytes": 13360,
+      "cssGzipBytes": 3968
+    },
+    "src/views/ItemGuideView.vue": {
+      "js": [
+        "assets/BlockIcon-BCPDqy-8.js",
+        "assets/ItemGuideView-BoBReKDf.js",
+        "assets/NotFoundView-CirnjeiP.js",
+        "assets/ViewToggle-DDQg0mYt.js",
+        "assets/buildSettings-CNm66z_F.js",
+        "assets/connectivity-BrPToh6j.js",
+        "assets/flower-BLAkA982.js",
+        "assets/index-BMBneHl6.js",
+        "assets/item-JRaTX2Yt.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/savedBuilds-DxNrqCNl.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/steps-W7ThLczm.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/BlockIcon-CPjBrHkr.css",
+        "assets/ItemGuideView-BcVU7K_P.css",
+        "assets/NotFoundView-CgkLMair.css",
+        "assets/ViewToggle-Dnv984hy.css",
+        "assets/index-DngHyqv0.css",
+        "assets/steps-hI-MT-23.css"
+      ],
+      "jsBytes": 195908,
+      "jsGzipBytes": 80252,
+      "cssBytes": 30495,
+      "cssGzipBytes": 8691
+    },
+    "src/views/LibraryView.vue": {
+      "js": [
+        "assets/LibraryView-BXh0CNfo.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/savedBuilds-DxNrqCNl.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/LibraryView-rvl48ldz.css",
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 145766,
+      "jsGzipBytes": 59497,
+      "cssBytes": 13758,
+      "cssGzipBytes": 4091
+    },
+    "src/views/PrivacyView.vue": {
+      "js": [
+        "assets/PrivacyView-CJ6JxIXx.js",
+        "assets/buildSettings-CNm66z_F.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/PrivacyView-DttTvs2Q.css",
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 148065,
+      "jsGzipBytes": 60244,
+      "cssBytes": 12881,
+      "cssGzipBytes": 3783
+    },
+    "src/views/SkinGuideView.vue": {
+      "js": [
+        "assets/SkinGuideView-DZXgLKAm.js",
+        "assets/ViewToggle-DDQg0mYt.js",
+        "assets/buildSettings-CNm66z_F.js",
+        "assets/connectivity-BrPToh6j.js",
+        "assets/index-BMBneHl6.js",
+        "assets/item-JRaTX2Yt.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/savedBuilds-DxNrqCNl.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/steps-W7ThLczm.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/SkinGuideView-DV_fIDH-.css",
+        "assets/ViewToggle-Dnv984hy.css",
+        "assets/index-DngHyqv0.css",
+        "assets/steps-hI-MT-23.css"
+      ],
+      "jsBytes": 185719,
+      "jsGzipBytes": 75212,
+      "cssBytes": 27413,
+      "cssGzipBytes": 7525
+    },
+    "src/views/SkinView.vue": {
+      "js": [
+        "assets/SkinView-BE4gph0a.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/SkinView-D_CJJXbQ.css",
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 141766,
+      "jsGzipBytes": 58079,
+      "cssBytes": 13831,
+      "cssGzipBytes": 4121
+    },
+    "src/views/SupportView.vue": {
+      "js": [
+        "assets/SupportView-BYwz6Jig.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/SupportView-B2Xpu4jT.css",
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 140625,
+      "jsGzipBytes": 57287,
+      "cssBytes": 12989,
+      "cssGzipBytes": 3842
+    },
+    "src/views/TermsView.vue": {
+      "js": [
+        "assets/TermsView-CUP9FfCt.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 143970,
+      "jsGzipBytes": 58807,
+      "cssBytes": 12704,
+      "cssGzipBytes": 3653
+    }
+  },
+  "deferred": {
+    "node_modules/@supabase/supabase-js/dist/index.mjs": {
+      "js": [
+        "assets/dist-CVPAM7_G.js"
+      ],
+      "css": [],
+      "jsBytes": 216011,
+      "jsGzipBytes": 55253,
+      "cssBytes": 0,
+      "cssGzipBytes": 0
+    },
+    "src/components/VoxelPreview.vue": {
+      "js": [
+        "assets/ViewToggle-DDQg0mYt.js",
+        "assets/VoxelPreview-DCdHcdL8.js",
+        "assets/index-BMBneHl6.js",
+        "assets/model-xqAJhn9h.js",
+        "assets/pixels-Q5wY35xn.js",
+        "assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "assets/skin-gltElBMa.js",
+        "assets/skinStore-dqo3i_8_.js",
+        "assets/voxels-BzBmVdiE.js"
+      ],
+      "css": [
+        "assets/ViewToggle-Dnv984hy.css",
+        "assets/VoxelPreview-CEJQ4dpr.css",
+        "assets/index-DngHyqv0.css"
+      ],
+      "jsBytes": 699499,
+      "jsGzipBytes": 195435,
+      "cssBytes": 14320,
+      "cssGzipBytes": 4420
+    }
+  }
+}

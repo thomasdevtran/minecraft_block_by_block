@@ -15,6 +15,8 @@ npm run build
 
 `npm run extract -- 1.21.8` pins a specific Minecraft version. The jar is cached in `scripts/.cache/` (git-ignored).
 
+After a production build, `npm run check:bundle` checks the startup and route JavaScript budgets. See [performance/README.md](performance/README.md) for repeatable browser measurements, baseline results, and CI reporting.
+
 ## Accounts and My Builds
 
 Accounts use Supabase Auth. The private `saved_builds` table stores item/skin settings, counts and the explicitly saved step. Skin PNGs use the private `build-skins` bucket. Users can save an existing local build from its guide, then reopen it from My Builds on another device.
@@ -162,6 +164,8 @@ Hashed Vite assets use immutable caching. Versioned textures use the catalog's M
 Advertising remains off. Enabling it requires a separate implementation and legal review, including consent, child-audience treatment, provider settings, CSP, privacy disclosures, payment/hosting terms and production tests. See the release review.
 
 ## Layout
+
+See [REFACTOR_SPEC.md](REFACTOR_SPEC.md) for the performance baseline, prioritized refactoring requirements, acceptance criteria, and delivery order.
 
 - `src/engine/`: pure TypeScript. Image → cubes → paint palette → steps. No Vue, unit-tested.
 - `src/components/GuideViewer.vue`: step UI, with `StepGrid.vue` (2D grid) and `VoxelPreview.vue` (three.js, loaded lazily so the 570 KB chunk never blocks the written steps).

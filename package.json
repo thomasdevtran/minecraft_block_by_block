@@ -10,6 +10,8 @@
     "extract": "tsx scripts/extract-assets.ts",
     "test": "vitest run",
     "check:catalog": "tsx scripts/check-catalog.ts",
+    "check:bundle": "tsx scripts/check-bundle.ts",
+    "perf:browser": "node scripts/measure-performance.mjs",
     "db:link": "npx --yes supabase@3 link --project-ref cofbtfabojhjddgrbrea",
     "db:status": "npx --yes supabase@3 migration list",
     "db:push": "npx --yes supabase@3 db push"
@@ -29,6 +31,7 @@
     "@vitejs/plugin-vue": "^6.0.8",
     "@vue/tsconfig": "^0.9.1",
     "adm-zip": "^0.6.1",
+    "playwright": "^1.65.1",
     "pngjs": "^7.0.0",
     "tsx": "^4.23.13",
     "typescript": "~6.0.2",

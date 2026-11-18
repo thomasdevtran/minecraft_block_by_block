@@ -1,0 +1,3695 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-17",
+  "timezone": "America/Los_Angeles",
+  "settings": {
+    "cpuSlowdown": 4,
+    "latencyMs": 150,
+    "downloadBytesPerSecond": 200000,
+    "uploadBytesPerSecond": 93750,
+    "observationMs": 1500
+  },
+  "metricOrder": "Each metric array is [median, minimum, maximum]. Times are milliseconds; bytes are actual local Resource Timing transfers, excluding the navigation document. LCP/CLS and long tasks end 1500ms after ready; these are lab observations, not field Web Vitals.",
+  "coverage": "Five repetitions per cold/warm desktop scenario (11); five per critical mobile scenario (support, catalog, 3D skin). Cache-policy probes use support, flat item, 3D skin. Additional unconfigured-account integration uses one repetition of support, flat item, 3D skin plus actual upload and fixture lookup.",
+  "bundle": {
+    "startupGzipBefore": 55697,
+    "startupGzipAfter": 51012,
+    "savedBytes": 4685,
+    "savedPercent": 8.412,
+    "startupBudget": 87040,
+    "routes": [
+      {
+        "source": "src/views/AccountView.vue",
+        "beforeGzipBytes": 62078,
+        "afterGzipBytes": 57395,
+        "deltaBytes": -4683
+      },
+      {
+        "source": "src/views/CatalogView.vue",
+        "beforeGzipBytes": 66241,
+        "afterGzipBytes": 64523,
+        "deltaBytes": -1718
+      },
+      {
+        "source": "src/views/CommunityModerationView.vue",
+        "beforeGzipBytes": 60907,
+        "afterGzipBytes": 56223,
+        "deltaBytes": -4684
+      },
+      {
+        "source": "src/views/CommunityNewTopicView.vue",
+        "beforeGzipBytes": 60316,
+        "afterGzipBytes": 55632,
+        "deltaBytes": -4684
+      },
+      {
+        "source": "src/views/CommunityTopicView.vue",
+        "beforeGzipBytes": 63562,
+        "afterGzipBytes": 58877,
+        "deltaBytes": -4685
+      },
+      {
+        "source": "src/views/CommunityView.vue",
+        "beforeGzipBytes": 60120,
+        "afterGzipBytes": 55438,
+        "deltaBytes": -4682
+      },
+      {
+        "source": "src/views/ItemGuideView.vue",
+        "beforeGzipBytes": 80252,
+        "afterGzipBytes": 80290,
+        "deltaBytes": 38
+      },
+      {
+        "source": "src/views/LibraryView.vue",
+        "beforeGzipBytes": 59497,
+        "afterGzipBytes": 59589,
+        "deltaBytes": 92
+      },
+      {
+        "source": "src/views/PrivacyView.vue",
+        "beforeGzipBytes": 60244,
+        "afterGzipBytes": 55556,
+        "deltaBytes": -4688
+      },
+      {
+        "source": "src/views/SkinGuideView.vue",
+        "beforeGzipBytes": 75212,
+        "afterGzipBytes": 75276,
+        "deltaBytes": 64
+      },
+      {
+        "source": "src/views/SkinView.vue",
+        "beforeGzipBytes": 58079,
+        "afterGzipBytes": 58172,
+        "deltaBytes": 93
+      },
+      {
+        "source": "src/views/SupportView.vue",
+        "beforeGzipBytes": 57287,
+        "afterGzipBytes": 52605,
+        "deltaBytes": -4682
+      },
+      {
+        "source": "src/views/TermsView.vue",
+        "beforeGzipBytes": 58807,
+        "afterGzipBytes": 54123,
+        "deltaBytes": -4684
+      }
+    ]
+  },
+  "verification": {
+    "tests": 255,
+    "catalogEntries": 1117,
+    "guideTotalsUnchanged": true,
+    "supportStartupHasNoSkinEngine": true,
+    "signedOutSDKAbsent": true,
+    "skinUpload": true,
+    "fixtureUsernameLookup": true,
+    "guideNextBack": true,
+    "unconfiguredBuildHasNoSDK": true,
+    "originalLockfileAuditHigh": 11,
+    "currentLockfileAuditHigh": 11
+  },
+  "limits": [
+    "Local HTTP/1 production preview, uncompressed responses; no hosted CDN/API/Auth capacity claim.",
+    "Local no-cache asset revalidation adds a request batch to some warm guide loads; cache-policy probes are reported separately.",
+    "Mobile item/shape/flower cases were not repeated five times; desktop coverage and existing engine tests cover those paths.",
+    "Account switches/private-skin clearing are verified by unit tests, not a hosted account session."
+  ],
+  "datasets": [
+    {
+      "id": "before-desktop",
+      "browser": "157.0.4341.60",
+      "profile": "desktop",
+      "runs": 5,
+      "sampleCount": 110,
+      "immutableAssets": false,
+      "buildHash": "c22a03af59d58411423ebba0c6e1b490f9cf9e0f98d2839d6825bad6c41184c8",
+      "cases": [
+        {
+          "scenario": "support",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1140.7,
+            1105.8,
+            1158.4
+          ],
+          "lcpMs": [
+            1372,
+            1336,
+            1396
+          ],
+          "cls": [
+            0.191,
+            0.191,
+            0.191
+          ],
+          "longTaskMs": [
+            210,
+            199,
+            236
+          ],
+          "completedResources": [
+            16,
+            16,
+            17
+          ],
+          "resourceTransferBytes": [
+            76372,
+            76372,
+            76672
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "support",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            808,
+            794.5,
+            820.4
+          ],
+          "lcpMs": [
+            1032,
+            1016,
+            1044
+          ],
+          "cls": [
+            0.191,
+            0.191,
+            0.191
+          ],
+          "longTaskMs": [
+            0,
+            0,
+            0
+          ],
+          "completedResources": [
+            16,
+            16,
+            17
+          ],
+          "resourceTransferBytes": [
+            4800,
+            4800,
+            5100
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "catalog",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1469.3,
+            1429.1,
+            1474.7
+          ],
+          "lcpMs": [
+            1596,
+            1564,
+            1808
+          ],
+          "cls": [
+            0.268,
+            0.268,
+            0.298
+          ],
+          "longTaskMs": [
+            382,
+            337,
+            397
+          ],
+          "completedResources": [
+            56,
+            56,
+            56
+          ],
+          "resourceTransferBytes": [
+            178051,
+            178051,
+            178051
+          ],
+          "previewTransferBytes": [
+            1040,
+            1040,
+            1040
+          ],
+          "outstandingRequests": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "scenario": "catalog",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1081.5,
+            1061.4,
+            1112.7
+          ],
+          "lcpMs": [
+            1360,
+            1140,
+            1400
+          ],
+          "cls": [
+            0.298,
+            0.298,
+            0.298
+          ],
+          "longTaskMs": [
+            140,
+            120,
+            148
+          ],
+          "completedResources": [
+            75,
+            75,
+            75
+          ],
+          "resourceTransferBytes": [
+            36442,
+            36442,
+            36442
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            15,
+            15,
+            15
+          ]
+        },
+        {
+          "scenario": "flat-item",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1933.6,
+            1850.1,
+            2016.2
+          ],
+          "lcpMs": [
+            1028,
+            968,
+            1072
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            600,
+            425,
+            891
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            272991,
+            272991,
+            272991
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-item",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1369.7,
+            1346.9,
+            1448.5
+          ],
+          "lcpMs": [
+            644,
+            628,
+            724
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            69,
+            63,
+            218
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            10200,
+            10200,
+            10200
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "hollow-block",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1964.7,
+            1874.6,
+            2020.8
+          ],
+          "lcpMs": [
+            1036,
+            960,
+            1088
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            604,
+            522,
+            718
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            277173,
+            277173,
+            277173
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "hollow-block",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1384.3,
+            1369.6,
+            1412.4
+          ],
+          "lcpMs": [
+            640,
+            624,
+            664
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            99,
+            83,
+            136
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            10500,
+            10500,
+            10500
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "solid-block",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1927.4,
+            1909.1,
+            1989.8
+          ],
+          "lcpMs": [
+            968,
+            960,
+            1036
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            556,
+            507,
+            645
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            277173,
+            277173,
+            277173
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "solid-block",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1416.7,
+            1414.7,
+            1430.3
+          ],
+          "lcpMs": [
+            640,
+            624,
+            652
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            175,
+            166,
+            191
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            10500,
+            10500,
+            10500
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-shape",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1911.2,
+            1881.2,
+            1935.7
+          ],
+          "lcpMs": [
+            988,
+            960,
+            1020
+          ],
+          "cls": [
+            0.105,
+            0.105,
+            0.105
+          ],
+          "longTaskMs": [
+            460,
+            409,
+            496
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            280783,
+            280783,
+            280783
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-shape",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1388.7,
+            1382.2,
+            1403.5
+          ],
+          "lcpMs": [
+            644,
+            628,
+            852
+          ],
+          "cls": [
+            0.105,
+            0.105,
+            0.105
+          ],
+          "longTaskMs": [
+            70,
+            55,
+            76
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            10500,
+            10500,
+            10500
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "shaped-build",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1908.7,
+            1889.5,
+            1957.9
+          ],
+          "lcpMs": [
+            952,
+            936,
+            976
+          ],
+          "cls": [
+            0.105,
+            0.105,
+            0.105
+          ],
+          "longTaskMs": [
+            512,
+            477,
+            629
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            280783,
+            280783,
+            280783
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "shaped-build",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1436.9,
+            1432.4,
+            1459.6
+          ],
+          "lcpMs": [
+            632,
+            624,
+            648
+          ],
+          "cls": [
+            0.105,
+            0.105,
+            0.105
+          ],
+          "longTaskMs": [
+            184,
+            179,
+            198
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            10500,
+            10500,
+            10500
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flower",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1861.3,
+            1843.1,
+            1898.6
+          ],
+          "lcpMs": [
+            980,
+            964,
+            1012
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            391,
+            363,
+            477
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            273928,
+            273928,
+            273928
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flower",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1344.7,
+            1333.2,
+            1377.6
+          ],
+          "lcpMs": [
+            632,
+            616,
+            640
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            62,
+            61,
+            71
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            10500,
+            10500,
+            10500
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "potted-flower",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1874.3,
+            1863.1,
+            1887.4
+          ],
+          "lcpMs": [
+            988,
+            948,
+            1004
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            426,
+            391,
+            485
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            273928,
+            273928,
+            273928
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "potted-flower",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1367.4,
+            1351.5,
+            1387.2
+          ],
+          "lcpMs": [
+            632,
+            628,
+            652
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            65,
+            62,
+            79
+          ],
+          "completedResources": [
+            35,
+            35,
+            35
+          ],
+          "resourceTransferBytes": [
+            10500,
+            10500,
+            10500
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-skin",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1466.8,
+            1454.7,
+            1504.1
+          ],
+          "lcpMs": [
+            960,
+            936,
+            984
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            506,
+            463,
+            515
+          ],
+          "completedResources": [
+            26,
+            26,
+            26
+          ],
+          "resourceTransferBytes": [
+            241586,
+            241586,
+            241586
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-skin",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1073.8,
+            1070.9,
+            1103.4
+          ],
+          "lcpMs": [
+            624,
+            616,
+            652
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            134,
+            130,
+            138
+          ],
+          "completedResources": [
+            26,
+            26,
+            26
+          ],
+          "resourceTransferBytes": [
+            7800,
+            7800,
+            7800
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1454.6,
+            1436.1,
+            1529
+          ],
+          "lcpMs": [
+            964,
+            940,
+            1020
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            478,
+            420,
+            603
+          ],
+          "completedResources": [
+            26,
+            26,
+            26
+          ],
+          "resourceTransferBytes": [
+            241586,
+            241586,
+            241586
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1077.3,
+            1044.8,
+            1088.6
+          ],
+          "lcpMs": [
+            640,
+            624,
+            644
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            81,
+            79,
+            82
+          ],
+          "completedResources": [
+            26,
+            26,
+            26
+          ],
+          "resourceTransferBytes": [
+            7800,
+            7800,
+            7800
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action": "search-to-two-frames",
+          "n": 5,
+          "durationMs": [
+            101.7,
+            87.1,
+            110.7
+          ],
+          "passed": true
+        },
+        {
+          "action": "show-more-guide-back",
+          "n": 5,
+          "durationMs": null,
+          "passed": true
+        },
+        {
+          "action": "start-to-two-frames",
+          "n": 45,
+          "durationMs": [
+            174.3,
+            149.2,
+            314.1
+          ],
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "after-desktop",
+      "browser": "157.0.4341.60",
+      "profile": "desktop",
+      "runs": 5,
+      "sampleCount": 110,
+      "immutableAssets": false,
+      "buildHash": "151821b9a1772d9da5dcc430b2b6af15cc473b8a4529eaa66e0ad26e6721fc86",
+      "cases": [
+        {
+          "scenario": "support",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1133.5,
+            1115.1,
+            1148.1
+          ],
+          "lcpMs": [
+            1372,
+            1352,
+            1400
+          ],
+          "cls": [
+            0.191,
+            0.191,
+            0.191
+          ],
+          "longTaskMs": [
+            266,
+            248,
+            294
+          ],
+          "completedResources": [
+            13,
+            13,
+            14
+          ],
+          "resourceTransferBytes": [
+            70303,
+            70303,
+            70603
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "support",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            792.7,
+            777.1,
+            811.2
+          ],
+          "lcpMs": [
+            1020,
+            996,
+            1036
+          ],
+          "cls": [
+            0.191,
+            0.191,
+            0.191
+          ],
+          "longTaskMs": [
+            0,
+            0,
+            52
+          ],
+          "completedResources": [
+            13,
+            13,
+            13
+          ],
+          "resourceTransferBytes": [
+            3900,
+            3900,
+            3900
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "catalog",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1505.7,
+            1492.5,
+            1536.3
+          ],
+          "lcpMs": [
+            1876,
+            1664,
+            1904
+          ],
+          "cls": [
+            0.298,
+            0.147,
+            0.298
+          ],
+          "longTaskMs": [
+            508,
+            499,
+            521
+          ],
+          "completedResources": [
+            55,
+            55,
+            55
+          ],
+          "resourceTransferBytes": [
+            177331,
+            177331,
+            177331
+          ],
+          "previewTransferBytes": [
+            1040,
+            1040,
+            1040
+          ],
+          "outstandingRequests": [
+            1,
+            1,
+            1
+          ]
+        },
+        {
+          "scenario": "catalog",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1104.8,
+            1081.3,
+            1137.5
+          ],
+          "lcpMs": [
+            1412,
+            1364,
+            1440
+          ],
+          "cls": [
+            0.298,
+            0.298,
+            0.298
+          ],
+          "longTaskMs": [
+            172,
+            137,
+            207
+          ],
+          "completedResources": [
+            73,
+            73,
+            74
+          ],
+          "resourceTransferBytes": [
+            35520,
+            35520,
+            36142
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            16,
+            15,
+            16
+          ]
+        },
+        {
+          "scenario": "flat-item",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1876.5,
+            1866,
+            1885.1
+          ],
+          "lcpMs": [
+            960,
+            940,
+            988
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            510,
+            498,
+            580
+          ],
+          "completedResources": [
+            33,
+            33,
+            33
+          ],
+          "resourceTransferBytes": [
+            272246,
+            272246,
+            272246
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-item",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1503.9,
+            1484.7,
+            1506.3
+          ],
+          "lcpMs": [
+            624,
+            616,
+            628
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            70,
+            64,
+            72
+          ],
+          "completedResources": [
+            33,
+            33,
+            33
+          ],
+          "resourceTransferBytes": [
+            9900,
+            9900,
+            9900
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "hollow-block",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1941.9,
+            1900,
+            1958.4
+          ],
+          "lcpMs": [
+            980,
+            960,
+            992
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            630,
+            594,
+            681
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            276428,
+            276428,
+            276428
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "hollow-block",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1519.8,
+            1496.4,
+            1532.6
+          ],
+          "lcpMs": [
+            624,
+            616,
+            632
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            108,
+            97,
+            151
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            10200,
+            10200,
+            10200
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "solid-block",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1953.6,
+            1933.5,
+            1984.1
+          ],
+          "lcpMs": [
+            976,
+            956,
+            992
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            674,
+            665,
+            697
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            276428,
+            276428,
+            276428
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "solid-block",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1540.2,
+            1536.6,
+            1568.9
+          ],
+          "lcpMs": [
+            624,
+            616,
+            636
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            195,
+            184,
+            257
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            10200,
+            10200,
+            10200
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-shape",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1913.7,
+            1911.2,
+            1955
+          ],
+          "lcpMs": [
+            972,
+            944,
+            980
+          ],
+          "cls": [
+            0.105,
+            0.105,
+            0.105
+          ],
+          "longTaskMs": [
+            591,
+            585,
+            620
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            280038,
+            280038,
+            280038
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-shape",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1526.8,
+            1507.9,
+            1536.6
+          ],
+          "lcpMs": [
+            632,
+            620,
+            636
+          ],
+          "cls": [
+            0.105,
+            0.105,
+            0.105
+          ],
+          "longTaskMs": [
+            72,
+            67,
+            134
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            10200,
+            10200,
+            10200
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "shaped-build",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1971.5,
+            1954.9,
+            1987.2
+          ],
+          "lcpMs": [
+            968,
+            956,
+            988
+          ],
+          "cls": [
+            0.105,
+            0.105,
+            0.105
+          ],
+          "longTaskMs": [
+            718,
+            675,
+            745
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            280038,
+            280038,
+            280038
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "shaped-build",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1591.8,
+            1585.9,
+            1625.7
+          ],
+          "lcpMs": [
+            628,
+            616,
+            640
+          ],
+          "cls": [
+            0.105,
+            0.105,
+            0.105
+          ],
+          "longTaskMs": [
+            201,
+            192,
+            250
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            10200,
+            10200,
+            10200
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flower",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1855.3,
+            1838,
+            1871.6
+          ],
+          "lcpMs": [
+            944,
+            940,
+            948
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            474,
+            454,
+            494
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            273183,
+            273183,
+            273183
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flower",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1493.4,
+            1469.7,
+            1507.6
+          ],
+          "lcpMs": [
+            620,
+            608,
+            636
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            65,
+            62,
+            76
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            10200,
+            10200,
+            10200
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "potted-flower",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1885.5,
+            1864.8,
+            1913.6
+          ],
+          "lcpMs": [
+            956,
+            948,
+            968
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            529,
+            506,
+            572
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            273183,
+            273183,
+            273183
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "potted-flower",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1496.4,
+            1496,
+            1521.9
+          ],
+          "lcpMs": [
+            624,
+            608,
+            624
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            69,
+            66,
+            84
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            10200,
+            10200,
+            10200
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-skin",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1581,
+            1558.3,
+            1592.8
+          ],
+          "lcpMs": [
+            956,
+            928,
+            964
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            613,
+            594,
+            644
+          ],
+          "completedResources": [
+            25,
+            25,
+            25
+          ],
+          "resourceTransferBytes": [
+            240867,
+            240867,
+            240867
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-skin",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1210.9,
+            1189.2,
+            1228.4
+          ],
+          "lcpMs": [
+            608,
+            588,
+            624
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            134,
+            122,
+            151
+          ],
+          "completedResources": [
+            25,
+            25,
+            25
+          ],
+          "resourceTransferBytes": [
+            7500,
+            7500,
+            7500
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1555,
+            1538.5,
+            1581.1
+          ],
+          "lcpMs": [
+            948,
+            936,
+            964
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            615,
+            602,
+            638
+          ],
+          "completedResources": [
+            25,
+            25,
+            25
+          ],
+          "resourceTransferBytes": [
+            240867,
+            240867,
+            240867
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1212.2,
+            1206.2,
+            1218.6
+          ],
+          "lcpMs": [
+            620,
+            616,
+            624
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            131,
+            79,
+            154
+          ],
+          "completedResources": [
+            25,
+            25,
+            25
+          ],
+          "resourceTransferBytes": [
+            7500,
+            7500,
+            7500
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action": "search-to-two-frames",
+          "n": 5,
+          "durationMs": [
+            113.3,
+            111.9,
+            135.2
+          ],
+          "passed": true
+        },
+        {
+          "action": "show-more-guide-back",
+          "n": 5,
+          "durationMs": null,
+          "passed": true
+        },
+        {
+          "action": "start-to-two-frames",
+          "n": 45,
+          "durationMs": [
+            182.6,
+            156.7,
+            238.1
+          ],
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "before-mobile",
+      "browser": "157.0.4341.60",
+      "profile": "mobile",
+      "runs": 5,
+      "sampleCount": 30,
+      "immutableAssets": false,
+      "buildHash": "c22a03af59d58411423ebba0c6e1b490f9cf9e0f98d2839d6825bad6c41184c8",
+      "cases": [
+        {
+          "scenario": "support",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1213.2,
+            1191.3,
+            1234.5
+          ],
+          "lcpMs": [
+            1456,
+            1432,
+            1488
+          ],
+          "cls": [
+            0,
+            0,
+            0
+          ],
+          "longTaskMs": [
+            276,
+            267,
+            310
+          ],
+          "completedResources": [
+            16,
+            16,
+            17
+          ],
+          "resourceTransferBytes": [
+            76372,
+            76372,
+            76672
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "support",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            828.2,
+            824.7,
+            849.5
+          ],
+          "lcpMs": [
+            1056,
+            1052,
+            1080
+          ],
+          "cls": [
+            0,
+            0,
+            0
+          ],
+          "longTaskMs": [
+            0,
+            0,
+            0
+          ],
+          "completedResources": [
+            16,
+            16,
+            16
+          ],
+          "resourceTransferBytes": [
+            4800,
+            4800,
+            4800
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "catalog",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1563.6,
+            1530.5,
+            1590.9
+          ],
+          "lcpMs": [
+            1860,
+            1844,
+            1884
+          ],
+          "cls": [
+            0.481,
+            0.481,
+            0.499
+          ],
+          "longTaskMs": [
+            465,
+            461,
+            497
+          ],
+          "completedResources": [
+            39,
+            39,
+            39
+          ],
+          "resourceTransferBytes": [
+            309390,
+            309390,
+            309390
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "catalog",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1208,
+            1136.3,
+            1242.9
+          ],
+          "lcpMs": [
+            1500,
+            1404,
+            1532
+          ],
+          "cls": [
+            0,
+            0,
+            0
+          ],
+          "longTaskMs": [
+            211,
+            153,
+            303
+          ],
+          "completedResources": [
+            78,
+            75,
+            79
+          ],
+          "resourceTransferBytes": [
+            43125,
+            42225,
+            43425
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            5,
+            4,
+            8
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1540.3,
+            1526.9,
+            1550.8
+          ],
+          "lcpMs": [
+            1032,
+            1024,
+            1052
+          ],
+          "cls": [
+            0.248,
+            0.248,
+            0.248
+          ],
+          "longTaskMs": [
+            439,
+            433,
+            470
+          ],
+          "completedResources": [
+            24,
+            24,
+            24
+          ],
+          "resourceTransferBytes": [
+            101617,
+            101617,
+            101617
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1089.1,
+            1084.9,
+            1092.3
+          ],
+          "lcpMs": [
+            648,
+            640,
+            660
+          ],
+          "cls": [
+            0,
+            0,
+            0
+          ],
+          "longTaskMs": [
+            0,
+            0,
+            54
+          ],
+          "completedResources": [
+            24,
+            24,
+            24
+          ],
+          "resourceTransferBytes": [
+            7200,
+            7200,
+            7200
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action": "search-to-two-frames",
+          "n": 5,
+          "durationMs": [
+            211,
+            183.7,
+            220.4
+          ],
+          "passed": true
+        },
+        {
+          "action": "show-more-guide-back",
+          "n": 5,
+          "durationMs": null,
+          "passed": true
+        },
+        {
+          "action": "start-to-two-frames",
+          "n": 5,
+          "durationMs": [
+            170.2,
+            122.1,
+            206.1
+          ],
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "after-mobile",
+      "browser": "157.0.4341.60",
+      "profile": "mobile",
+      "runs": 5,
+      "sampleCount": 30,
+      "immutableAssets": false,
+      "buildHash": "151821b9a1772d9da5dcc430b2b6af15cc473b8a4529eaa66e0ad26e6721fc86",
+      "cases": [
+        {
+          "scenario": "support",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1140.5,
+            1108.7,
+            1151.7
+          ],
+          "lcpMs": [
+            1380,
+            1352,
+            1392
+          ],
+          "cls": [
+            0,
+            0,
+            0
+          ],
+          "longTaskMs": [
+            271,
+            252,
+            279
+          ],
+          "completedResources": [
+            13,
+            13,
+            14
+          ],
+          "resourceTransferBytes": [
+            70303,
+            70303,
+            70603
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "support",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            794.1,
+            776.5,
+            807
+          ],
+          "lcpMs": [
+            1016,
+            996,
+            1036
+          ],
+          "cls": [
+            0,
+            0,
+            0
+          ],
+          "longTaskMs": [
+            0,
+            0,
+            0
+          ],
+          "completedResources": [
+            13,
+            13,
+            14
+          ],
+          "resourceTransferBytes": [
+            3900,
+            3900,
+            4200
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "catalog",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1504.2,
+            1478.6,
+            1535.2
+          ],
+          "lcpMs": [
+            1800,
+            1788,
+            1828
+          ],
+          "cls": [
+            0.499,
+            0.499,
+            0.499
+          ],
+          "longTaskMs": [
+            460,
+            451,
+            553
+          ],
+          "completedResources": [
+            38,
+            38,
+            38
+          ],
+          "resourceTransferBytes": [
+            308671,
+            308671,
+            308671
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "catalog",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1097.1,
+            1089.9,
+            1115.1
+          ],
+          "lcpMs": [
+            1376,
+            1356,
+            1400
+          ],
+          "cls": [
+            0,
+            0,
+            0
+          ],
+          "longTaskMs": [
+            150,
+            135,
+            156
+          ],
+          "completedResources": [
+            73,
+            73,
+            74
+          ],
+          "resourceTransferBytes": [
+            41625,
+            41625,
+            41925
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            9,
+            8,
+            9
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1602.8,
+            1562.9,
+            3902.1
+          ],
+          "lcpMs": [
+            984,
+            928,
+            992
+          ],
+          "cls": [
+            0.248,
+            0.232,
+            0.248
+          ],
+          "longTaskMs": [
+            444,
+            408,
+            481
+          ],
+          "completedResources": [
+            23,
+            23,
+            23
+          ],
+          "resourceTransferBytes": [
+            100897,
+            100897,
+            100897
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1245.4,
+            1225.2,
+            1959.8
+          ],
+          "lcpMs": [
+            644,
+            628,
+            1368
+          ],
+          "cls": [
+            0.248,
+            0.248,
+            0.248
+          ],
+          "longTaskMs": [
+            51,
+            0,
+            69
+          ],
+          "completedResources": [
+            23,
+            23,
+            23
+          ],
+          "resourceTransferBytes": [
+            6900,
+            6900,
+            6900
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action": "search-to-two-frames",
+          "n": 5,
+          "durationMs": [
+            127.6,
+            115.5,
+            166.5
+          ],
+          "passed": true
+        },
+        {
+          "action": "show-more-guide-back",
+          "n": 5,
+          "durationMs": null,
+          "passed": true
+        },
+        {
+          "action": "start-to-two-frames",
+          "n": 5,
+          "durationMs": [
+            121.2,
+            110.2,
+            135.3
+          ],
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "cache-before",
+      "browser": "157.0.4341.60",
+      "profile": "desktop",
+      "runs": 5,
+      "sampleCount": 30,
+      "immutableAssets": true,
+      "buildHash": "c22a03af59d58411423ebba0c6e1b490f9cf9e0f98d2839d6825bad6c41184c8",
+      "cases": [
+        {
+          "scenario": "support",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1180.3,
+            1178.8,
+            1215.3
+          ],
+          "lcpMs": [
+            1432,
+            1416,
+            1460
+          ],
+          "cls": [
+            0.191,
+            0.191,
+            0.191
+          ],
+          "longTaskMs": [
+            274,
+            252,
+            292
+          ],
+          "completedResources": [
+            16,
+            16,
+            17
+          ],
+          "resourceTransferBytes": [
+            76372,
+            76372,
+            76672
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "support",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            489.7,
+            471.5,
+            494.5
+          ],
+          "lcpMs": [
+            716,
+            692,
+            716
+          ],
+          "cls": [
+            0.191,
+            0.191,
+            0.191
+          ],
+          "longTaskMs": [
+            0,
+            0,
+            0
+          ],
+          "completedResources": [
+            16,
+            16,
+            16
+          ],
+          "resourceTransferBytes": [
+            1500,
+            1500,
+            1500
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-item",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1902.9,
+            1893.1,
+            1916.3
+          ],
+          "lcpMs": [
+            1028,
+            1016,
+            1044
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            523,
+            502,
+            539
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            272991,
+            272991,
+            272991
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-item",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            827.7,
+            816.1,
+            856.9
+          ],
+          "lcpMs": [
+            464,
+            456,
+            484
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            89,
+            72,
+            136
+          ],
+          "completedResources": [
+            34,
+            34,
+            34
+          ],
+          "resourceTransferBytes": [
+            2400,
+            2400,
+            2400
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1511,
+            1508.4,
+            1547.6
+          ],
+          "lcpMs": [
+            1000,
+            992,
+            1036
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            644,
+            636,
+            695
+          ],
+          "completedResources": [
+            26,
+            26,
+            26
+          ],
+          "resourceTransferBytes": [
+            241586,
+            241586,
+            241586
+          ],
+          "previewTransferBytes": [
+            139969,
+            139969,
+            139969
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            591,
+            572.4,
+            612.1
+          ],
+          "lcpMs": [
+            468,
+            452,
+            472
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            158,
+            101,
+            219
+          ],
+          "completedResources": [
+            26,
+            26,
+            26
+          ],
+          "resourceTransferBytes": [
+            1500,
+            1500,
+            1500
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action": "start-to-two-frames",
+          "n": 10,
+          "durationMs": [
+            185.9,
+            166.3,
+            202.1
+          ],
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "cache-after",
+      "browser": "157.0.4341.60",
+      "profile": "desktop",
+      "runs": 5,
+      "sampleCount": 30,
+      "immutableAssets": true,
+      "buildHash": "151821b9a1772d9da5dcc430b2b6af15cc473b8a4529eaa66e0ad26e6721fc86",
+      "cases": [
+        {
+          "scenario": "support",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1109.2,
+            1103.6,
+            1134.7
+          ],
+          "lcpMs": [
+            1352,
+            1344,
+            1380
+          ],
+          "cls": [
+            0.191,
+            0.191,
+            0.191
+          ],
+          "longTaskMs": [
+            259,
+            252,
+            273
+          ],
+          "completedResources": [
+            13,
+            13,
+            13
+          ],
+          "resourceTransferBytes": [
+            70303,
+            70303,
+            70303
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "support",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            480.4,
+            473.9,
+            487.9
+          ],
+          "lcpMs": [
+            700,
+            696,
+            708
+          ],
+          "cls": [
+            0.191,
+            0.191,
+            0.191
+          ],
+          "longTaskMs": [
+            0,
+            0,
+            0
+          ],
+          "completedResources": [
+            13,
+            13,
+            13
+          ],
+          "resourceTransferBytes": [
+            1500,
+            1500,
+            1500
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-item",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1843.6,
+            1838.5,
+            1866.9
+          ],
+          "lcpMs": [
+            948,
+            936,
+            956
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            493,
+            480,
+            524
+          ],
+          "completedResources": [
+            33,
+            33,
+            33
+          ],
+          "resourceTransferBytes": [
+            272246,
+            272246,
+            272246
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-item",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            822.3,
+            814.3,
+            833.5
+          ],
+          "lcpMs": [
+            460,
+            448,
+            472
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            64,
+            62,
+            139
+          ],
+          "completedResources": [
+            33,
+            33,
+            33
+          ],
+          "resourceTransferBytes": [
+            2400,
+            2400,
+            2400
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1555.6,
+            1536,
+            1566.6
+          ],
+          "lcpMs": [
+            952,
+            940,
+            956
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            611,
+            593,
+            618
+          ],
+          "completedResources": [
+            25,
+            25,
+            25
+          ],
+          "resourceTransferBytes": [
+            240867,
+            240867,
+            240867
+          ],
+          "previewTransferBytes": [
+            139970,
+            139970,
+            139970
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            583.8,
+            565.6,
+            598.5
+          ],
+          "lcpMs": [
+            460,
+            448,
+            464
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            135,
+            85,
+            142
+          ],
+          "completedResources": [
+            25,
+            25,
+            25
+          ],
+          "resourceTransferBytes": [
+            1500,
+            1500,
+            1500
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action": "start-to-two-frames",
+          "n": 10,
+          "durationMs": [
+            185.95,
+            169.7,
+            245.8
+          ],
+          "passed": true
+        }
+      ]
+    },
+    {
+      "id": "no-accounts",
+      "browser": "157.0.4341.60",
+      "profile": "desktop",
+      "runs": 1,
+      "sampleCount": 6,
+      "immutableAssets": false,
+      "buildHash": "ccec6af3f1df24158ec6f9ab37396b3d3391a1eddaa4aceacd059a6104a76277",
+      "cases": [
+        {
+          "scenario": "support",
+          "mode": "cold",
+          "n": 1,
+          "readyMs": [
+            1085.6,
+            1085.6,
+            1085.6
+          ],
+          "lcpMs": [
+            1344,
+            1344,
+            1344
+          ],
+          "cls": [
+            0.191,
+            0.191,
+            0.191
+          ],
+          "longTaskMs": [
+            224,
+            224,
+            224
+          ],
+          "completedResources": [
+            14,
+            14,
+            14
+          ],
+          "resourceTransferBytes": [
+            70318,
+            70318,
+            70318
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "support",
+          "mode": "warm",
+          "n": 1,
+          "readyMs": [
+            806.8,
+            806.8,
+            806.8
+          ],
+          "lcpMs": [
+            1028,
+            1028,
+            1028
+          ],
+          "cls": [
+            0.191,
+            0.191,
+            0.191
+          ],
+          "longTaskMs": [
+            0,
+            0,
+            0
+          ],
+          "completedResources": [
+            14,
+            14,
+            14
+          ],
+          "resourceTransferBytes": [
+            4200,
+            4200,
+            4200
+          ],
+          "previewTransferBytes": [
+            0,
+            0,
+            0
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-item",
+          "mode": "cold",
+          "n": 1,
+          "readyMs": [
+            1879,
+            1879,
+            1879
+          ],
+          "lcpMs": [
+            964,
+            964,
+            964
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            495,
+            495,
+            495
+          ],
+          "completedResources": [
+            33,
+            33,
+            33
+          ],
+          "resourceTransferBytes": [
+            271962,
+            271962,
+            271962
+          ],
+          "previewTransferBytes": [
+            139971,
+            139971,
+            139971
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "flat-item",
+          "mode": "warm",
+          "n": 1,
+          "readyMs": [
+            1532.5,
+            1532.5,
+            1532.5
+          ],
+          "lcpMs": [
+            660,
+            660,
+            660
+          ],
+          "cls": [
+            0.098,
+            0.098,
+            0.098
+          ],
+          "longTaskMs": [
+            71,
+            71,
+            71
+          ],
+          "completedResources": [
+            33,
+            33,
+            33
+          ],
+          "resourceTransferBytes": [
+            9900,
+            9900,
+            9900
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "cold",
+          "n": 1,
+          "readyMs": [
+            1545,
+            1545,
+            1545
+          ],
+          "lcpMs": [
+            956,
+            956,
+            956
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            630,
+            630,
+            630
+          ],
+          "completedResources": [
+            25,
+            25,
+            25
+          ],
+          "resourceTransferBytes": [
+            240583,
+            240583,
+            240583
+          ],
+          "previewTransferBytes": [
+            139971,
+            139971,
+            139971
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        },
+        {
+          "scenario": "skin-3d",
+          "mode": "warm",
+          "n": 1,
+          "readyMs": [
+            1217.6,
+            1217.6,
+            1217.6
+          ],
+          "lcpMs": [
+            612,
+            612,
+            612
+          ],
+          "cls": [
+            0.104,
+            0.104,
+            0.104
+          ],
+          "longTaskMs": [
+            156,
+            156,
+            156
+          ],
+          "completedResources": [
+            25,
+            25,
+            25
+          ],
+          "resourceTransferBytes": [
+            7500,
+            7500,
+            7500
+          ],
+          "previewTransferBytes": [
+            600,
+            600,
+            600
+          ],
+          "outstandingRequests": [
+            0,
+            0,
+            0
+          ]
+        }
+      ],
+      "actions": [
+        {
+          "action": "start-to-two-frames",
+          "n": 2,
+          "durationMs": [
+            177.3,
+            176.7,
+            177.9
+          ],
+          "passed": true
+        },
+        {
+          "action": "next-back",
+          "n": 2,
+          "durationMs": null,
+          "passed": true
+        },
+        {
+          "action": "upload-valid-png",
+          "n": 1,
+          "durationMs": null,
+          "passed": true
+        },
+        {
+          "action": "fixture-username-lookup",
+          "n": 1,
+          "durationMs": null,
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

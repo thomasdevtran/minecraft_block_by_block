@@ -51,6 +51,7 @@ function devApi(routes: Record<string, Route>): Plugin {
 
 // https://vite.dev/config/
 export default defineConfig({
+  build: { manifest: true },
   preview: { headers: previewHeaders },
   plugins: [
     vue(),

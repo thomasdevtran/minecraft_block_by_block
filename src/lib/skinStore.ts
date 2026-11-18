@@ -1,5 +1,5 @@
 import { ref } from 'vue'
-import { readSkinPng, type SkinModelType } from '../engine/skin'
+import type { SkinModelType } from '../engine/skin'
 import { hashString, readRecentBuild, readStored, writeStored } from './storage'
 
 export interface LoadedSkin {
@@ -57,6 +57,8 @@ export async function fetchSkinByUsername(username: string): Promise<LoadedSkin>
     const body = await res.json().catch(() => null)
     throw new Error(body?.error ?? `Lookup failed (${res.status}).`)
   }
+  // Shared state is imported by auth on every page; processing belongs to the lookup operation.
+  const { readSkinPng } = await import('../engine/skin')
   return {
     dataUrl: await blobToDataUrl(await readSkinPng(await res.blob())),
     model: res.headers.get('X-Skin-Model') === 'slim' ? 'slim' : 'classic',
