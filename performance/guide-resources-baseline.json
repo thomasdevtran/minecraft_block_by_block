@@ -1,0 +1,329 @@
+{
+  "schemaVersion": 1,
+  "beforeCommit": "bc2b5b0",
+  "date": "2026-11-18",
+  "timezone": "America/Los_Angeles",
+  "browser": "157.0.4341.60",
+  "beforeBuildHash": "151821b9a1772d9da5dcc430b2b6af15cc473b8a4529eaa66e0ad26e6721fc86",
+  "afterBuildHash": "5c642a458ac55f3aba40ef136d06c974086c99e217bfa7b4d6ca4c536693f649",
+  "settings": {
+    "cpuSlowdown": 4,
+    "latencyMs": 150,
+    "downloadBytesPerSecond": 200000,
+    "uploadBytesPerSecond": 93750,
+    "observationMs": 1500
+  },
+  "viewport": {
+    "width": 1280,
+    "height": 800
+  },
+  "deviceScaleFactor": 1,
+  "measurementScope": "Five desktop repetitions per case and cache mode (80 samples total). Same Vite production preview, HTTP/1, 4x CPU and 150ms latency. Compression is reflected in encoded/decoded Resource Timing sizes. Arrays are [median, min, max] milliseconds. Transfers include HTTP overhead; no hosted CDN claim.",
+  "bundle": {
+    "startupBefore": 51012,
+    "startupAfter": 51010,
+    "itemRouteBefore": 80290,
+    "itemRouteAfter": 80559,
+    "unit": "gzip bytes",
+    "budgetsUnchanged": true
+  },
+  "cases": [
+    {
+      "name": "flat-block",
+      "before": {
+        "coldReadyMs": [
+          1902.6,
+          1861,
+          1940.9
+        ],
+        "warmReadyMs": [
+          1507.1,
+          1470,
+          1518.9
+        ]
+      },
+      "after": {
+        "coldReadyMs": [
+          1889.4,
+          1858.7,
+          1919.9
+        ],
+        "warmReadyMs": [
+          1510.3,
+          1504.7,
+          1530.2
+        ]
+      },
+      "removedColdAssets": [
+        {
+          "path": "/textures/blocks/diamond_ore.png",
+          "transferBytes": 3856,
+          "encodedBytes": 3556,
+          "decodedBytes": 3556
+        }
+      ],
+      "savedColdAssetTransferBytes": 3856
+    },
+    {
+      "name": "flat-shape",
+      "before": {
+        "coldReadyMs": [
+          1904.7,
+          1897.3,
+          1936.1
+        ],
+        "warmReadyMs": [
+          1520.5,
+          1516.6,
+          1540.7
+        ]
+      },
+      "after": {
+        "coldReadyMs": [
+          1878.7,
+          1857.3,
+          1898.5
+        ],
+        "warmReadyMs": [
+          1513.8,
+          1507.7,
+          1520.9
+        ]
+      },
+      "removedColdAssets": [
+        {
+          "path": "/data/shapes/chest.json",
+          "transferBytes": 7721,
+          "encodedBytes": 7421,
+          "decodedBytes": 74312
+        }
+      ],
+      "savedColdAssetTransferBytes": 7721
+    },
+    {
+      "name": "flower",
+      "before": {
+        "coldReadyMs": [
+          1858,
+          1839.4,
+          1914.1
+        ],
+        "warmReadyMs": [
+          1480,
+          1473,
+          1498.7
+        ]
+      },
+      "after": {
+        "coldReadyMs": [
+          1859,
+          1843.5,
+          1868.3
+        ],
+        "warmReadyMs": [
+          1479.4,
+          1466,
+          1488.2
+        ]
+      },
+      "removedColdAssets": [
+        {
+          "path": "/textures/pot.png",
+          "transferBytes": 1128,
+          "encodedBytes": 828,
+          "decodedBytes": 828
+        }
+      ],
+      "savedColdAssetTransferBytes": 1128
+    },
+    {
+      "name": "potted-flower",
+      "before": {
+        "coldReadyMs": [
+          1886.1,
+          1873.9,
+          1929.3
+        ],
+        "warmReadyMs": [
+          1488,
+          1481.8,
+          1524.2
+        ]
+      },
+      "after": {
+        "coldReadyMs": [
+          1888.1,
+          1854.4,
+          1902.7
+        ],
+        "warmReadyMs": [
+          1492,
+          1482.4,
+          1520
+        ]
+      },
+      "removedColdAssets": [],
+      "savedColdAssetTransferBytes": 0
+    }
+  ],
+  "verification": {
+    "unitAndDatabaseTests": 270,
+    "configurations": 15,
+    "writtenStatesCompared": 390,
+    "desktopEquivalent": true,
+    "narrow390pxEquivalent": true,
+    "contracts": [
+      {
+        "name": "item",
+        "states": 28,
+        "writtenSHA256": "0eb6bd2b50fe7d8471fa690cfd3da2442577d53c89dc539a11ad6a2e03bd2e53",
+        "pixelDecodesBefore": 1,
+        "pixelDecodesAfter": 1,
+        "totals": "84cubes11paint colors11cube types"
+      },
+      {
+        "name": "flat-block",
+        "states": 27,
+        "writtenSHA256": "b62bca669c9a0a562460e595d018a672ef84bcc58ecdb28cd24975821e8753e5",
+        "pixelDecodesBefore": 2,
+        "pixelDecodesAfter": 1,
+        "totals": "256cubes10paint colors10cube types"
+      },
+      {
+        "name": "flat-classic-block",
+        "states": 25,
+        "writtenSHA256": "8b1e90a827a53c13fea39773c501f19af9a5c8f7c83727a7f749c8b06101c2e0",
+        "pixelDecodesBefore": 2,
+        "pixelDecodesAfter": 1,
+        "totals": "256cubes8paint colors8cube types"
+      },
+      {
+        "name": "hollow-block",
+        "states": 27,
+        "writtenSHA256": "d3e47390d0adf6e1557d4b4bee50db08bc27ac27f9f29daf12f4c26aacb7b413",
+        "pixelDecodesBefore": 2,
+        "pixelDecodesAfter": 1,
+        "totals": "1,352cubes10paint colors10cube types"
+      },
+      {
+        "name": "solid-block",
+        "states": 27,
+        "writtenSHA256": "6752261018f3a486ad89ee070497527524e165e7dba535b7dc46e098db1176ec",
+        "pixelDecodesBefore": 2,
+        "pixelDecodesAfter": 1,
+        "totals": "4,096cubes10paint colors10cube types"
+      },
+      {
+        "name": "classic-block",
+        "states": 25,
+        "writtenSHA256": "93b01e44aac709d4e4187c9d6f07642a9e271b86c97010942a631ae2e4488c95",
+        "pixelDecodesBefore": 2,
+        "pixelDecodesAfter": 1,
+        "totals": "1,352cubes8paint colors8cube types"
+      },
+      {
+        "name": "flat-shape",
+        "states": 29,
+        "writtenSHA256": "71c770b73b216e8b24f6dd59c50ffb6c644b49ab518b0aea2b7b5ee8157a3e04",
+        "pixelDecodesBefore": 1,
+        "pixelDecodesAfter": 1,
+        "totals": "256cubes12paint colors12cube types"
+      },
+      {
+        "name": "hollow-shape",
+        "states": 27,
+        "writtenSHA256": "6c99d69375e257773009fdae12e0fa2eff3e16d0c0d3f36c444ad82d87036585",
+        "pixelDecodesBefore": 1,
+        "pixelDecodesAfter": 0,
+        "totals": "1,017cubes12paint colors12cube types"
+      },
+      {
+        "name": "solid-shape",
+        "states": 27,
+        "writtenSHA256": "ebdd01dab66c243945c0a45be3dfd03b0dca97008b08e5e4ea12d3a194e6d5ca",
+        "pixelDecodesBefore": 1,
+        "pixelDecodesAfter": 0,
+        "totals": "2,752cubes12paint colors12cube types"
+      },
+      {
+        "name": "flat-flower",
+        "states": 20,
+        "writtenSHA256": "d6190d206fbf5be5092b1f0a3e658b7e2b95b0dc39d2484a6e58fde980f168f3",
+        "pixelDecodesBefore": 2,
+        "pixelDecodesAfter": 1,
+        "totals": "35cubes8paint colors8cube types"
+      },
+      {
+        "name": "flower",
+        "states": 20,
+        "writtenSHA256": "be2a93c3dff0fed57befaec00ea1559106886a7c8b3ca48de27d9342bede76d8",
+        "pixelDecodesBefore": 2,
+        "pixelDecodesAfter": 1,
+        "totals": "68cubes8paint colors8cube types"
+      },
+      {
+        "name": "classic-flower",
+        "states": 22,
+        "writtenSHA256": "5a24d4cda29e30301e16d42bbbac1b9634b2de300ee028502fe9493ef5c320a9",
+        "pixelDecodesBefore": 2,
+        "pixelDecodesAfter": 1,
+        "totals": "68cubes10paint colors10cube types"
+      },
+      {
+        "name": "flat-potted-flower",
+        "states": 26,
+        "writtenSHA256": "6f51cc12f870530bd9974c1bbb5b3beb3a61df9660f6dc1f3bf9486e294484fb",
+        "pixelDecodesBefore": 2,
+        "pixelDecodesAfter": 2,
+        "totals": "65cubes10paint colors10cube types"
+      },
+      {
+        "name": "potted-flower",
+        "states": 30,
+        "writtenSHA256": "2fdb7680f21579978921b457eef05b4abcbc4e0ebeb409c998ef7515a214c61a",
+        "pixelDecodesBefore": 2,
+        "pixelDecodesAfter": 2,
+        "totals": "249cubes12paint colors12cube types"
+      },
+      {
+        "name": "classic-potted-flower",
+        "states": 30,
+        "writtenSHA256": "48ff9456b52ae87d108ac5719873537883c0d444a3e015d631387be2650f8423",
+        "pixelDecodesBefore": 2,
+        "pixelDecodesAfter": 2,
+        "totals": "249cubes12paint colors12cube types"
+      }
+    ],
+    "desktopChecks": [
+      "unused-failure-isolated:diamond_ore",
+      "unused-failure-isolated:chest",
+      "unused-failure-isolated:poppy",
+      "settings-reuse-and-saved-progress",
+      "late-shape-success",
+      "late-shape-failure",
+      "late-shape-item-change",
+      "late-shape-unmount",
+      "required-image-retry"
+    ],
+    "narrowChecks": [
+      "unused-failure-isolated:diamond_ore",
+      "unused-failure-isolated:chest",
+      "unused-failure-isolated:poppy",
+      "settings-reuse-and-saved-progress",
+      "late-shape-success",
+      "late-shape-failure",
+      "late-shape-item-change",
+      "late-shape-unmount",
+      "required-image-retry"
+    ]
+  },
+  "limitations": [
+    "Timings are informational: flat-shape improves about 26ms, but ranges overlap; other cases are within run variation.",
+    "Only desktop is timed in this phase; the 390px checks verify behavior and overflow, not phone performance.",
+    "Written-state comparisons disable WebGL and reduce motion; timed runs retain normal WebGL/motion.",
+    "Header sprites still load as ordinary images when visible. The optimizer controls model inputs and decoding, not browser image caching.",
+    "Cache is view-local, cleared for item changes/unmount; no global or persistent pixel cache.",
+    "Phase-one metadata incorrectly called preview responses uncompressed. Resource Timing sizes were correct; documentation now reflects observed compression."
+  ],
+  "startedDate": "2026-11-17"
+}

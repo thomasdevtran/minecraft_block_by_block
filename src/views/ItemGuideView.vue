@@ -1,22 +1,23 @@
 <script setup lang="ts">
-import { computed, reactive, ref, shallowRef, watch } from 'vue'
+import { computed, onBeforeUnmount, reactive, ref, shallowRef, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import BlockIcon from '../components/BlockIcon.vue'
 import GuideViewer from '../components/GuideViewer.vue'
 import PaintControls from '../components/PaintControls.vue'
 import ViewToggle from '../components/ViewToggle.vue'
 import { blockToModel } from '../engine/block'
-import { shapeToModel, shapeCubeCounts, validateShape, type ShapeData } from '../engine/shape'
+import { shapeToModel, shapeCubeCounts, type ShapeData } from '../engine/shape'
 import { checkConnectivity } from '../engine/connectivity'
 import { flowerToModel, pottedSprite } from '../engine/flower'
 import { itemToModel } from '../engine/item'
-import { loadPixels, type PixelImage } from '../engine/pixels'
+import type { PixelImage } from '../engine/pixels'
 import { buildGuide } from '../engine/steps'
 import { assetUrl, blockUrl, loadCatalog, textureUrl, type BuildableItem } from '../lib/catalog'
 import { setPageMeta } from '../lib/meta'
 import { readStored, writeStored } from '../lib/storage'
 import NotFoundView from './NotFoundView.vue'
 import { flag, look, LOOK_OPTIONS, paintLimit } from '../lib/buildSettings'
+import { createGuideResources, guideResourceUrls } from '../lib/guideResources'
 
 const props = defineProps<{ id: string }>()
 const route = useRoute()
@@ -80,11 +81,16 @@ const activeLook = computed(() => (item.value?.classic ? look.value : 'current')
 
 const notFound = ref(false)
 const loading = ref(false)
-/** Bumped on every load so a slow response for an earlier item can't overwrite a newer one. */
-let loadToken = 0
+// Catalog and selected-resource requests have separate lifetimes: clearing an old item's
+// textures must not invalidate the catalog request that is finding its replacement.
+let itemToken = 0
+let textureToken = 0
+const resources = createGuideResources()
 
 async function loadItem(id: string) {
-  const token = ++loadToken
+  const token = ++itemToken
+  textureToken++
+  resources.clear()
   item.value = null
   potUrls.value = null
   notFound.value = false
@@ -92,7 +98,7 @@ async function loadItem(id: string) {
   loading.value = true
   try {
     const catalog = await loadCatalog()
-    if (token !== loadToken) return
+    if (token !== itemToken) return
     const found = catalog.items.find((i) => i.id === id) ?? null
     potUrls.value = { current: assetUrl(catalog.pot), classic: assetUrl(catalog.classicPot) }
     classicVersion.value = catalog.classicVersion
@@ -104,14 +110,14 @@ async function loadItem(id: string) {
     item.value = found
     setPageMeta(`How to build ${found.name}`, `Step-by-step guide and paint list for building a Minecraft ${found.name} out of real cubes.`)
   } catch {
-    if (token === loadToken) error.value = "Couldn't load the item list. Check your connection and try again."
+    if (token === itemToken) error.value = "Couldn't load the item list. Check your connection and try again."
   } finally {
-    if (token === loadToken && !item.value) loading.value = false
+    if (token === itemToken && !item.value) loading.value = false
   }
 }
 
 async function loadTextures() {
-  const token = ++loadToken
+  const token = ++textureToken
   const found = item.value
   const lookNow = activeLook.value
   flatPixels.value = null
@@ -122,45 +128,40 @@ async function loadTextures() {
   error.value = ''
   loading.value = true
   try {
-    const strip = blockUrl(found, lookNow)
-    const loaded = await Promise.all([
-      loadPixels(textureUrl(found, lookNow)),
-      strip ? loadPixels(strip) : null,
-      found.flower?.pottable ? loadPixels(potUrls.value[lookNow]) : null,
-      found.shape ? fetch(assetUrl(found.shape)).then(async response => {
-        if (!response.ok) throw new Error('Build shape could not be loaded.')
-        const data: unknown = await response.json()
-        validateShape(data)
-        return data
-      }) : null,
-    ])
-    if (token !== loadToken) return
-    ;[flatPixels.value, blockPixels.value, potPixels.value, shapeData.value] = loaded
+    const loaded = await resources.load(guideResourceUrls(found, {
+      view: view.value, look: lookNow, potted: potted.value, potUrl: potUrls.value[lookNow],
+    }))
+    if (token !== textureToken) return
+    flatPixels.value = loaded.sprite
+    blockPixels.value = loaded.block
+    potPixels.value = loaded.pot
+    shapeData.value = loaded.shape
   } catch {
-    if (token === loadToken) error.value = `Couldn't load the textures for ${found.name}. Check your connection and try again.`
+    if (token === textureToken) error.value = `Couldn't load the textures for ${found.name}. Check your connection and try again.`
   } finally {
-    if (token === loadToken) loading.value = false
+    if (token === textureToken) loading.value = false
   }
 }
 
 const retry = () => (item.value ? loadTextures() : loadItem(props.id))
 
 watch(() => props.id, loadItem, { immediate: true })
-watch([item, activeLook], loadTextures)
+watch([item, activeLook, view, potted], loadTextures)
+onBeforeUnmount(() => { itemToken++; textureToken++; resources.clear() })
 
 
 const model = computed(() => {
   const sprite = flatPixels.value
   const pot = potted.value ? potPixels.value : null
-  if (!sprite || (potted.value && !pot)) return null
+  if (potted.value && !pot) return null
   const colors = { maxPaints: maxPaints.value, simplePaint: blockPrefs.simplePaint }
 
-  if (view.value === '3d' && item.value?.flower) return flowerToModel(sprite, { ...colors, pot })
+  if (view.value === '3d' && item.value?.flower) return sprite ? flowerToModel(sprite, { ...colors, pot }) : null
   if (view.value === '3d' && item.value?.shape) return shapeData.value ? shapeToModel(shapeData.value, { ...colors, hollow: blockPrefs.hollow }) : null
   if (view.value === '3d') {
     return blockPixels.value ? blockToModel(blockPixels.value, { ...colors, hollow: blockPrefs.hollow }) : null
   }
-  return itemToModel(pot ? pottedSprite(sprite, pot) : sprite, { maxPaints: maxPaints.value, simplePaint: false })
+  return sprite ? itemToModel(pot ? pottedSprite(sprite, pot) : sprite, { maxPaints: maxPaints.value, simplePaint: false }) : null
 })
 const guide = computed(() => (model.value ? buildGuide(model.value) : null))
 const connectivity = computed(() =>

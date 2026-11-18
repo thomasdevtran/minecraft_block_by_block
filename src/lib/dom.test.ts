@@ -1,5 +1,43 @@
-import { describe, expect, it, vi } from 'vitest'
-import { usePageFocus } from './dom'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { usePageFocus, whenIdle } from './dom'
+
+afterEach(() => {
+  vi.unstubAllGlobals()
+  vi.useRealTimers()
+})
+
+describe('whenIdle', () => {
+  it('cancels the browser idle callback with its returned handle', () => {
+    const callbacks = new Map<number, () => void>()
+    const schedule = vi.fn((fn: () => void) => { callbacks.set(42, fn); return 42 })
+    const cancel = vi.fn((id: number) => callbacks.delete(id))
+    vi.stubGlobal('requestIdleCallback', schedule)
+    vi.stubGlobal('cancelIdleCallback', cancel)
+    const work = vi.fn()
+    const stop = whenIdle(work)
+    expect(schedule).toHaveBeenCalledWith(work, { timeout: 4000 })
+    stop()
+    for (const callback of callbacks.values()) callback()
+    expect(cancel).toHaveBeenCalledWith(42)
+    expect(work).not.toHaveBeenCalled()
+  })
+
+  it('runs fallback work once after the delay and cancels unneeded work', () => {
+    vi.useFakeTimers()
+    vi.stubGlobal('requestIdleCallback', undefined)
+    const work = vi.fn()
+    const cancelled = vi.fn()
+    whenIdle(work)
+    whenIdle(cancelled)()
+    vi.advanceTimersByTime(1499)
+    expect(work).not.toHaveBeenCalled()
+    vi.advanceTimersByTime(1)
+    expect(work).toHaveBeenCalledTimes(1)
+    vi.runAllTimers()
+    expect(work).toHaveBeenCalledTimes(1)
+    expect(cancelled).not.toHaveBeenCalled()
+  })
+})
 
 /** Just enough of an element for the helper; the suite runs without a DOM. */
 function fakeElement(tabindex?: string) {

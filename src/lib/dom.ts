@@ -55,7 +55,7 @@ export function hasWebGL(): boolean {
 /**
  * Becomes true the first time `el` comes near the viewport, and stays true.
  *
- * Used to hold back the expensive things — the three.js preview, an ad script — until the reader
+ * Used to hold back optional work — previews and homepage counts — until the reader
  * is actually heading towards them. One-shot on purpose: once loaded, they stay loaded.
  * `threshold` is the share of `el` that must be visible (0 = any part), for effects that should
  * start only once the reader can actually see them.

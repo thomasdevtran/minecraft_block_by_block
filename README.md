@@ -17,6 +17,8 @@ npm run build
 
 After a production build, `npm run check:bundle` checks the startup and route JavaScript budgets. See [performance/README.md](performance/README.md) for repeatable browser measurements, baseline results, and CI reporting.
 
+`npm run check:site-behavior -- --channel msedge` verifies catalog navigation and deferred counter cleanup against that build. `npm run perf:catalog` compares metadata processing with the previous algorithms on the current catalog and a 10,000-entry fixture.
+
 ## Accounts and My Builds
 
 Accounts use Supabase Auth. The private `saved_builds` table stores item/skin settings, counts and the explicitly saved step. Skin PNGs use the private `build-skins` bucket. Users can save an existing local build from its guide, then reopen it from My Builds on another device.
@@ -161,15 +163,17 @@ The optional `.github/workflows/record-visitors.yml` snapshots the aggregate in 
 
 Hashed Vite assets use immutable caching. Versioned textures use the catalog's Minecraft version in their URL. If textures change without a version change, update the cache-busting scheme. The catalog revalidates after a short CDN interval; fonts have a bounded cache rather than permanent caching.
 
-Advertising remains off. Enabling it requires a separate implementation and legal review, including consent, child-audience treatment, provider settings, CSP, privacy disclosures, payment/hosting terms and production tests. See the release review.
+The application ships without advertising code. Any future advertising integration requires a separate implementation and legal review, including consent, child-audience treatment, provider settings, CSP, privacy disclosures, payment/hosting terms and production tests. See the release review.
 
 ## Layout
 
-See [REFACTOR_SPEC.md](REFACTOR_SPEC.md) for the performance baseline, prioritized refactoring requirements, acceptance criteria, and delivery order.
+See [performance/README.md](performance/README.md) for measured baselines, refactoring results, and verification commands.
 
 - `src/engine/`: pure TypeScript. Image → cubes → paint palette → steps. No Vue, unit-tested.
-- `src/components/GuideViewer.vue`: step UI, with `StepGrid.vue` (2D grid) and `VoxelPreview.vue` (three.js, loaded lazily so the 570 KB chunk never blocks the written steps).
-- `src/views/CatalogView.vue`: the 1,105-item grid. Renders 60 tiles at a time — block tiles draw their faces from CSS background images, which are never lazy-loaded, so rendering the whole list would pull ~1 MB of textures on first paint.
+- `src/components/GuideViewer.vue`: step UI, with `StepGrid.vue` (2D grid) and `VoxelPreview.vue` (three.js, loaded separately so written steps do not wait for it).
+- `src/views/CatalogView.vue`: the catalog grid. Renders 60 tiles at a time; unrendered CSS block icons do not request their textures.
+- `src/lib/demo.ts`: optional homepage generator loading; keeps unused generators out of the initial catalog.
+- `src/lib/guideResources.ts`: selected guide inputs and their view-local cache; clears on item changes and unmount.
 - `api/skin/[username].ts`: Vercel function that proxies Mojang's skin API.
 - `api/stats.ts`: the visitor counter, `GET` and `POST` in one file.
 - `vite.config.ts`: `devApi()` mounts both functions on the dev server, so `npm run dev` needs no extra tools.

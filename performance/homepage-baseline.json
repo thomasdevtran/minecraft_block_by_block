@@ -1,0 +1,587 @@
+{
+  "schemaVersion": 1,
+  "date": "2026-11-18",
+  "baseline": "Completed guide-resource phase working tree, including RF-03 changes not yet committed when this phase began; isolated production build retained at scripts/.cache/phase3-before.",
+  "bundle": {
+    "unit": "gzip bytes",
+    "startupBefore": 51010,
+    "startupAfter": 51089,
+    "catalogStaticBefore": 64527,
+    "catalogStaticAfter": 61695,
+    "savedCatalogBytes": 2832,
+    "budgetsUnchanged": true
+  },
+  "scheduling": {
+    "marginPx": 200,
+    "shortViewport": {
+      "width": 1280,
+      "height": 200
+    },
+    "initialPixelDecodesBefore": [
+      "/textures/items/rose.png",
+      "/textures/items/emerald.png",
+      "/textures/items/red_tulip.png"
+    ],
+    "initialPixelDecodesAfter": [],
+    "narrowPixelDecodesAfter": [],
+    "checks": [
+      "starter-near-once",
+      "observer-fallback",
+      "optional-count-failure-guide-usable",
+      "optional-preview-failure-and-reselection",
+      "replay-animation-settles",
+      "latest-selection-wins",
+      "no-webgl-flat-fallback"
+    ],
+    "narrowChecks": [
+      "starter-near-once",
+      "observer-fallback",
+      "optional-count-failure-guide-usable",
+      "optional-preview-failure-and-reselection",
+      "replay-animation-settles",
+      "latest-selection-wins",
+      "no-webgl-flat-fallback"
+    ],
+    "branchIsolation": "Fresh page per demo: actual script requests are checked for item/block/flower/skin generators before following its guide. Shared pixels/palette/voxel helpers are allowed."
+  },
+  "verification": {
+    "unitAndDatabaseTests": 280,
+    "demoCombinations": 10,
+    "desktopAnd390pxBehavior": true,
+    "linkedGuideCountsMatch": true,
+    "existingWrittenGuideStates": 390,
+    "defaultView": "2d",
+    "flatPreviewRemainsRotatable": true,
+    "reducedMotion": true,
+    "replayAndRotation": true,
+    "lateSelectionGuard": true,
+    "observerFallback": true,
+    "noWebGLFallback": true,
+    "optionalFailuresRetainGuides": true
+  },
+  "metrics": [
+    {
+      "profile": "desktop",
+      "viewport": {
+        "width": 1280,
+        "height": 800
+      },
+      "deviceScaleFactor": 1,
+      "browser": "157.0.4341.60",
+      "settings": {
+        "cpuSlowdown": 4,
+        "latencyMs": 150,
+        "downloadBytesPerSecond": 200000,
+        "uploadBytesPerSecond": 93750,
+        "observationMs": 1500
+      },
+      "beforeBuildHash": "5c642a458ac55f3aba40ef136d06c974086c99e217bfa7b4d6ca4c536693f649",
+      "afterBuildHash": "286d730f2bde461d46589156a5b472adddc5d89127784eb9baba573ae863bbd6",
+      "before": [
+        {
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1360.9,
+            1338.8,
+            1378.5
+          ]
+        },
+        {
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1028.7,
+            1025.2,
+            1046.8
+          ]
+        }
+      ],
+      "after": [
+        {
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1384.9,
+            1360.3,
+            1434.4
+          ]
+        },
+        {
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1040.6,
+            1031,
+            1053.1
+          ]
+        }
+      ]
+    },
+    {
+      "profile": "mobile",
+      "viewport": {
+        "width": 390,
+        "height": 844
+      },
+      "deviceScaleFactor": 2,
+      "browser": "157.0.4341.60",
+      "settings": {
+        "cpuSlowdown": 4,
+        "latencyMs": 150,
+        "downloadBytesPerSecond": 200000,
+        "uploadBytesPerSecond": 93750,
+        "observationMs": 1500
+      },
+      "beforeBuildHash": "5c642a458ac55f3aba40ef136d06c974086c99e217bfa7b4d6ca4c536693f649",
+      "afterBuildHash": "286d730f2bde461d46589156a5b472adddc5d89127784eb9baba573ae863bbd6",
+      "before": [
+        {
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1377.2,
+            1364.2,
+            1385.1
+          ]
+        },
+        {
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1044.5,
+            1035.8,
+            1052.9
+          ]
+        }
+      ],
+      "after": [
+        {
+          "mode": "cold",
+          "n": 5,
+          "readyMs": [
+            1384.5,
+            1382.2,
+            1397.6
+          ]
+        },
+        {
+          "mode": "warm",
+          "n": 5,
+          "readyMs": [
+            1049.6,
+            1028.4,
+            1057.6
+          ]
+        }
+      ]
+    }
+  ],
+  "limitations": [
+    "Five runs per cold/warm profile, 40 timing samples; local production preview with measured response compression, not hosted CDN or field metrics.",
+    "Ready time marks catalog tiles, not completion of optional widgets. Medians are similar; no overall latency speedup is claimed.",
+    "Functional checks use 1280x200 and 390x200 windows to keep sections beyond their real trigger margins; default timing profiles are 1280x800 and 390x844.",
+    "Ordinary picker/card images may load before viewport entry; optional model generation and engine imports are deferred.",
+    "The default desktop viewport can legitimately trigger the demo immediately when it is already within 200px.",
+    "Flat Steve requires both skin-front projection and the flat item generator. A plain item in 3D mode still uses the flat generator.",
+    "The existing three.js renderer remains available for both styles, including rotatable flat builds."
+  ],
+  "behavior": {
+    "demos": {
+      "rose:2d": {
+        "summary": "Rose (flat): 30 cubes and 7 paint colors.",
+        "swatches": [
+          "rgb(209, 6, 9)",
+          "rgb(91, 69, 54)",
+          "rgb(247, 7, 15)",
+          "rgb(16, 99, 0)",
+          "rgb(22, 135, 0)",
+          "rgb(145, 2, 5)",
+          "rgb(186, 5, 11)"
+        ],
+        "link": "/item/rose?view=2d&paints=8&simple=1&hollow=1&look=current",
+        "iconFaces": [
+          [
+            "face front",
+            "40% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face right",
+            "100% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face top",
+            "0% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ]
+        ]
+      },
+      "rose:3d": {
+        "summary": "Rose (3D): 53 cubes and 7 paint colors.",
+        "swatches": [
+          "rgb(209, 6, 9)",
+          "rgb(91, 69, 54)",
+          "rgb(247, 7, 15)",
+          "rgb(16, 99, 0)",
+          "rgb(145, 2, 5)",
+          "rgb(22, 135, 0)",
+          "rgb(186, 5, 11)"
+        ],
+        "link": "/item/rose?view=3d&paints=8&simple=1&hollow=1&look=current",
+        "iconFaces": [
+          [
+            "face front",
+            "40% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face right",
+            "100% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face top",
+            "0% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ]
+        ]
+      },
+      "poppy:2d": {
+        "summary": "Poppy (flat): 35 cubes and 8 paint colors.",
+        "swatches": [
+          "rgb(32, 70, 38)",
+          "rgb(237, 48, 44)",
+          "rgb(38, 90, 37)",
+          "rgb(191, 37, 41)",
+          "rgb(155, 34, 26)",
+          "rgb(74, 143, 40)",
+          "rgb(43, 112, 42)",
+          "rgb(116, 35, 3)"
+        ],
+        "link": "/item/poppy?view=2d&paints=8&simple=1&hollow=1&look=current",
+        "iconFaces": [
+          [
+            "face front",
+            "40% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face right",
+            "100% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face top",
+            "0% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ]
+        ]
+      },
+      "poppy:3d": {
+        "summary": "Poppy (3D): 68 cubes and 8 paint colors.",
+        "swatches": [
+          "rgb(32, 70, 38)",
+          "rgb(237, 48, 44)",
+          "rgb(38, 90, 37)",
+          "rgb(155, 34, 26)",
+          "rgb(191, 37, 41)",
+          "rgb(74, 143, 40)",
+          "rgb(43, 112, 42)",
+          "rgb(116, 35, 3)"
+        ],
+        "link": "/item/poppy?view=3d&paints=8&simple=1&hollow=1&look=current",
+        "iconFaces": [
+          [
+            "face front",
+            "40% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face right",
+            "100% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face top",
+            "0% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ]
+        ]
+      },
+      "diamond_ore:2d": {
+        "summary": "Diamond Ore (flat): 256 cubes and 8 paint colors.",
+        "swatches": [
+          "rgb(127, 127, 127)",
+          "rgb(111, 111, 111)",
+          "rgb(143, 143, 143)",
+          "rgb(147, 170, 173)",
+          "rgb(119, 231, 209)",
+          "rgb(30, 208, 214)",
+          "rgb(35, 150, 152)",
+          "rgb(213, 255, 246)"
+        ],
+        "link": "/item/diamond_ore?view=2d&paints=8&simple=1&hollow=1&look=current",
+        "iconFaces": [
+          [
+            "face front",
+            "40% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face right",
+            "100% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face top",
+            "0% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ]
+        ]
+      },
+      "diamond_ore:3d": {
+        "summary": "Diamond Ore (3D): 1,352 cubes and 8 paint colors.",
+        "swatches": [
+          "rgb(111, 111, 111)",
+          "rgb(127, 127, 127)",
+          "rgb(143, 143, 143)",
+          "rgb(146, 171, 174)",
+          "rgb(119, 231, 209)",
+          "rgb(30, 208, 214)",
+          "rgb(35, 150, 152)",
+          "rgb(213, 255, 246)"
+        ],
+        "link": "/item/diamond_ore?view=3d&paints=8&simple=1&hollow=1&look=current",
+        "iconFaces": [
+          [
+            "face front",
+            "40% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face right",
+            "100% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face top",
+            "0% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ]
+        ]
+      },
+      "axolotl_bucket:2d": {
+        "summary": "Bucket of Axolotl (flat): 160 cubes and 8 paint colors.",
+        "swatches": [
+          "rgb(53, 52, 56)",
+          "rgb(242, 219, 233)",
+          "rgb(161, 161, 161)",
+          "rgb(236, 107, 147)",
+          "rgb(207, 71, 132)",
+          "rgb(114, 114, 114)",
+          "rgb(47, 91, 214)",
+          "rgb(233, 142, 213)"
+        ],
+        "link": "/item/axolotl_bucket?view=2d&paints=8&simple=1&hollow=1&look=current",
+        "iconFaces": [
+          [
+            "face front",
+            "40% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face right",
+            "100% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face top",
+            "0% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ]
+        ]
+      },
+      "axolotl_bucket:3d": {
+        "summary": "Bucket of Axolotl (flat build): 160 cubes and 8 paint colors.",
+        "swatches": [
+          "rgb(53, 52, 56)",
+          "rgb(242, 219, 233)",
+          "rgb(161, 161, 161)",
+          "rgb(236, 107, 147)",
+          "rgb(207, 71, 132)",
+          "rgb(114, 114, 114)",
+          "rgb(47, 91, 214)",
+          "rgb(233, 142, 213)"
+        ],
+        "link": "/item/axolotl_bucket?view=2d&paints=8&simple=1&hollow=1&look=current",
+        "iconFaces": [
+          [
+            "face front",
+            "40% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face right",
+            "100% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face top",
+            "0% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ]
+        ]
+      },
+      "steve:2d": {
+        "summary": "Steve (flat): 352 cubes and 8 paint colors.",
+        "swatches": [
+          "rgb(67, 55, 156)",
+          "rgb(1, 172, 172)",
+          "rgb(171, 115, 90)",
+          "rgb(153, 97, 71)",
+          "rgb(4, 144, 144)",
+          "rgb(56, 36, 17)",
+          "rgb(84, 72, 68)",
+          "rgb(255, 255, 255)"
+        ],
+        "link": "/skin/guide?view=2d&paints=8&simple=1&hollow=1&overlay=1&arm=classic",
+        "iconFaces": [
+          [
+            "face front",
+            "40% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face right",
+            "100% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face top",
+            "0% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ]
+        ]
+      },
+      "steve:3d": {
+        "summary": "Steve (3D): 1,168 cubes and 8 paint colors.",
+        "swatches": [
+          "rgb(47, 33, 16)",
+          "rgb(65, 54, 154)",
+          "rgb(1, 173, 173)",
+          "rgb(146, 93, 67)",
+          "rgb(170, 114, 89)",
+          "rgb(65, 65, 65)",
+          "rgb(4, 145, 145)",
+          "rgb(255, 255, 255)"
+        ],
+        "link": "/skin/guide?view=3d&paints=8&simple=1&hollow=1&overlay=1&arm=classic",
+        "iconFaces": [
+          [
+            "face front",
+            "40% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face right",
+            "100% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ],
+          [
+            "face top",
+            "0% 0px",
+            "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+          ]
+        ]
+      }
+    },
+    "checks": [
+      "starter-near-once",
+      "observer-fallback",
+      "optional-count-failure-guide-usable",
+      "optional-preview-failure-and-reselection",
+      "no-webgl-flat-fallback"
+    ],
+    "initial": {
+      "margins": {
+        "demo": 586.640625,
+        "starters": 1040.640625,
+        "height": 200
+      },
+      "decodes": [
+        "/textures/items/rose.png",
+        "/textures/items/emerald.png",
+        "/textures/items/red_tulip.png"
+      ],
+      "engines": [
+        "item"
+      ],
+      "scripts": [
+        "/assets/index-BVk9G6J4.js",
+        "/assets/reactivity.esm-bundler-kJHA3NAP.js",
+        "/assets/runtime-core.esm-bundler-CWANg9kf.js",
+        "/assets/rolldown-runtime-DK3Fl9T5.js",
+        "/assets/skinStore-DjUGso3f.js",
+        "/assets/CatalogView-B4D52ESK.js",
+        "/assets/BlockIcon-M0EKZG7G.js",
+        "/assets/model-DPn_m6mO.js",
+        "/assets/ViewToggle-B7qRKTLR.js",
+        "/assets/buildSettings-BiOMlNuy.js",
+        "/assets/item-CmXaquRX.js",
+        "/assets/flower-bV-yatMs.js",
+        "/assets/connectivity-ltHJUxAu.js",
+        "/assets/skin-B8vT9q-u.js",
+        "/assets/VoxelPreview-BK4Ki_9X.js"
+      ]
+    },
+    "starters": [
+      {
+        "text": "30 cubes · 7 paint colors · flat build",
+        "href": "/item/rose?view=2d&look=current&paints=8"
+      },
+      {
+        "text": "96 cubes · 8 paint colors · flat build",
+        "href": "/item/emerald?view=2d&look=current&paints=8"
+      },
+      {
+        "text": "49 cubes · 7 paint colors · flat build",
+        "href": "/item/red_tulip?view=2d&look=current&paints=8"
+      }
+    ],
+    "noWebGL": {
+      "summary": "Steve (flat): 352 cubes and 8 paint colors.",
+      "swatches": [
+        "rgb(67, 55, 156)",
+        "rgb(1, 172, 172)",
+        "rgb(171, 115, 90)",
+        "rgb(153, 97, 71)",
+        "rgb(4, 144, 144)",
+        "rgb(56, 36, 17)",
+        "rgb(84, 72, 68)",
+        "rgb(255, 255, 255)"
+      ],
+      "link": "/skin/guide?view=2d&paints=8&simple=1&hollow=1&overlay=1&arm=classic",
+      "iconFaces": [
+        [
+          "face front",
+          "40% 0px",
+          "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+        ],
+        [
+          "face right",
+          "100% 0px",
+          "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+        ],
+        [
+          "face top",
+          "0% 0px",
+          "url(\"/textures/blocks/diamond_ore.png?v=26.3\")"
+        ]
+      ],
+      "boardHash": "d226f04f57f02c45eb8a371a7a2530f6d25ba62b463aacebf751cc47dfb95196",
+      "cubes": 352
+    }
+  }
+}

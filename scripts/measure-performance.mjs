@@ -30,6 +30,7 @@ const scenarios = [
   { name: 'support', path: '/support', ready: '.support h1' },
   { name: 'catalog', path: '/', ready: '#catalog .tile' },
   { name: 'flat-item', path: '/item/diamond_sword?view=2d', ready: guide },
+  { name: 'flat-block', path: '/item/diamond_ore?view=2d', ready: guide },
   { name: 'hollow-block', path: '/item/diamond_ore?view=3d&hollow=1', ready: guide },
   { name: 'solid-block', path: '/item/diamond_ore?view=3d&hollow=0', ready: guide },
   { name: 'flat-shape', path: '/item/chest?view=2d', ready: guide },
@@ -80,7 +81,7 @@ function save() {
   mkdirSync(dirname(values.output), { recursive: true })
   writeFileSync(values.output, JSON.stringify({ schemaVersion: 1, buildHash, browser: browser?.version(), node: process.version,
     profile: values.profile, ...profile, settings, runs, immutableAssets: values['immutable-assets'],
-    scope: 'Local production preview; uncompressed localhost transfers, no hosted APIs. LCP/CLS stop 1500ms after ready. Warm reload retains HTTP cache; guide progress reset between samples. Action samples are not field INP.',
+    scope: 'Local production preview; Resource Timing records compressed transfer and decoded sizes, no hosted APIs. LCP/CLS stop 1500ms after ready. Warm reload retains HTTP cache; guide progress reset between samples. Action samples are not field INP.',
     summaries, samples, interactions }, null, 2) + '\n')
 }
 

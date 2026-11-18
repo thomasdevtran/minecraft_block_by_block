@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { whenIdle } from '../lib/dom'
 import { loadStats } from '../lib/stats'
@@ -8,14 +8,22 @@ withDefaults(defineProps<{ big?: boolean }>(), { big: false })
 
 const total = ref<number | null>(null)
 const failed = ref(false)
+let active = true
+let cancelIdle = () => {}
+
+onBeforeUnmount(() => {
+  active = false
+  cancelIdle()
+})
 
 onMounted(() => {
-  // After the page has settled, never during it — the number is the least urgent thing here.
-  whenIdle(async () => {
+  cancelIdle = whenIdle(async () => {
     try {
-      total.value = (await loadStats()).total
+      // The request is shared with other counters; only cancel this instance's updates.
+      const stats = await loadStats()
+      if (active) total.value = stats.total
     } catch {
-      failed.value = true
+      if (active) failed.value = true
     }
   })
 })
@@ -59,8 +67,6 @@ onMounted(() => {
   font-weight: 700;
   color: var(--ink);
 }
-
-/* Colour comes from the global .muted class; this only exists as a hook for the .big size. */
 
 .big {
   justify-content: center;

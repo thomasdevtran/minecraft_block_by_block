@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { BLOCK_STRIP_ORDER } from '../engine/block'
-import type { Face } from '../engine/voxels'
+import { BLOCK_STRIP_ORDER, type Face } from '../engine/voxels'
 
 /** Small 3D cube drawn with CSS from a six-face block strip. */
 const props = withDefaults(defineProps<{ src: string; size?: number; label?: string }>(), { size: 30 })

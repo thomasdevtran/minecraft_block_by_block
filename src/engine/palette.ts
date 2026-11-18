@@ -27,7 +27,7 @@ function linearToSrgb(v: number): number {
   return Math.round(Math.min(1, Math.max(0, c)) * 255)
 }
 
-export function hexToOklab(hex: string): Lab {
+function hexToOklab(hex: string): Lab {
   const { r, g, b } = fromHex(hex)
   const lr = srgbToLinear(r)
   const lg = srgbToLinear(g)
@@ -42,7 +42,7 @@ export function hexToOklab(hex: string): Lab {
   ]
 }
 
-export function oklabToHex([L, a, b]: Lab): string {
+function oklabToHex([L, a, b]: Lab): string {
   const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3
   const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3
   const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3
@@ -98,7 +98,7 @@ interface Cluster {
 }
 
 /** Colors closer than this (in OKLab units) are treated as the same paint. */
-export const MERGE_DISTANCE = 0.035
+const MERGE_DISTANCE = 0.035
 
 /**
  * Turns a histogram of exact colors into at most `maxPaints` paints.

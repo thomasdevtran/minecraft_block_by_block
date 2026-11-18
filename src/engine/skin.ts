@@ -75,7 +75,7 @@ const MIRRORED_FACE: Record<Face, Face> = {
   right: 'left',
 }
 
-export function isLegacySkin(img: PixelImage): boolean {
+function isLegacySkin(img: PixelImage): boolean {
   return img.height === img.width / 2
 }
 
@@ -172,7 +172,7 @@ function hatVisible(img: PixelImage, overlay: boolean): boolean {
 }
 
 /** Size of the flat front view: the figure is 16 cubes wide and 32 tall. */
-export const SKIN_FRONT_SIZE = { width: 16, height: 32 }
+const SKIN_FRONT_SIZE = { width: 16, height: 32 }
 
 /**
  * The whole character seen from the front as a flat 16×32 picture, using the same colors as the 3D figure.

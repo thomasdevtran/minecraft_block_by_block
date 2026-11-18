@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, nextTick, ref, shallowRef, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, ref, shallowRef, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import BlockIcon from './BlockIcon.vue'
 import ViewToggle from './ViewToggle.vue'
@@ -9,6 +9,7 @@ import { assetUrl, blockUrl, textureUrl, type CatalogItem } from '../lib/catalog
 import { hasWebGL, useNearViewport } from '../lib/dom'
 import { ROLE } from '../lib/guide'
 import { starterPaintLimit } from '../lib/site'
+import { loadDemoModel } from '../lib/demo'
 
 /**
  * "How it works", shown rather than told: pick something and watch it come together out of
@@ -19,7 +20,7 @@ import { starterPaintLimit } from '../lib/site'
 const props = defineProps<{ items: CatalogItem[]; look: Look }>()
 const router = useRouter()
 
-// three.js is the site's largest chunk. It loads only for the 3D view, once the section is near.
+// Both styles use the rotatable three.js view; its chunk waits until the section is near.
 const VoxelPreview = defineAsyncComponent(() => import('./VoxelPreview.vue'))
 
 /**
@@ -66,27 +67,13 @@ const near = useNearViewport(stage, '200px')
 // bottom up, so starting while the stage's lower half was below the fold hid the best part.
 const inView = useNearViewport(stage, '0px', 0.75)
 
-const COLORS = { maxPaints: starterPaintLimit }
 let request = 0
+onBeforeUnmount(() => { request++ })
 async function load(entry: Entry, mode: '2d' | '3d') {
   const token = ++request
   failed.value = false
   try {
-    const [{ loadPixels }, { itemToModel }, { flowerToModel }, { blockToModel }, { skinFront, skinToModel }] = await Promise.all([
-      import('../engine/pixels'), import('../engine/item'), import('../engine/flower'), import('../engine/block'), import('../engine/skin'),
-    ])
-    let model: BuildModel
-    if (!entry.item) {
-      const skin = await loadPixels(STEVE_SKIN)
-      const options = { model: 'classic' as const, overlay: true, hollow: true, simplePaint: true, ...COLORS }
-      model = mode === '3d' ? skinToModel(skin, options) : itemToModel(skinFront(skin, options), { ...COLORS, simplePaint: false })
-    } else {
-      const item = entry.item
-      const sprite = await loadPixels(textureUrl(item, 'current'))
-      if (mode === '3d' && item.flower) model = flowerToModel(sprite, { ...COLORS, simplePaint: true, pot: null })
-      else if (mode === '3d' && item.block) model = blockToModel(await loadPixels(blockUrl(item, 'current')!), { ...COLORS, simplePaint: true, hollow: true })
-      else model = itemToModel(sprite, { ...COLORS, simplePaint: false })
-    }
+    const model = await loadDemoModel(entry.item, mode, STEVE_SKIN)
     if (token !== request) return
     demo.value = { key: `${entry.id}:${mode}`, model }
     if (inView.value) await play()

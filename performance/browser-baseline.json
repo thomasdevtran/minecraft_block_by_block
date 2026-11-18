@@ -112,7 +112,7 @@
     "currentLockfileAuditHigh": 11
   },
   "limits": [
-    "Local HTTP/1 production preview, uncompressed responses; no hosted CDN/API/Auth capacity claim.",
+    "Local HTTP/1 production preview; encoded and decoded sizes record response compression, not hosted CDN/API/Auth capacity.",
     "Local no-cache asset revalidation adds a request batch to some warm guide loads; cache-policy probes are reported separately.",
     "Mobile item/shape/flower cases were not repeated five times; desktop coverage and existing engine tests cover those paths.",
     "Account switches/private-skin clearing are verified by unit tests, not a hosted account session."

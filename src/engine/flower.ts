@@ -9,7 +9,7 @@ import { emptyFaces, faceTexel, FACE_NORMALS, FACES, voxelKey, type Face, type V
 export type PotTextures = PixelImage
 
 /** Pot footprint and height in cubes, matching Minecraft's flower pot model. */
-export const POT = { size: 6, height: 6, dirtLevel: 4, origin: [5, 0, 5] as [number, number, number] }
+const POT = { size: 6, height: 6, dirtLevel: 4, origin: [5, 0, 5] as [number, number, number] }
 
 /** In a pot, the plant starts on the dirt, 4 cubes up. */
 const PLANT_LIFT = POT.dirtLevel

@@ -1,9 +1,13 @@
 import catalogData from '../../public/data/items.json'
 import { describe, expect, it } from 'vitest'
-import { catalogSearchText, matchesCatalogSearch, type Catalog } from './catalog'
+import type { Catalog } from './catalog'
+import { catalogSearchText, indexCatalog, prepareCatalogSearch } from './catalogIndex'
 
 const catalog = catalogData as Catalog
-const find = (query: string) => catalog.items.filter(item => matchesCatalogSearch(catalogSearchText(item), query)).map(item => item.id)
+const find = (query: string) => {
+  const matches = prepareCatalogSearch(query)
+  return catalog.items.filter(item => matches(catalogSearchText(item))).map(item => item.id)
+}
 
 describe('catalog discovery', () => {
   it('finds weapons, food and natural multi-word item names', () => {
@@ -28,5 +32,40 @@ describe('catalog discovery', () => {
     expect(catalog.items.find(item => item.id === 'music_disc_pigstep')?.name).toBe('Music Disc — Pigstep')
     expect(catalog.items.find(item => item.id === 'silence_armor_trim_smithing_template')?.name).toBe('Silence Armor Trim')
     expect(catalog.items.find(item => item.id === 'creeper_banner_pattern')?.name).toBe('Banner Pattern — Creeper Charge')
+  })
+})
+
+describe('catalog index compatibility', () => {
+  const index = indexCatalog(catalog.items, catalog.groups)
+
+  it('preserves ordered search results and query normalization', () => {
+    // Original predicate, kept independent of the prepared-query implementation.
+    const legacyMatches = (search: string, query: string) => query.toLowerCase()
+      .replace(/[_—–-]/g, ' ').replace(/\s+/g, ' ').trim().split(' ')
+      .every(word => search.includes(word))
+    for (const query of ['', '   ', 'DIAMOND_SWORD', ' diamond  sword ', 'diamond—sword', 'diamond–sword',
+      'armour', 'underwater', 'enchanted golden apple', 'music disc', 'not an actual item qxz', 'é']) {
+      const matches = prepareCatalogSearch(query)
+      expect(index.items.filter(item => matches(item.search)).map(item => item.id))
+        .toEqual(index.items.filter(item => legacyMatches(item.search, query)).map(item => item.id))
+    }
+  })
+
+  it('preserves category counts, nonempty group order, lookups and source metadata', () => {
+    const before = JSON.stringify(catalog)
+    for (const category of ['item', 'plant', 'block'] as const) {
+      const entries = catalog.items.filter(item => item.category === category)
+      expect(index.categories[category]).toEqual({
+        count: entries.length,
+        groups: (catalog.groups[category] ?? []).map(name => ({
+          name, count: entries.filter(item => item.group === name).length,
+        })).filter(group => group.count > 0),
+      })
+    }
+    for (const item of catalog.items) expect(index.byId.get(item.id)).toEqual({ ...item, search: catalogSearchText(item) })
+    expect(JSON.stringify(catalog)).toBe(before)
+    expect(indexCatalog([], {}).items).toEqual([])
+    const first = catalog.items[0]!
+    expect(indexCatalog([first, { ...first, name: 'Duplicate' }], {}).byId.get(first.id)?.name).toBe(first.name)
   })
 })

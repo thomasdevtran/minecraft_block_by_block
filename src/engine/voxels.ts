@@ -6,6 +6,9 @@
 export const FACES = ['top', 'bottom', 'front', 'back', 'left', 'right'] as const
 export type Face = (typeof FACES)[number]
 
+/** Face order of the texture strip. CSS icons must not import a model generator to read it. */
+export const BLOCK_STRIP_ORDER: readonly Face[] = ['top', 'bottom', 'front', 'back', 'left', 'right']
+
 export const FACE_NORMALS: Record<Face, [number, number, number]> = {
   top: [0, 1, 0],
   bottom: [0, -1, 0],

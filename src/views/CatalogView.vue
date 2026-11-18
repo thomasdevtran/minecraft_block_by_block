@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, shallowRef, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
-import AdSlot from '../components/AdSlot.vue'
 import BlockIcon from '../components/BlockIcon.vue'
 import BuildDemo from '../components/BuildDemo.vue'
 import ViewToggle from '../components/ViewToggle.vue'
@@ -9,17 +8,17 @@ import CraftPhoto from '../components/CraftPhoto.vue'
 import { showcasePhoto, starterBuilds, starterPaintLimit } from '../lib/site'
 import { currentSkin } from '../lib/skinStore'
 import { hashString, readRecentBuild } from '../lib/storage'
-import { blockUrl, catalogSearchText, loadCatalog, matchesCatalogSearch, textureUrl, type Catalog, type CatalogItem, type Category } from '../lib/catalog'
+import { blockUrl, loadCatalog, textureUrl, type Category } from '../lib/catalog'
+import { indexCatalog, prepareCatalogSearch } from '../lib/catalogIndex'
 import { LOOK_OPTIONS, look } from '../lib/buildSettings'
+import { useNearViewport } from '../lib/dom'
+import { loadDemoModel } from '../lib/demo'
 
 const route = useRoute()
 const router = useRouter()
 
-/** `search` is folded in once at load so filtering doesn't lowercase 2,210 strings per keystroke. */
-type ListItem = CatalogItem & { search: string }
-
-const items = ref<ListItem[]>([])
-const groupOrder = ref<Catalog['groups']>({})
+const catalogIndex = shallowRef(indexCatalog([], {}))
+const items = computed(() => catalogIndex.value.items)
 const version = ref('')
 const classicVersion = ref('')
 const error = ref('')
@@ -90,8 +89,7 @@ async function fetchCatalog() {
   error.value = ''
   try {
     const catalog = await loadCatalog()
-    items.value = catalog.items.map((i) => ({ ...i, search: catalogSearchText(i) }))
-    groupOrder.value = catalog.groups ?? {}
+    catalogIndex.value = indexCatalog(catalog.items, catalog.groups ?? {})
     version.value = catalog.version
     classicVersion.value = catalog.classicVersion
   } catch (e) {
@@ -116,59 +114,54 @@ function scrollToCatalog() {
 const FEATURED = ['rose', 'poppy', 'diamond_ore', 'axolotl_bucket']
 
 const featured = computed(() =>
-  FEATURED.map((id) => items.value.find((i) => i.id === id)).filter((i): i is ListItem => !!i),
+  FEATURED.flatMap(id => {
+    const item = catalogIndex.value.byId.get(id)
+    return item ? [item] : []
+  }),
 )
 const recent = readRecentBuild()
 const resumable = computed(() => recent && (!recent.skinHash ||
   (currentSkin.value && hashString(currentSkin.value.dataUrl) === recent.skinHash)) &&
   (recent.skinHash || items.value.some(item => recent.path.startsWith(`/item/${item.id}?`))) ? recent : null)
 const starterStats = ref<Record<string, { cubes: number; paints: number }>>({})
+const starterSection = ref<HTMLElement | null>(null)
+const startersNear = useNearViewport(starterSection, '200px')
 const starters = computed(() => starterBuilds.flatMap(entry => {
-  const item = items.value.find(i => i.id === entry.id)
+  const item = catalogIndex.value.byId.get(entry.id)
   return item ? [{ ...entry, item, stats: starterStats.value[entry.id] }] : []
 }))
-watch(() => items.value, async list => {
-  if (!list.length) return
-  // The counts are optional extras: if their code fails to load, the cards just go without them.
-  const engine = await Promise.all([import('../engine/pixels'), import('../engine/item')]).catch(() => null)
-  if (!engine) return
-  const [{ loadPixels }, { itemToModel }] = engine
+watch([catalogIndex, startersNear], async ([index, near], _, onCleanup) => {
+  if (!near || !index.items.length) return
+  let current = true
+  onCleanup(() => { current = false })
+  // Cards and links work without the optional counts, including when a resource fails.
   await Promise.allSettled(starterBuilds.map(async entry => {
-    const item = list.find(i => i.id === entry.id)
+    if (starterStats.value[entry.id]) return
+    const item = index.byId.get(entry.id)
     if (!item) return
-    const model = itemToModel(await loadPixels(textureUrl(item, 'current')), { maxPaints: starterPaintLimit, simplePaint: false })
-    starterStats.value[entry.id] = { cubes: model.voxels.length, paints: model.palette.length }
+    const model = await loadDemoModel(item, '2d')
+    if (current) starterStats.value[entry.id] = { cubes: model.voxels.length, paints: model.palette.length }
   }))
 })
 
 const TAB_LABELS: Record<Category, string> = { block: 'blocks', plant: 'plants', item: 'items' }
 
-/** Sub-groups of the current tab that have at least one item, with counts. */
-const groups = computed(() => {
-  if (category.value === 'all') return []
-  const inTab = items.value.filter((i) => i.category === category.value)
-  return (groupOrder.value[category.value] ?? [])
-    .map((name) => ({ name, count: inTab.filter((i) => i.group === name).length }))
-    .filter((g) => g.count > 0)
-})
-const tabCount = computed(() => items.value.filter((i) => i.category === category.value).length)
+const categorySummary = computed(() => category.value === 'all' ? null : catalogIndex.value.categories[category.value])
+const groups = computed(() => categorySummary.value?.groups ?? [])
+const tabCount = computed(() => categorySummary.value?.count ?? 0)
+const searchMatches = computed(() => prepareCatalogSearch(query.value))
 
 const filtered = computed(() => {
-  const q = query.value.trim().toLowerCase()
+  const matches = searchMatches.value
   return items.value.filter(
     (i) =>
       (category.value === 'all' || i.category === category.value) &&
       (group.value === null || i.group === group.value) &&
-      matchesCatalogSearch(i.search, q),
+      matches(i.search),
   )
 })
 
-/**
- * The catalog has over 1,100 items and ~400 of the tiles are CSS cubes whose faces are background
- * images — and background images are never lazy-loaded. Rendering the whole list therefore pulled
- * roughly 1 MB of block textures on first paint. Showing a page at a time keeps the DOM small and,
- * more importantly, means an unrendered tile has no image to fetch at all.
- */
+// Unrendered tiles have no texture to fetch, including CSS cube backgrounds.
 const PAGE = 60
 /**
  * How far "Show more" had got is kept in this history entry rather than the URL, so returning with
@@ -185,12 +178,7 @@ const showMore = () => (shown.value += PAGE)
 
 // Keep a deliberate page boundary: automatic endless loading makes the footer hard to reach.
 
-/**
- * The results line is a live region, so its text is what screen readers hear. It used to change
- * on every keystroke ("1,105 builds", "312 builds", "40 builds"…) and was swapped in and out by
- * v-if, which recreates the region and can silence it. Now one element always exists and its
- * text settles once typing pauses, so a search is announced once, with its final count.
- */
+// Keep the live region mounted and announce its final count once typing pauses.
 const ANNOUNCE_DELAY_MS = 450
 const resultsText = computed(() => {
   if (loading.value) return 'Loading build guides…'
@@ -239,7 +227,7 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
 
     <BuildDemo v-if="featured.length" :items="featured" :look="look" />
 
-    <section v-if="starters.length" id="first-build" class="first-build" aria-labelledby="first-build-title">
+    <section v-if="starters.length" id="first-build" ref="starterSection" class="first-build" aria-labelledby="first-build-title">
       <p class="eyebrow">Start small. Make something you love.</p>
       <h2 id="first-build-title">Pick your first project</h2>
       <p class="muted">Start with a rose, emerald or red tulip. Each is a flat build with one color per cube and a smaller paint palette.</p>
@@ -322,9 +310,6 @@ onBeforeUnmount(() => clearTimeout(announceTimer))
           Show more ({{ (filtered.length - shown).toLocaleString() }} left)
         </button>
       </div>
-      <!-- Placed below the grid and nowhere else. Renders nothing until ads are switched on in
-           src/lib/site.ts (ADS_ENABLED); see the note there for what has to be true first. -->
-      <AdSlot unit="catalog-footer" />
 
       <p v-if="version" class="muted small">
         Textures from Minecraft {{ version }}<template v-if="look === 'classic'">, with old textures from {{ classicVersion }} where they changed</template>.

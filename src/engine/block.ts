@@ -1,9 +1,9 @@
 import { finalizeModel, type BuildModel, type ColorOptions } from './model'
 import { getPixel, toHex, type PixelImage } from './pixels'
-import { emptyFaces, faceTexel, FACES, type Face, type Voxel } from './voxels'
+import { BLOCK_STRIP_ORDER, emptyFaces, faceTexel, FACES, type Face, type Voxel } from './voxels'
 
 /** Face order of the strip written by `npm run extract`: six square textures side by side. */
-export const BLOCK_STRIP_ORDER: readonly Face[] = ['top', 'bottom', 'front', 'back', 'left', 'right']
+export { BLOCK_STRIP_ORDER } from './voxels'
 
 export interface BlockOptions extends ColorOptions {
   /** Only build the outer shell of the cube. */
