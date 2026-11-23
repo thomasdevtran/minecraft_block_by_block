@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, ref, shallowRef, watch, type Component } from 'vue'
 import type { BuildModel } from '../engine/model'
 import type { Guide } from '../engine/steps'
 import { rolesForStep } from '../lib/guide'
+import { finishedSize, useWakeLock } from '../lib/workbench'
+import { CUBE_SIZE_LIMITS, cubeSize, isCubeSize, keepScreenOn, type LengthUnit } from '../lib/buildSettings'
 import { readStored, rememberBuild, writeStored } from '../lib/storage'
-import { hasWebGL, useNearViewport } from '../lib/dom'
+import { hasWebGL, useNearViewport, whenIdle } from '../lib/dom'
 import StepInstructions from './StepInstructions.vue'
-import GuidePrint from './GuidePrint.vue'
 import { showToast } from '../lib/toast'
 import SaveBuild from './SaveBuild.vue'
 import { RouterLink } from 'vue-router'
@@ -23,7 +24,8 @@ const total = computed(() => props.guide.steps.length + 1)
 const step = computed(() => (index.value === 0 ? null : props.guide.steps[index.value - 1]))
 const roles = computed(() => rolesForStep(props.model, props.guide, step.value))
 const panel = ref<HTMLElement | null>(null)
-const printing = ref(false)
+/** What window.print() lays out: the whole guide, or the tray label sheet. Null when not printing. */
+const printMode = ref<'guide' | 'labels' | null>(null)
 const shareUrl = ref('')
 const stages = computed(() => [
   { label: 'Materials', index: 0 },
@@ -144,14 +146,25 @@ function watchingPreview() {
   const shown = Math.min(bounds.bottom, window.innerHeight) - Math.max(bounds.top, 0)
   return shown >= Math.min(bounds.height, window.innerHeight) / 2
 }
-async function printGuide() {
-  printing.value = true
+/*
+ * The print layouts load in the background once the guide is idle, so readers who never print
+ * don't download them up front. They must be ready before the browser's own Print (Ctrl/Cmd+P):
+ * beforeprint renders synchronously, with no time to fetch code.
+ */
+const guidePrint = shallowRef<Component | null>(null)
+const loadGuidePrint = () => import('./GuidePrint.vue').then((module) => (guidePrint.value = module.default))
+let cancelPrintPreload = () => {}
+async function print(mode: 'guide' | 'labels') {
+  await loadGuidePrint()
+  printMode.value = mode
   await nextTick()
   window.print()
 }
-function beforePrint() { printing.value = true }
-function afterPrint() { printing.value = false }
+// The browser's own Print (Ctrl/Cmd+P) prints the whole guide.
+function beforePrint() { printMode.value ??= 'guide' }
+function afterPrint() { printMode.value = null }
 onMounted(() => {
+  cancelPrintPreload = whenIdle(() => void loadGuidePrint())
   window.addEventListener('beforeprint', beforePrint)
   window.addEventListener('afterprint', afterPrint)
   window.addEventListener('resize', stopMotion)
@@ -159,6 +172,7 @@ onMounted(() => {
   window.addEventListener('touchstart', stopScroll, { passive: true })
 })
 onBeforeUnmount(() => {
+  cancelPrintPreload()
   navigation++
   stopMotion()
   window.removeEventListener('beforeprint', beforePrint)
@@ -168,6 +182,39 @@ onBeforeUnmount(() => {
   window.removeEventListener('touchstart', stopScroll)
 })
 watch(() => props.storageKey, () => { navigation++; stopMotion() })
+// Finished size. The field keeps what the reader typed; the remembered cube size only changes
+// when the text is a size in range, so a half-typed "1." never flashes a wrong result.
+const size = computed(() => finishedSize(props.model, cubeSize.value))
+const printedSize = computed(() =>
+  `Finished size with ${cubeSize.value.value} ${cubeSize.value.unit} cubes: ${size.value.size} (${size.value.other}), ${size.value.axes}. Glue lines add a little.`)
+const sizeDraft = ref(String(cubeSize.value.value))
+const sizeInvalid = ref(false)
+const sizeLimits = computed(() => CUBE_SIZE_LIMITS[cubeSize.value.unit])
+function typeCubeSize(text: string) {
+  sizeDraft.value = text
+  const next = { value: Number(text.trim().replace(',', '.')), unit: cubeSize.value.unit }
+  sizeInvalid.value = text.trim() !== '' && !isCubeSize(next)
+  if (isCubeSize(next)) cubeSize.value = next
+}
+function settleCubeSize() {
+  sizeDraft.value = String(cubeSize.value.value)
+  sizeInvalid.value = false
+}
+/** Switching units converts the size, so the finished size stays the same until the reader edits it. */
+function changeCubeUnit(unit: LengthUnit) {
+  const { value, unit: from } = cubeSize.value
+  if (unit === from) return
+  const converted = Math.round((unit === 'in' ? value / 2.54 : value * 2.54) * 100) / 100
+  const { min, max } = CUBE_SIZE_LIMITS[unit]
+  cubeSize.value = { value: Math.min(max, Math.max(min, converted)), unit }
+  settleCubeSize()
+}
+
+const { supported: canKeepAwake, enabled: keepAwake, toggle: toggleWakeLock } = useWakeLock(keepScreenOn)
+async function toggleKeepAwake() {
+  if (!(await toggleWakeLock())) showToast("This device didn't allow keeping the screen on. Battery saver can block it.", 'error')
+}
+
 async function shareBuild() {
   const path = props.skinHash ? '/skin' : props.resumePath
   const url = new URL(path, window.location.origin).href
@@ -256,8 +303,13 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
           </select>
         </label>
         <div class="utility-actions">
-          <button type="button" class="btn" @click="printGuide">Print guide</button>
+          <button type="button" class="btn" @click="print('guide')">Print guide</button>
           <button type="button" class="btn" @click="shareBuild">{{ skinHash ? 'Copy skin link' : 'Copy link' }}</button>
+          <!-- Shown only where the browser can keep the screen awake. A pressed switch keeps one label;
+               the check mark and fill show its state, and screen readers hear "pressed". -->
+          <button v-if="canKeepAwake" type="button" class="btn keep-awake" :aria-pressed="keepAwake" @click="toggleKeepAwake">
+            <span class="check" aria-hidden="true">✓</span>Keep screen on
+          </button>
         </div>
       </div>
       <label v-if="shareUrl" class="share-fallback">Copy this link <input readonly :value="shareUrl" @focus="($event.target as HTMLInputElement).select()" /></label>
@@ -293,6 +345,31 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
               <span>cube types</span>
             </div>
           </div>
+          <div class="finished-size">
+            <div class="cube-size">
+              <label for="cube-size">Your cube size</label>
+              <input
+                id="cube-size"
+                type="text"
+                inputmode="decimal"
+                autocomplete="off"
+                :value="sizeDraft"
+                :aria-invalid="sizeInvalid"
+                :aria-describedby="sizeInvalid ? 'cube-size-error' : undefined"
+                @input="typeCubeSize(($event.target as HTMLInputElement).value)"
+                @blur="settleCubeSize"
+              />
+              <select aria-label="Cube size unit" :value="cubeSize.unit" @change="changeCubeUnit(($event.target as HTMLSelectElement).value as LengthUnit)">
+                <option value="cm">cm</option>
+                <option value="in">in</option>
+              </select>
+            </div>
+            <p v-if="sizeInvalid" id="cube-size-error" class="error small">Enter a size from {{ sizeLimits.min }} to {{ sizeLimits.max }} {{ cubeSize.unit }}.</p>
+            <p class="size-result" aria-live="polite">
+              <strong>Finished size: {{ size.size }}</strong> ({{ size.other }}), {{ size.axes }}.
+            </p>
+            <p class="muted small">That's {{ size.cubes }} cubes. Glue lines add a little.</p>
+          </div>
           <p v-if="guide.materials.plainCubes" class="muted">
             {{ guide.materials.plainCubes.toLocaleString() }} {{ guide.materials.plainCubes === 1 ? "cube is hidden inside and doesn't" : "cubes are hidden inside and don't" }} need paint.
           </p>
@@ -322,6 +399,10 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
             Hex codes come from the game's pixels, blended where close shades were merged into one paint. Screens and
             paint don't match exactly, so treat them as a starting point and pick the nearest paint you have.
           </p>
+          <div class="labels-cta">
+            <p>Each cube type gets its own tray. Print a sheet of labels with each letter, paint and count.</p>
+            <button type="button" class="btn" @click="print('labels')">Print tray labels</button>
+          </div>
         </template>
 
         <StepInstructions v-else :step="step" :recipes="guide.recipes" :palette="model.palette" :position="position" />
@@ -365,7 +446,7 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
       <button type="button" class="btn primary" :aria-disabled="index === total - 1" @click="go(1)">{{ index === 0 ? 'Start' : 'Next' }} →</button>
     </nav>
     <p class="visually-hidden" aria-live="polite">{{ announcement }}</p>
-    <GuidePrint v-if="printing" :title="title" :model="model" :guide="guide" />
+    <component :is="guidePrint" v-if="printMode && guidePrint" :mode="printMode" :title="title" :model="model" :guide="guide" :size="printedSize" />
   </section>
 </template>
 
@@ -405,6 +486,9 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
 .step-picker select { max-width: 100%; flex: 1; min-width: 0; }
 .utility-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 .utility-actions .btn { font-size: .85rem; padding: .55em .9em; }
+.keep-awake .check { display: none; }
+.keep-awake[aria-pressed="true"] { background: var(--pressed-bg); border-color: var(--pressed-bg); color: var(--pressed-ink); }
+.keep-awake[aria-pressed="true"] .check { display: inline; }
 .share-fallback { display: grid; gap: 8px; }
 .panel { scroll-margin-top: 16px; }
 .panel h2 { font-family: var(--sans); letter-spacing: 0; }
@@ -508,6 +592,17 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
   font-size: 0.85rem;
   color: var(--ink-soft);
 }
+
+/* The reader's cube size and what it makes: sits under the totals, before the paint list. */
+.labels-cta { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-top: 1rem; padding: 12px 14px; background: var(--surface-2); border-radius: 8px; }
+.labels-cta p { margin: 0; flex: 1 1 16rem; font-size: .9rem; }
+.finished-size { padding: 12px 14px; margin-bottom: 1rem; border: 1px solid var(--line); border-radius: 8px; }
+.finished-size p { margin: 0; }
+.finished-size p + p { margin-top: 4px; }
+.cube-size { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.cube-size label { font-weight: 600; margin-right: 4px; }
+.cube-size input { width: 5.5em; }
+.cube-size select { width: auto; }
 
 .paints {
   width: 100%;

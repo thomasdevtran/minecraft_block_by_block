@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ageCheck, authReady, user } from '../lib/auth'
 import { currentSkin } from '../lib/skinStore'
-import { saveBuild, type SavedBuild } from '../lib/savedBuilds'
+import type { SavedBuild } from '../lib/savedBuilds'
 import { accountsEnabled } from '../lib/supabase'
 
 const props = defineProps<{
@@ -28,6 +28,9 @@ async function save() {
   busy.value = true
   error.value = ''
   try {
+    // Loaded on the first save, not with the guide: most readers never save, and the panel's
+    // summary and form don't need it.
+    const { saveBuild } = await import('../lib/savedBuilds')
     const result = await saveBuild({
       title: name.value, path: props.path, guideKey: props.guideKey, step: props.step,
       total: props.total, cubes: props.cubes, paints: props.paints,
