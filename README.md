@@ -160,7 +160,8 @@ Accounts use Supabase Auth. The private `saved_builds` table stores item and ski
 - **Auth settings.** Allow the local and deployed `/account` callback URLs in Supabase's Authentication URL settings, since email confirmation and password recovery use them. When switching projects, set the project's exact HTTPS origin in `vercel.json`'s `connect-src`.
 - **Saving again** updates the build's place after checking the saved revision. Concurrent changes produce a reload message.
 - **Engine version.** Generation changes that alter recipes or steps must bump `GUIDE_ENGINE_VERSION` in `src/lib/savedBuilds.ts`. A build saved with a different engine or catalog version reopens at Materials.
-- **Limits** (`202611070002_library_limits.sql`): 100 saved builds and 100 private skin images per account, with the bucket's 1 MB file limit. Quota checks are serialized per owner. Duplicate saves and reusing an existing image still work at the limit. Contact the operator to remove unused cloud images.
+- **Limits** (`202611070002_library_limits.sql`): 100 saved builds and 100 private skin images per account, with the bucket's 1 MB file limit. Quota checks are serialized per owner. Duplicate saves and reusing an existing image still work at the limit.
+- **Deleting a build** also deletes its skin image once no other saved build uses it (`202611230001_database_foundations.sql`), so deleted builds stop counting toward the image limit. Images left by deletions before that migration can be removed from the dashboard's Storage page.
 
 ### Database migrations
 
@@ -191,6 +192,16 @@ npm run db:push                                 # lists the pending migrations a
 - `supabase/config.toml` only configures a local `npx supabase start` stack. The hosted project's Auth, SMTP and URL settings are managed in the dashboard, so don't run `supabase config push`.
 - The SQL checks run with the development-only PGlite dependency, using the real migrations and minimal Auth/Storage stubs. They don't emulate Supabase Auth or the REST API, so a hosted integration check is still needed before release.
 
+### Adding to the database
+
+`202611230001_database_foundations.sql` provides shared building blocks, so a new feature doesn't have to copy earlier functions:
+
+- **Account check:** start every write function with `craft_private.require_member(expected_user_id, 'Confirm your email before …')`. It checks that the caller is the expected account, has a confirmed email and passed the age screen. A future rule, such as bans or MFA, goes in this one function.
+- **Rate limits:** `craft_private.account_actions` is a view that lists each account's topics, replies and reports with their times. Add a branch to it for each new kind of action, then call `require_cooldown` and `require_quota` while holding the caller's per-account advisory lock (see `require_community_poster`). The helpers take no lock of their own, because a shared one could deadlock against topic row locks.
+- **Lists that grow belong in tables.** For example, `community_categories` is a table rather than a check constraint. Fixed sets, such as build kinds and report reasons, stay as named checks.
+- **Rules the tests enforce** (`supabase/tests/database_foundations.sql`): every table in `public` and `craft_private` has row-level security, every foreign key has an index, and every check constraint has a real name rather than one Postgres numbered.
+- **New migrations need adding** to `tests/community-database.test.ts`, along with their `supabase/tests/*.sql` file.
+
 ### Age screen
 
 Sign-up asks everyone for a birth month and year, with nothing pre-filled.
@@ -215,6 +226,7 @@ Signed-in users with a confirmed email can choose or edit a public username in *
 
 `/community`, `/community/new` and `/community/:topicId` (`202611100001_community_discussions.sql`) give a board with Build Help, Finished Builds, and Ideas & Feedback categories, showing 20 topics or replies per page.
 
+- **Categories** are rows in `public.community_categories` (`id`, `label`, `sort_order`, `accepts_topics`). To add one, insert a row from the database console; no deploy is needed. To retire one, set `accepts_topics = false`: its topics stay readable and filterable, but it takes no new topics. Don't delete a category that topics still use.
 - **Reading:** visitors can read visible discussions.
 - **Posting:** needs a confirmed email and a public username. Titles and messages render as plain text.
 - **Limits:** the database checks identity, text limits and locked or hidden topics. It enforces a shared 30-second cooldown and rolling 24-hour limits of five topics and 30 replies.
@@ -230,7 +242,7 @@ Signed-in users with a confirmed email can choose or edit a public username in *
 - **The browser cannot write** reports, memberships, audit records or content visibility directly. No privileged Supabase key is in the frontend.
 - **Moderator setup** is an operator action: insert the confirmed account's UUID into `craft_private.community_moderators` from the trusted database console, and remove the row to revoke access. Moderator access comes only from that table and a confirmed Auth identity, never from profile or user metadata.
 
-**Hosted status:** the usernames migration is applied. The discussions, moderation and age-screen migrations must be pushed in order with `npm run db:push`, then the hosted Auth/API behavior verified. Check `npm run db:status` for the current list.
+**Hosted status:** the usernames migration is applied. The discussions, moderation, age-screen and database-foundations migrations must be pushed in order with `npm run db:push`, then the hosted Auth/API behavior verified. Check `npm run db:status` for the current list. Push before deploying: from 2026-11-23, Community reads its categories from the database and shows "not available" without them.
 
 ---
 
@@ -635,6 +647,25 @@ The approved plan had three phases, each stopping for my review:
    It measured each change. It built a shared "reduce motion" helper, saw it add 35 gzip bytes to every page's startup, and reverted it. It also checked the moved field end to end in a real browser, since the existing checks didn't cover it.
 3. **Docs:** folded the release review and performance notes into this README, then deleted both files.
 
+**3. Database review (23 November)**
+> Look at my database and my Supabase configuration. How would I make the database more scalable, and more robust in case I want to add more things to it?
+
+*Answer:* A read-only review of the six migrations, `config.toml` and every client query. It ranked the findings:
+- **Bugs:** deleted skin images were never removed, five foreign keys had no index, and the moderation queue scanned past reviewed reports.
+- **Making new features cheap to add:** repeated account checks and rate-limit code, unnamed constraints, and categories hard-coded in two places.
+- **Scale:** offset pagination.
+- **Configuration:** a custom SMTP provider is needed before real sign-up volume.
+
+**4. Database foundations**
+> Do sections 1 and 2.
+
+*Answer:* One new migration, without editing any pushed migration.
+- **Rate limits:** it chose a view over the existing tables rather than a new events table, so limits behave identically and the earlier quota tests still prove it.
+- **No lock in the helpers:** it found that a shared lock inside them could deadlock a reply against a report on the same topic, and left the locking to each caller.
+- **Queue indexes:** it ran `EXPLAIN` in PGlite and found that Postgres rewrites `= false` in a way the first index couldn't match, so it added a partial index for open reports.
+- **Guard rails:** it checked the new structure tests against the old schema to confirm they catch the five unindexed foreign keys.
+- **Left for later:** generated TypeScript types need the user's Supabase login and the pushed schema, so that step waits.
+
 **AI review**
 - **Asking for a plan first, then answering three scoping questions,** prevented the most expensive mistake available: reading "keep only what is essential" as permission to delete features.
 - **Reviewing and committing each phase** kept every diff small enough to read.
@@ -645,6 +676,21 @@ The approved plan had three phases, each stopping for my review:
 ## Changelog
 
 Newest first. Dates come from the commit history and the dated review and measurement notes this file replaced.
+
+### 2026-11-23: Database foundations
+- **New migration** `202611230001_database_foundations.sql`, with `supabase/tests/database_foundations.sql`. Push it before deploying this version.
+- **Fixes:**
+  - Deleting a saved build now deletes its skin image once nothing else uses it. Before, deleted images stayed in storage and still counted toward the 100-image limit.
+  - Added indexes on the five foreign keys that had none.
+  - Added indexes so the moderation queue stays fast as reviewed reports accumulate. Checked with `EXPLAIN` for both known values and generic plans.
+- **Foundations for new features:**
+  - one account check, `require_member`
+  - shared rate-limit helpers over an `account_actions` view
+  - categories as a table, with labels loaded by the client
+  - real names for the two checks Postgres had numbered
+
+  Limits, error codes and messages are unchanged, and every earlier SQL test passes as written.
+- **Guard rails:** the SQL tests now fail if a table lacks row-level security, a foreign key lacks an index, or a check constraint has a numbered name. The test count went from 322 to 327.
 
 ### 2026-11-22: Cleanup, refactor and one README
 - **Docs:** merged `RELEASE_REVIEW.md` and `performance/README.md` into this README, with a changelog and an AI use overview. Removed a broken link to `ACCESSIBILITY_REVIEW.md`.
