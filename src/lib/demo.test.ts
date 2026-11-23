@@ -16,8 +16,11 @@ let cube: ReturnType<typeof vi.fn>
 let plant: ReturnType<typeof vi.fn>
 let skin: ReturnType<typeof vi.fn>
 let project: ReturnType<typeof vi.fn>
-beforeEach(() => {
+beforeEach(async () => {
   vi.resetModules()
+  // As on the homepage, the catalog has loaded before any demo builds, so texture URLs carry its revision.
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ version: '1', assetRevision: 'r1', groups: {}, pot: '', classicPot: '', classicVersion: '', items: [] }))))
+  await (await import('./catalog')).loadCatalog()
   imported = []
   pixels = vi.fn().mockResolvedValue(sprite)
   flat = vi.fn().mockReturnValue(model('item'))
@@ -32,17 +35,18 @@ beforeEach(() => {
   vi.doMock('../engine/skin', () => { imported.push('skin'); return { skinFront: project, skinToModel: skin } })
 })
 afterEach(() => {
+  vi.unstubAllGlobals()
   for (const path of ['../engine/pixels', '../engine/item', '../engine/block', '../engine/flower', '../engine/skin']) vi.doUnmock(path)
 })
 
 describe('optional homepage model loading', () => {
   it.each([
-    [item, '2d', ['item', 'pixels'], '/sprite.png', 'item'],
-    [item, '3d', ['item', 'pixels'], '/sprite.png', 'item'],
-    [block, '2d', ['item', 'pixels'], '/sprite.png', 'item'],
-    [block, '3d', ['block', 'pixels'], '/strip.png', 'block'],
-    [flower, '2d', ['item', 'pixels'], '/sprite.png', 'item'],
-    [flower, '3d', ['flower', 'pixels'], '/sprite.png', 'plant'],
+    [item, '2d', ['item', 'pixels'], '/sprite.png?v=r1', 'item'],
+    [item, '3d', ['item', 'pixels'], '/sprite.png?v=r1', 'item'],
+    [block, '2d', ['item', 'pixels'], '/sprite.png?v=r1', 'item'],
+    [block, '3d', ['block', 'pixels'], '/strip.png?v=r1', 'block'],
+    [flower, '2d', ['item', 'pixels'], '/sprite.png?v=r1', 'item'],
+    [flower, '3d', ['flower', 'pixels'], '/sprite.png?v=r1', 'plant'],
     [undefined, '2d', ['item', 'pixels', 'skin'], '/steve.png', 'item'],
     [undefined, '3d', ['pixels', 'skin'], '/steve.png', 'skin'],
   ] as const)('loads only the generators for %j / %s', async (entry, mode, modules, path, kind) => {
@@ -65,7 +69,7 @@ describe('optional homepage model loading', () => {
   it('keeps current-texture demo recipes independent of the catalog icon look', async () => {
     const { loadDemoModel } = await import('./demo')
     await loadDemoModel({ ...block, classic: { texture: 'old.png', block: 'old-strip.png' } }, '3d')
-    expect(pixels).toHaveBeenCalledExactlyOnceWith('/strip.png')
+    expect(pixels).toHaveBeenCalledExactlyOnceWith('/strip.png?v=r1')
   })
 
   it('propagates an image failure and permits a later selection to try again', async () => {

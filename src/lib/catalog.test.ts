@@ -1,5 +1,5 @@
 import catalogData from '../../public/data/items.json'
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { Catalog } from './catalog'
 import { catalogSearchText, indexCatalog, prepareCatalogSearch } from './catalogIndex'
 
@@ -67,5 +67,33 @@ describe('catalog index compatibility', () => {
     expect(indexCatalog([], {}).items).toEqual([])
     const first = catalog.items[0]!
     expect(indexCatalog([first, { ...first, name: 'Duplicate' }], {}).byId.get(first.id)?.name).toBe(first.name)
+  })
+})
+
+describe('asset URLs', () => {
+  afterEach(() => { vi.unstubAllGlobals(); vi.resetModules() })
+  /** A fresh catalog module whose catalog request answers with `fields`. */
+  async function catalogModule(fields: Partial<Catalog>) {
+    vi.resetModules()
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ ...catalog, ...fields }))))
+    return import('./catalog')
+  }
+
+  it('tags textures and shapes with the asset revision, so changed files get new URLs', async () => {
+    const { assetUrl, loadCatalog } = await catalogModule({ version: '26.3', assetRevision: 'abc123def456' })
+    await loadCatalog()
+    expect(assetUrl('textures/items/rose.png')).toBe('/textures/items/rose.png?v=abc123def456')
+    expect(assetUrl('data/shapes/chest.json')).toBe('/data/shapes/chest.json?v=abc123def456')
+  })
+
+  it('falls back to the game version for a catalog written before revisions existed', async () => {
+    const { assetUrl, loadCatalog } = await catalogModule({ version: '26.3', assetRevision: undefined })
+    await loadCatalog()
+    expect(assetUrl('textures/pot.png')).toBe('/textures/pot.png?v=26.3')
+  })
+
+  it('refuses in development to build an untagged URL before the catalog loads', async () => {
+    const { assetUrl } = await catalogModule({})
+    expect(() => assetUrl('textures/steve.png')).toThrow(/before loadCatalog/)
   })
 })

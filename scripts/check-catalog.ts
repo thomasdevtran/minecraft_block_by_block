@@ -2,9 +2,10 @@ import { readFileSync } from 'node:fs'
 import { resolve, sep } from 'node:path'
 import { PNG } from 'pngjs'
 import { validateShape } from '../src/engine/shapeData.ts'
+import { catalogAssetRevision } from './asset-revision.ts'
 
 interface Item { id: string; name: string; category: string; group?: string; shape?: string; texture: string; block?: string; classic?: { texture: string; block?: string } }
-const catalog = JSON.parse(readFileSync('public/data/items.json', 'utf8')) as { groups: Record<string, string[]>; items: Item[]; pot: string; classicPot: string }
+const catalog = JSON.parse(readFileSync('public/data/items.json', 'utf8')) as { groups: Record<string, string[]>; items: Item[]; pot: string; classicPot: string; assetRevision?: string }
 const root = resolve('public')
 const paths = new Map<string, number>()
 const ids = new Set<string>()
@@ -34,4 +35,10 @@ for (const [path, width] of paths) {
   const png = PNG.sync.read(readFileSync(absolute))
   if (png.height !== 16 || png.width !== width) throw new Error(`Unexpected dimensions for ${path}: ${png.width}x${png.height}`)
 }
-console.log(`Validated ${ids.size} categorized catalog entries, ${paths.size} referenced PNGs, and ${shapeCount} craft shapes.`)
+// Textures and shapes are cached for a year under ?v=<assetRevision>, so a file changed without a
+// new revision would never reach returning visitors.
+const revision = catalogAssetRevision()
+if (catalog.assetRevision !== revision) {
+  throw new Error(`Textures or shapes changed since the catalog's asset revision was written (${catalog.assetRevision ?? 'none'} → ${revision}). Run npm run asset-revision and commit the catalog.`)
+}
+console.log(`Validated ${ids.size} categorized catalog entries, ${paths.size} referenced PNGs, ${shapeCount} craft shapes and asset revision ${revision}.`)

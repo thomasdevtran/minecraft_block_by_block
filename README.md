@@ -8,6 +8,7 @@ One pixel = one cube. Every guide starts with a paint list and cube count, then 
 ```sh
 npm install
 npm run extract   # download the Minecraft client jar and write public/textures/items + public/data/items.json
+npm run asset-revision   # after editing a texture or shape by hand: re-tag them so visitors get the new files
 npm run dev       # site + /api/skin/:username on http://localhost:5173
 npm test          # engine unit tests
 npm run build
@@ -116,7 +117,7 @@ Most other non-cube models, including stairs and beds, remain unsupported. The t
 
 ## Craft photos and starter projects
 
-The homepage uses clearly labeled photo placeholders until real crafts are ready. Put photos in `public/crafts/`, then set `showcasePhoto` and the `starterBuilds` entries' `photo` paths in `src/lib/site.ts` (for example `/crafts/rose.jpg`). The starter projects are Rose, Emerald and Red Tulip. Empty paths keep the placeholders. Use landscape crops; photos never replace the game-reference thumbnail.
+The homepage uses clearly labeled photo placeholders until real crafts are ready. Put photos in `public/crafts/`, then set `showcasePhoto` and the `starterBuilds` entries' `photo` paths in `src/lib/site.ts` (for example `/crafts/rose.jpg`). The starter projects are Rose, Emerald and Red Tulip. Empty paths keep the placeholders. Use landscape crops; photos never replace the game-reference thumbnail. Replacing a photo under the same name is fine: the build tags photo URLs with a hash of `public/crafts/`, so visitors get the new picture with the next deploy.
 
 Starter counts are calculated from current textures with an eight-color palette. Their links pin the same settings. No untested time or difficulty estimates are shown. Guides provide per-step cube legends, an enlarged current row, saved progress on this device, a full print layout, and links that preserve item build settings. Skin sharing links to the skin builder; uploaded images remain local.
 
@@ -161,7 +162,7 @@ The optional `.github/workflows/record-visitors.yml` snapshots the aggregate in 
 
 `vercel.json` includes a same-origin Content Security Policy, framing protection, content-type protection, a referrer policy and restricted device permissions. Static file/API paths are excluded from the SPA rewrite. Test the actual deployment: Vite's dev server does not reproduce Vercel routing, caching or function execution. `npm run preview` serves the built frontend with the security headers but does not run serverless APIs.
 
-Hashed Vite assets use immutable caching. Versioned textures use the catalog's Minecraft version in their URL. If textures change without a version change, update the cache-busting scheme. The catalog revalidates after a short CDN interval; fonts have a bounded cache rather than permanent caching.
+Hashed Vite assets use immutable caching. Textures and craft shapes are requested with `?v=<assetRevision>`, a hash of every file under `public/textures/` and `public/data/shapes/` stored in `items.json` (`scripts/asset-revision.ts`), and craft photos with a hash of `public/crafts/`. Those tagged URLs are cached for a year; any changed file changes the hash, so visitors fetch the new bytes. `npm run extract` writes the revision, `npm run asset-revision` updates it after a hand edit, and `npm run check:catalog` fails when it's stale. A request without `?v=` is never cached as immutable (`vercel.json` matches on the query). The catalog revalidates after a short CDN interval; fonts have a bounded cache rather than permanent caching.
 
 The application ships without advertising code. Any future advertising integration requires a separate implementation and legal review, including consent, child-audience treatment, provider settings, CSP, privacy disclosures, payment/hosting terms and production tests. See the release review.
 

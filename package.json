@@ -10,6 +10,7 @@
     "extract": "tsx scripts/extract-assets.ts",
     "test": "vitest run",
     "check:catalog": "tsx scripts/check-catalog.ts",
+    "asset-revision": "tsx scripts/asset-revision.ts",
     "check:bundle": "tsx scripts/check-bundle.ts",
     "check:guide-resources": "node tests/guide-resources.browser.mjs",
     "check:homepage": "node tests/homepage-work.browser.mjs",

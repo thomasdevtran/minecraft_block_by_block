@@ -1,7 +1,7 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { loadPixels, type PixelImage } from '../engine/pixels'
 import { createGuideResources, guideResourceUrls, type GuideResourceUrls } from './guideResources'
-import type { BuildableItem } from './catalog'
+import { loadCatalog, type BuildableItem } from './catalog'
 
 vi.mock('../engine/pixels', () => ({ loadPixels: vi.fn() }))
 const sprite: PixelImage = { width: 1, height: 1, data: new Uint8Array([255, 0, 0, 255]) }
@@ -13,6 +13,12 @@ const craft = { ...base, shape: 'shape.json' }
 const urls = (overrides: Partial<GuideResourceUrls> = {}): GuideResourceUrls => ({ sprite: null, block: null, pot: null, shape: null, ...overrides })
 const plan = (item: BuildableItem, view: '2d' | '3d', potted = false, look: 'current' | 'classic' = 'current') =>
   guideResourceUrls(item, { view, look, potted, potUrl: '/pot.png' })
+// Guides open after the catalog has loaded, so their texture and shape URLs carry its revision.
+beforeAll(async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify({ version: '1', assetRevision: 'r1', groups: {}, pot: '', classicPot: '', classicVersion: '', items: [] }))))
+  await loadCatalog()
+  vi.unstubAllGlobals()
+})
 beforeEach(() => {
   vi.clearAllMocks()
   vi.mocked(loadPixels).mockReset().mockResolvedValue(sprite)
@@ -22,15 +28,15 @@ afterEach(() => vi.unstubAllGlobals())
 
 describe('selected guide resources', () => {
   it.each([
-    [base, '2d', false, urls({ sprite: '/sprite.png' })],
-    [block, '2d', false, urls({ sprite: '/sprite.png' })],
-    [block, '3d', false, urls({ block: '/strip.png' })],
-    [flower, '2d', false, urls({ sprite: '/sprite.png' })],
-    [flower, '3d', false, urls({ sprite: '/sprite.png' })],
-    [flower, '2d', true, urls({ sprite: '/sprite.png', pot: '/pot.png' })],
-    [flower, '3d', true, urls({ sprite: '/sprite.png', pot: '/pot.png' })],
-    [craft, '2d', false, urls({ sprite: '/sprite.png' })],
-    [craft, '3d', false, urls({ shape: '/shape.json' })],
+    [base, '2d', false, urls({ sprite: '/sprite.png?v=r1' })],
+    [block, '2d', false, urls({ sprite: '/sprite.png?v=r1' })],
+    [block, '3d', false, urls({ block: '/strip.png?v=r1' })],
+    [flower, '2d', false, urls({ sprite: '/sprite.png?v=r1' })],
+    [flower, '3d', false, urls({ sprite: '/sprite.png?v=r1' })],
+    [flower, '2d', true, urls({ sprite: '/sprite.png?v=r1', pot: '/pot.png' })],
+    [flower, '3d', true, urls({ sprite: '/sprite.png?v=r1', pot: '/pot.png' })],
+    [craft, '2d', false, urls({ sprite: '/sprite.png?v=r1' })],
+    [craft, '3d', false, urls({ shape: '/shape.json?v=r1' })],
   ] as const)('loads the inputs for %j / %s / pot=%s', async (item, view, potted, expected) => {
     const selected = plan(item, view, potted)
     expect(selected).toEqual(expected)
@@ -40,10 +46,10 @@ describe('selected guide resources', () => {
   })
 
   it('uses the effective classic texture, including a current-strip fallback', () => {
-    expect(plan(block, '2d', false, 'classic').sprite).toBe('/old-sprite.png')
-    expect(plan(block, '3d', false, 'classic').block).toBe('/old-strip.png')
-    expect(plan({ ...block, classic: { texture: 'old-sprite.png' } }, '3d', false, 'classic').block).toBe('/strip.png')
-    expect(plan(base, '2d', false, 'classic').sprite).toBe('/sprite.png')
+    expect(plan(block, '2d', false, 'classic').sprite).toBe('/old-sprite.png?v=r1')
+    expect(plan(block, '3d', false, 'classic').block).toBe('/old-strip.png?v=r1')
+    expect(plan({ ...block, classic: { texture: 'old-sprite.png' } }, '3d', false, 'classic').block).toBe('/strip.png?v=r1')
+    expect(plan(base, '2d', false, 'classic').sprite).toBe('/sprite.png?v=r1')
     expect(plan({ ...base, flower: { pottable: false } }, '3d', true).pot).toBeNull()
   })
 
@@ -76,7 +82,7 @@ describe('selected guide resources', () => {
     const store = createGuideResources()
     await expect(store.load(plan(flower, '3d', true))).rejects.toThrow('offline')
     await expect(store.load(plan(flower, '3d', true))).resolves.toMatchObject({ sprite, pot: sprite })
-    expect(vi.mocked(loadPixels).mock.calls.map(call => call[0])).toEqual(['/sprite.png', '/pot.png', '/pot.png'])
+    expect(vi.mocked(loadPixels).mock.calls.map(call => call[0])).toEqual(['/sprite.png?v=r1', '/pot.png', '/pot.png'])
   })
 
   it('validates shape JSON before reuse, and retries network and validation failures', async () => {

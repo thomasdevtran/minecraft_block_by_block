@@ -89,10 +89,10 @@ try {
         const item = items[id]
         const sprite = look === 'classic' ? item.classic.texture : item.texture
         const strip = look === 'classic' ? item.classic.block : item.block
-        const expectedPixels = input === 'shape' ? [] : input === 'strip' ? [`/${strip}?v=${catalog.version}`]
-          : [`/${sprite}?v=${catalog.version}`, ...(input === 'potted' ? [`/${look === 'classic' ? catalog.classicPot : catalog.pot}?v=${catalog.version}`] : [])]
+        const expectedPixels = input === 'shape' ? [] : input === 'strip' ? [`/${strip}?v=${catalog.assetRevision ?? catalog.version}`]
+          : [`/${sprite}?v=${catalog.assetRevision ?? catalog.version}`, ...(input === 'potted' ? [`/${look === 'classic' ? catalog.classicPot : catalog.pot}?v=${catalog.assetRevision ?? catalog.version}`] : [])]
         assert.deepEqual([...decodes].sort(), expectedPixels.sort(), `Unexpected canvas decode: ${name}`)
-        assert.deepEqual(requests.filter(r => r.startsWith('/data/shapes/')), input === 'shape' ? [`/${item.shape}?v=${catalog.version}`] : [], `Unexpected shape request: ${name}`)
+        assert.deepEqual(requests.filter(r => r.startsWith('/data/shapes/')), input === 'shape' ? [`/${item.shape}?v=${catalog.assetRevision ?? catalog.version}`] : [], `Unexpected shape request: ${name}`)
         if (input === 'sprite' && item.block) assert(!requests.some(r => r.startsWith('/textures/blocks/') || r.startsWith('/textures/classic/blocks/')))
         if (input === 'sprite' && item.flower) assert(!requests.some(r => r.startsWith(`/${catalog.pot}?`) || r.startsWith(`/${catalog.classicPot}?`)))
       }

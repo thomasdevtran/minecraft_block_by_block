@@ -12,6 +12,7 @@ import { PNG } from 'pngjs'
 import { collectibleName, itemGroup, ITEM_GROUP_ORDER } from './catalog-metadata.ts'
 import { faceImage, type UV } from './texture-uv.ts'
 import { craftShapes } from './craft-shapes.ts'
+import { catalogAssetRevision } from './asset-revision.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const CACHE = join(ROOT, 'scripts', '.cache')
@@ -552,6 +553,8 @@ writeFileSync(
     classicPot: 'textures/classic/pot.png',
     classicVersion: CLASSIC_VERSION,
     items,
+    // Last, once every texture and shape above is written: their URLs carry this hash.
+    assetRevision: catalogAssetRevision(ROOT),
   }),
 )
 console.log(`Minecraft ${version} → ${OUT_INDEX}`)

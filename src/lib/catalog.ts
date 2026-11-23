@@ -30,6 +30,8 @@ export interface CatalogItem extends BuildableItem {
 
 export interface Catalog {
   version: string
+  /** Hash of every texture and shape file (scripts/asset-revision.ts); tags their URLs. */
+  assetRevision?: string
   /** Sub-groups per tab, in display order. */
   groups: Partial<Record<Category, string[]>>
   /** Flower pot + dirt textures for potted flowers. */
@@ -43,21 +45,27 @@ export interface Catalog {
 const rawCatalog = loader<Catalog>('/data/items.json', 'The build catalog could not be loaded. Check your connection and try again.')
 
 /**
- * Texture filenames never change, but their contents do when the game version moves, so the paths
- * carry the version as a query. That lets the CDN cache them forever and still hand out the new
- * pictures the moment `npm run extract` bumps the version.
+ * Texture and shape filenames never change, but their contents do, so their URLs carry the
+ * catalog's asset revision, a hash of the files. That lets browsers and the CDN cache them for a
+ * year and still fetch new bytes the moment any file changes. Older catalogs without a revision
+ * fall back to the game version.
  */
 let assetVersion = ''
 
 /** Loads the index written by `npm run extract`. */
 export const loadCatalog = async (): Promise<Catalog> => {
   const catalog = await rawCatalog()
-  assetVersion = catalog.version
+  assetVersion = catalog.assetRevision ?? catalog.version
   return catalog
 }
 
-/** Turns a path from items.json into a cache-busted absolute URL. */
+/**
+ * Turns a path from items.json into a cache-busted absolute URL. Only call it after loadCatalog():
+ * before, there's no revision to add. Development stops on that mistake; a deployed site serves the
+ * untagged path, which vercel.json revalidates on every visit instead of caching for a year.
+ */
 export function assetUrl(path: string): string {
+  if (!assetVersion && import.meta.env.DEV) throw new Error(`assetUrl('${path}') ran before loadCatalog().`)
   return assetVersion ? `/${path}?v=${assetVersion}` : `/${path}`
 }
 

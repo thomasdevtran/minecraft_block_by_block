@@ -8,8 +8,12 @@ import type { Photo } from '../lib/site'
  * so it loads straight away instead of lazily.
  */
 const props = defineProps<{ photo?: Photo; alt: string; sizes?: string; priority?: boolean }>()
+
+/** A hash of public/crafts, set by vite.config.ts: a replaced photo gets a new URL, so it can be cached for a year. */
+declare const __PHOTO_REVISION__: string
+const tagged = (url: string) => `${url}?v=${__PHOTO_REVISION__}`
 const srcset = computed(() =>
-  props.photo?.webp?.map((width) => `${props.photo!.jpg.replace(/\.jpe?g$/i, `-${width}.webp`)} ${width}w`).join(', '),
+  props.photo?.webp?.map((width) => `${tagged(props.photo!.jpg.replace(/\.jpe?g$/i, `-${width}.webp`))} ${width}w`).join(', '),
 )
 </script>
 
@@ -18,7 +22,7 @@ const srcset = computed(() =>
     <picture v-if="photo">
       <source v-if="srcset" type="image/webp" :srcset="srcset" :sizes="sizes ?? '100vw'" />
       <img
-        :src="photo.jpg"
+        :src="tagged(photo.jpg)"
         :alt="alt"
         width="1600"
         height="1000"

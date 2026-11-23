@@ -72,6 +72,11 @@ async function settled(page) {
   await page.evaluate(() => document.fonts.ready)
 }
 async function twoFrames(page) { await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)))) }
+/**
+ * Asset URLs carry ?v=<asset revision>, which changes whenever any texture changes. The contracts pin
+ * which file each icon shows, not its cache tag, so both sides compare with the tag blanked.
+ */
+const untagged = value => JSON.parse(JSON.stringify(value).replace(/\?v=[0-9A-Za-z._-]+/g, '?v=*'))
 async function snapshot(page) {
   return page.locator('.demo').evaluate(el => ({
     summary: el.querySelector('[aria-live]').textContent.trim(),
@@ -109,7 +114,7 @@ try {
     await near(initial.page, '#first-build')
     await initial.page.waitForFunction(() => [...document.querySelectorAll('#first-build .starter-stats')].every(el => /\d+ cubes/.test(el.textContent)))
     observed.starters = await initial.page.locator('#first-build .starter').evaluateAll(cards => cards.map(card => ({ text: card.querySelector('.starter-stats').textContent.trim(), href: card.getAttribute('href') })))
-    if (reference) assert.deepEqual(observed.starters, reference.starters)
+    if (reference) assert.deepEqual(untagged(observed.starters), untagged(reference.starters))
     // These two starter sprites are not also used by the demo, which may finish loading nearby.
     const count = await initial.page.evaluate(() => window.__pixelDecodes.filter(p => /\/(emerald|red_tulip)\.png$/.test(p)).length)
     await initial.page.evaluate(() => scrollTo(0, 0)); await near(initial.page, '#first-build')
@@ -130,7 +135,7 @@ try {
       const key = `${id}:${mode}`
       observed.demos[key] = result
       if (reference) {
-        assert.deepEqual(result, reference.demos[key], `Demo changed: ${key}`)
+        assert.deepEqual(untagged(result), untagged(reference.demos[key]), `Demo changed: ${key}`)
         const expected = id === 'steve' ? mode === '2d' ? ['item', 'skin'] : ['skin']
           : mode === '2d' || id === 'axolotl_bucket' ? ['item'] : id === 'diamond_ore' ? ['block'] : ['flower']
         assert.deepEqual(engineNames(scripts).sort(), expected.sort(), `Unused generator loaded: ${key}`)
@@ -221,7 +226,7 @@ try {
     await flat.page.locator('.demo .board.built').waitFor()
     const board = await flat.page.locator('.demo .board .cube').evaluateAll(cells => cells.map(c => [c.style.gridColumn, c.style.gridRow, c.style.background]))
     observed.noWebGL = { ...(await snapshot(flat.page)), boardHash: hash(board), cubes: board.length }
-    if (reference) assert.deepEqual(observed.noWebGL, reference.noWebGL)
+    if (reference) assert.deepEqual(untagged(observed.noWebGL), untagged(reference.noWebGL))
     await checkGuide(flat.page, observed.noWebGL.summary)
     observed.checks.push('no-webgl-flat-fallback')
   } finally { await flat.context.close() }

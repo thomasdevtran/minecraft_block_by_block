@@ -1,7 +1,9 @@
 import vue from '@vitejs/plugin-vue'
 import { defineConfig, type Plugin } from 'vite'
 import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
 import { GET as skinGet } from './api/skin/[username].ts'
+import { hashFiles, PHOTO_DIRS } from './scripts/asset-revision.ts'
 import { GET as statsGet, POST as statsPost } from './api/stats.ts'
 
 type Handler = (request: Request) => Promise<Response>
@@ -52,6 +54,9 @@ function devApi(routes: Record<string, Route>): Plugin {
 // https://vite.dev/config/
 export default defineConfig({
   build: { manifest: true },
+  // Craft photos keep their names when replaced, so CraftPhoto tags their URLs with a hash of the
+  // photo files. vercel.json can then cache tagged photos for a year.
+  define: { __PHOTO_REVISION__: JSON.stringify(hashFiles(fileURLToPath(new URL('.', import.meta.url)), PHOTO_DIRS)) },
   preview: { headers: previewHeaders },
   plugins: [
     vue(),
