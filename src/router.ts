@@ -3,6 +3,7 @@ import { loadCatalog } from './lib/catalog'
 import { setPageMeta } from './lib/meta'
 import { SITE } from './lib/site'
 import { isChunkLoadError, reloadForNewDeploy } from './lib/recovery'
+import { showToast } from './lib/toast'
 
 declare module 'vue-router' {
   interface RouteMeta {
@@ -146,9 +147,14 @@ router.beforeEach((to) => {
   if (to.meta.needsCatalog) void loadCatalog().catch(() => {})
 })
 
-/** A route's code chunk failed to load, usually because a deploy replaced it: open the page fresh. */
+/**
+ * A route's code chunk failed to load, usually because a deploy replaced it: open the page fresh.
+ * Offline, a reload can't help: that page simply wasn't saved, so say so instead.
+ */
 router.onError((error, to) => {
-  if (isChunkLoadError(error)) reloadForNewDeploy(to.fullPath)
+  if (!isChunkLoadError(error)) return
+  if (!navigator.onLine) showToast('You’re offline, and this page wasn’t saved. Guides you’ve opened before still work.', 'error')
+  else reloadForNewDeploy(to.fullPath)
 })
 
 router.afterEach((to, from) => {

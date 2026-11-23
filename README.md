@@ -18,7 +18,7 @@ npm run build
 
 After a production build, `npm run check:bundle` checks the startup and route JavaScript budgets. See [performance/README.md](performance/README.md) for repeatable browser measurements, baseline results, and CI reporting.
 
-`npm run check:site-behavior -- --channel msedge` verifies catalog navigation and deferred counter cleanup against that build. `npm run perf:catalog` compares metadata processing with the previous algorithms on the current catalog and a 10,000-entry fixture.
+`npm run check:site-behavior -- --channel msedge` verifies catalog navigation and deferred counter cleanup against that build. `npm run check:offline -- --channel msedge` opens guides, goes offline, reloads and steps through them, then simulates deploys, Clear build data and the kill switch. `npm run perf:catalog` compares metadata processing with the previous algorithms on the current catalog and a 10,000-entry fixture.
 
 ## Accounts and My Builds
 
@@ -135,6 +135,7 @@ The release configuration uses **babiiyi**, California, United States, and **toe
 - Accounts provide a private saved-build library. Fonts are self-hosted under the included OFL license.
 - Skin files are processed locally. Saving a skin build uploads its PNG to private Supabase storage. Player lookups reach Mojang through our API and can be cached or present in hosting logs.
 - Build progress, skin images and appearance preferences use local storage. The privacy page can clear build data while preserving appearance preferences.
+- Offline copies of the site and of the last 30 guides opened use cache storage (public files only; no skins or lookups). Clearing build data removes them.
 - **Page visits** are counted automatically once per full page load, including reloads and repeat visits. Internal route changes do not add visits. No cookies, stored visitor identifiers, page history or Vercel Web Analytics script are used. GPC/DNT disables counting.
 - There is no counting prompt. The server increments a single Redis integer and requires same-origin request signals. Bot filters and origin checks are not proof of a human visitor and do not prevent determined counter manipulation. The total is not unique people and may be cached for a few minutes.
 - Ko-fi and PayPal remain external links. Verify the recipient accounts before release; the repository does not prove ownership.
@@ -162,7 +163,9 @@ The optional `.github/workflows/record-visitors.yml` snapshots the aggregate in 
 
 `vercel.json` includes a same-origin Content Security Policy, framing protection, content-type protection, a referrer policy and restricted device permissions. Static file/API paths are excluded from the SPA rewrite. Test the actual deployment: Vite's dev server does not reproduce Vercel routing, caching or function execution. `npm run preview` serves the built frontend with the security headers but does not run serverless APIs.
 
-Hashed Vite assets use immutable caching. Textures and craft shapes are requested with `?v=<assetRevision>`, a hash of every file under `public/textures/` and `public/data/shapes/` stored in `items.json` (`scripts/asset-revision.ts`), and craft photos with a hash of `public/crafts/`. Those tagged URLs are cached for a year; any changed file changes the hash, so visitors fetch the new bytes. `npm run extract` writes the revision, `npm run asset-revision` updates it after a hand edit, and `npm run check:catalog` fails when it's stale. A request without `?v=` is never cached as immutable (`vercel.json` matches on the query). The catalog revalidates after a short CDN interval; fonts have a bounded cache rather than permanent caching.
+Hashed Vite assets use immutable caching. Textures and craft shapes are requested with `?v=<assetRevision>`, a hash of every file under `public/textures/` and `public/data/shapes/` stored in `items.json` (`scripts/asset-revision.ts`), and craft photos with a hash of `public/crafts/`. Those tagged URLs are cached for a year; any changed file changes the hash, so visitors fetch the new bytes. `npm run extract` writes the revision, `npm run asset-revision` updates it after a hand edit, and `npm run check:catalog` fails when it's stale. A request without `?v=` is never cached as immutable (`vercel.json` matches on the query). The catalog revalidates after a short CDN interval; fonts have a bounded cache rather than permanent caching. Skin lookups are cached on Vercel's CDN only: a found skin for an hour (served for up to a week if Mojang fails), an unknown player or default skin for five minutes, and errors never.
+
+Offline guides: production builds register a service worker (`src/sw.js`, written to `dist/sw.js` with a build ID by `offlineWorker()` in `vite.config.ts`, registered by `src/lib/offline.ts` once the page is idle). Pages are always fetched from the network first, so deploys arrive as before; offline, the saved app shell answers. Hashed code, fonts and the catalog are kept per deploy (the current and previous deploy). The tagged pictures and shapes of the last 30 guide pages a visitor opens (`MAX_GUIDES`) are saved automatically; browsing the catalog saves nothing. API calls and other sites always use the network. "Clear saved build data" on the privacy page deletes every offline copy. Kill switch: `VITE_OFFLINE=off npm run build` ships a page that stops registering the worker and a `sw.js` that deletes its caches and unregisters itself; deploy it if the worker ever misbehaves.
 
 The application ships without advertising code. Any future advertising integration requires a separate implementation and legal review, including consent, child-audience treatment, provider settings, CSP, privacy disclosures, payment/hosting terms and production tests. See the release review.
 
@@ -175,6 +178,7 @@ See [performance/README.md](performance/README.md) for measured baselines, refac
 - `src/views/CatalogView.vue`: the catalog grid. Renders 60 tiles at a time; unrendered CSS block icons do not request their textures.
 - `src/lib/demo.ts`: optional homepage generator loading; keeps unused generators out of the initial catalog.
 - `src/lib/guideResources.ts`: selected guide inputs and their view-local cache; clears on item changes and unmount.
+- `src/sw.js` and `src/lib/offline.ts`: the offline-guides service worker and its registration.
 - `api/skin/[username].ts`: Vercel function that proxies Mojang's skin API.
 - `api/stats.ts`: the visitor counter, `GET` and `POST` in one file.
 - `vite.config.ts`: `devApi()` mounts both functions on the dev server, so `npm run dev` needs no extra tools.

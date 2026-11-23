@@ -111,3 +111,41 @@ describe('skin lookup boundary', () => {
     expect(mock.mock.calls[2]![1]).toMatchObject({ redirect: 'error', signal: expect.any(AbortSignal) })
   })
 })
+
+describe('skin lookup caching', () => {
+  const lookup = () => GET(new Request('https://example.com/api/skin/Builder'))
+  it('keeps a found skin through Mojang outages', async () => {
+    vi.stubGlobal('fetch', upstream().mockResolvedValueOnce(new Response(pngBytes(), { headers: { 'Content-Type': 'image/png' } })))
+    const res = await lookup()
+    expect(res.status).toBe(200)
+    expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800')
+  })
+  it('briefly remembers an unknown player', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 204 })))
+    const res = await lookup()
+    expect(res.status).toBe(404)
+    expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=300')
+  })
+  it('briefly remembers a default skin', async () => {
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(Response.json({ id: 'a'.repeat(32), name: 'Builder' }))
+      .mockResolvedValueOnce(Response.json({ properties: [] })))
+    const res = await lookup()
+    expect(res.status).toBe(404)
+    expect(res.headers.get('Cache-Control')).toBe('public, s-maxage=300')
+  })
+  it('never caches an invalid name', async () => {
+    const res = await GET(new Request('https://example.com/api/skin/player-name'))
+    expect(res.status).toBe(400)
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+  })
+  it.each([
+    ['an upstream failure', () => vi.fn().mockResolvedValue(new Response('', { status: 503 }))],
+    ['a network error', () => vi.fn().mockRejectedValue(new Error('offline'))],
+  ])('never caches %s', async (_, fetchMock) => {
+    vi.stubGlobal('fetch', fetchMock())
+    const res = await lookup()
+    expect(res.status).toBe(502)
+    expect(res.headers.get('Cache-Control')).toBe('no-store')
+  })
+})

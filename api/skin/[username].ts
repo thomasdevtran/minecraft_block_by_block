@@ -8,6 +8,14 @@ const USERNAME = /^[A-Za-z0-9_]{1,16}$/
 const MAX_TEXTURE_METADATA_LENGTH = 64 * 1024
 const MAX_SKIN_BYTES = 1024 * 1024
 
+// Vercel's CDN reads these and the browser gets `max-age=0`, so only the CDN keeps a copy.
+// A found skin is fresh for an hour, then served while it refreshes for a day. If Mojang fails,
+// the CDN keeps serving the last good copy for a week instead of the error.
+const SKIN_CACHE = 'public, s-maxage=3600, stale-while-revalidate=86400, stale-if-error=604800'
+// No such player, or a default skin: remembered briefly so a repeated typo doesn't reach Mojang
+// every time. A 400 never reaches Mojang (and Vercel doesn't cache 400s); a 5xx must never be remembered.
+const NOT_FOUND_CACHE = 'public, s-maxage=300'
+
 export class SkinLookupError extends Error {
   status: number
   constructor(status: number, message: string) {
@@ -115,12 +123,12 @@ export async function GET(request: Request): Promise<Response> {
         'X-Skin-Model': skin.model,
         'X-Skin-Username': skin.username,
         'Access-Control-Expose-Headers': 'X-Skin-Model, X-Skin-Username',
-        'Cache-Control': 'public, s-maxage=3600, stale-while-revalidate=86400',
+        'Cache-Control': SKIN_CACHE,
       },
     })
   } catch (err) {
     const status = err instanceof SkinLookupError ? err.status : 502
     const message = err instanceof SkinLookupError ? err.message : 'The skin service is unavailable. Try again, or upload a PNG from your device.'
-    return Response.json({ error: message }, { status, headers: { 'Cache-Control': 'no-store' } })
+    return Response.json({ error: message }, { status, headers: { 'Cache-Control': status === 404 ? NOT_FOUND_CACHE : 'no-store' } })
   }
 }

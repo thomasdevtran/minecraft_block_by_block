@@ -84,7 +84,8 @@ async function counterLifecycle(startBeforeLeaving) {
       await route.fulfill({ json: { total: 1234, updatedAt: '', method: 'fixture', accuracy: 'fixture' } })
     })
     await page.goto(`${server.base}/support`)
-    await page.waitForFunction(() => window.__idleJobs.size === 2)
+    // Idle jobs: the footer and Support page visitor counters, and offline-guide registration (lib/offline.ts).
+    await page.waitForFunction(() => window.__idleJobs.size === 3)
     if (startBeforeLeaving) {
       const request = page.waitForRequest('**/api/stats')
       await page.evaluate(() => window.__runIdle())
@@ -92,7 +93,7 @@ async function counterLifecycle(startBeforeLeaving) {
     }
     await page.locator('header a[href="/skin"]').click()
     await page.waitForFunction(() => location.pathname === '/skin' && !document.querySelector('.support'))
-    assert.equal(await page.evaluate(() => window.__idleJobs.size), startBeforeLeaving ? 0 : 1)
+    assert.equal(await page.evaluate(() => window.__idleJobs.size), startBeforeLeaving ? 0 : 2)
     if (!startBeforeLeaving) {
       assert.equal(requests, 0)
       const request = page.waitForRequest('**/api/stats')

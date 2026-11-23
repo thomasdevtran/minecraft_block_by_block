@@ -4,17 +4,18 @@ import { RouterLink } from 'vue-router'
 import { SITE } from '../lib/site'
 import { currentSkin } from '../lib/skinStore'
 import { clearBuildData } from '../lib/storage'
+import { clearOfflineCopies } from '../lib/offline'
 import { look } from '../lib/buildSettings'
 
 const confirming = ref(false)
 const cleared = ref('')
-function eraseBuilds() {
-  const success = clearBuildData()
+async function eraseBuilds() {
+  const success = clearBuildData() && await clearOfflineCopies()
   if (success) {
     currentSkin.value = null
     look.value = 'current'
   }
-  cleared.value = success ? 'Saved skins, settings and build progress were removed from this browser.' : 'Browser storage could not be cleared. Use your browser’s site-data settings instead.'
+  cleared.value = success ? 'Saved skins, settings, build progress and offline guides were removed from this browser.' : 'Browser storage could not be cleared. Use your browser’s site-data settings instead.'
   confirming.value = false
 }
 </script>
@@ -34,12 +35,13 @@ function eraseBuilds() {
     <h2 id="local-data">What stays in your browser</h2>
     <p>The site uses local storage to remember the features you use: paint and build settings, your cube size, whether to keep the screen on during a guide, your place in a guide, your texture choice, and your last skin image and its username or file label. Your appearance choice is also saved. The application does not set cookies.</p>
     <p>These records stay until you clear them or your browser removes them. Someone using the same browser profile could see them. Uploaded skins are processed on your device. Choosing “Save to My Builds” while signed in uploads the selected skin and saves the build settings and current step to your private account library.</p>
+    <p>So that guides keep working without a connection, the site also keeps offline copies in your browser’s cache storage: the site’s own code and pages, and the pictures and build shape of the last 30 guides you open. These are the same public files every visitor gets, and skin images and player lookups are never included, but someone using the same browser profile could tell which guides you opened. They are replaced as the site updates, and clearing saved build data below removes them.</p>
     <h2>Accounts and My Builds</h2>
     <p>Supabase provides account sign-in, the saved-build database, and private skin storage. Creating an account sends your email and authentication information to Supabase. Account sign-up also asks for your birth month and year: they are used once to check that you are 13 or older and are not stored, only the result is. A session is stored in this browser to keep you signed in. Signing out on this device removes that session and clears the active skin opened from your private library.</p>
     <p>Your library stores build names, item references, settings, material counts, the step you explicitly save, and uploaded skins for saved skin builds. Sign in on another device to open these builds. Clearing browser build data below affects local records. Contact us to request deletion of your account and cloud records.</p>
     <div class="card data-controls">
       <strong>Manage saved builds</strong>
-      <p>Remove the saved skin, build settings and progress from this browser.</p>
+      <p>Remove the saved skin, build settings, progress and offline guides from this browser.</p>
       <button v-if="!confirming" class="btn" @click="confirming = true">Clear saved build data</button>
       <div v-else>
         <p><strong>This removes your local progress and cannot be undone.</strong></p>
@@ -55,7 +57,7 @@ function eraseBuilds() {
 
     <h2 id="services">Hosting and player lookups</h2>
     <p>The deployment is configured for Vercel hosting. Requests expose technical data such as your IP address, browser, requested URL and time to the hosting provider for delivery, security and troubleshooting. A player username appears in the lookup URL and may appear in request logs. The application does not intentionally write those details into its own database.</p>
-    <p>When you request a player's skin, our server sends the username to Mojang and downloads the skin from Minecraft's texture service. Successful responses can be cached at the hosting edge for one hour and served stale for up to a further day while refreshed. This is different from uploading your own file, which stays local.</p>
+    <p>When you request a player's skin, our server sends the username to Mojang and downloads the skin from Minecraft's texture service. Successful responses can be cached at the hosting edge for one hour, served stale for up to a further day while refreshed, and for up to a week if Mojang is unavailable. An answer that no such player or custom skin exists can be cached for five minutes. This is different from uploading your own file, which stays local.</p>
     <p>Providers may process data outside your country. Log and backup retention depends on the service and deployment settings; contact us for details about a specific request. Essential delivery and security processing supports providing the service and preventing abuse, relying on legitimate interests where that basis applies.</p>
     <ul>
       <li><a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener noreferrer">Vercel privacy policy</a> — hosting and technical requests.</li>
