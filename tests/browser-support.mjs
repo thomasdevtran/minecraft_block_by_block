@@ -12,8 +12,9 @@ export function writeJson(path, value) {
   writeFileSync(path, JSON.stringify(value, null, 2) + '\n')
 }
 
-export async function startPreview(dist) {
-  const server = await preview({ build: { outDir: dist }, preview: { host: '127.0.0.1', port: 4175, strictPort: true } })
+/** Serves a production build on a fixed local port. `plugins` can add preview-only middleware. */
+export async function startPreview(dist, plugins = []) {
+  const server = await preview({ build: { outDir: dist }, preview: { host: '127.0.0.1', port: 4175, strictPort: true }, plugins })
   return {
     base: 'http://127.0.0.1:4175',
     close: () => new Promise((resolve, reject) => server.httpServer.close(error => error ? reject(error) : resolve())),

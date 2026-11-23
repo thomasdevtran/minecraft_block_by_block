@@ -161,7 +161,8 @@ const filtered = computed(() => {
   )
 })
 
-// Unrendered tiles have no texture to fetch, including CSS cube backgrounds.
+// Unrendered tiles have no texture to fetch, including CSS cube backgrounds. "Show more" is a
+// deliberate page boundary: automatic endless loading makes the footer hard to reach.
 const PAGE = 60
 /**
  * How far "Show more" had got is kept in this history entry rather than the URL, so returning with
@@ -175,8 +176,6 @@ const hasMore = computed(() => shown.value < filtered.value.length)
 watch([() => query.value.trim(), category, group], () => (shown.value = PAGE))
 watch(shown, (count) => history.replaceState({ ...history.state, catalogShown: count }, ''))
 const showMore = () => (shown.value += PAGE)
-
-// Keep a deliberate page boundary: automatic endless loading makes the footer hard to reach.
 
 // Keep the live region mounted and announce its final count once typing pauses.
 const ANNOUNCE_DELAY_MS = 450

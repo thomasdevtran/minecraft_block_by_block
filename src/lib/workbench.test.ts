@@ -1,8 +1,9 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { BuildModel } from '../engine/model'
 import type { Voxel } from '../engine/voxels'
-import { isCubeSize } from './buildSettings'
-import { buildDimensions, createWakeLock, finishedSize } from './workbench'
+import { ref } from 'vue'
+import { isCubeSize, type CubeSize } from './buildSettings'
+import { buildDimensions, convertCubeSize, createWakeLock, finishedSize, useCubeSizeField } from './workbench'
 
 afterEach(() => vi.unstubAllGlobals())
 
@@ -40,6 +41,44 @@ describe('finished size', () => {
     expect(isCubeSize({ value: Number.NaN, unit: 'cm' })).toBe(false)
     expect(isCubeSize({ value: 1, unit: 'mm' })).toBe(false)
     expect(isCubeSize('1cm')).toBe(false)
+  })
+})
+
+describe('cube size field', () => {
+  it('converts between units to two decimals, within the new unit’s limits', () => {
+    expect(convertCubeSize({ value: 1, unit: 'cm' }, 'in')).toEqual({ value: 0.39, unit: 'in' })
+    expect(convertCubeSize({ value: 0.75, unit: 'in' }, 'cm')).toEqual({ value: 1.91, unit: 'cm' })
+    expect(convertCubeSize({ value: 0.5, unit: 'cm' }, 'in')).toEqual({ value: 0.2, unit: 'in' })
+    expect(convertCubeSize({ value: 4, unit: 'in' }, 'cm')).toEqual({ value: 10, unit: 'cm' })
+    const same = { value: 2, unit: 'cm' as const }
+    expect(convertCubeSize(same, 'cm')).toBe(same)
+  })
+
+  it('keeps half-typed text in the field and only stores sizes in range', () => {
+    const size = ref<CubeSize>({ value: 1, unit: 'cm' })
+    const field = useCubeSizeField(size)
+    field.type('1,5')
+    expect(size.value).toEqual({ value: 1.5, unit: 'cm' })
+    expect(field.invalid.value).toBe(false)
+    field.type('25')
+    expect(field.draft.value).toBe('25')
+    expect(field.invalid.value).toBe(true)
+    expect(size.value.value).toBe(1.5)
+    field.type('')
+    expect(field.invalid.value).toBe(false)
+    field.settle()
+    expect(field.draft.value).toBe('1.5')
+  })
+
+  it('converts the stored size when the unit changes and resets the text', () => {
+    const size = ref<CubeSize>({ value: 2.54, unit: 'cm' })
+    const field = useCubeSizeField(size)
+    field.type('99')
+    field.changeUnit('in')
+    expect(size.value).toEqual({ value: 1, unit: 'in' })
+    expect(field.draft.value).toBe('1')
+    expect(field.invalid.value).toBe(false)
+    expect(field.limits.value).toEqual({ min: 0.2, max: 4 })
   })
 })
 

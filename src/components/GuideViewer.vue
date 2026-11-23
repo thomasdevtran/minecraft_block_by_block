@@ -3,8 +3,8 @@ import { computed, defineAsyncComponent, nextTick, onBeforeUnmount, onMounted, r
 import type { BuildModel } from '../engine/model'
 import type { Guide } from '../engine/steps'
 import { rolesForStep } from '../lib/guide'
-import { finishedSize, useWakeLock } from '../lib/workbench'
-import { CUBE_SIZE_LIMITS, cubeSize, isCubeSize, keepScreenOn, type LengthUnit } from '../lib/buildSettings'
+import { finishedSize, useCubeSizeField, useWakeLock } from '../lib/workbench'
+import { cubeSize, keepScreenOn, type LengthUnit } from '../lib/buildSettings'
 import { readStored, rememberBuild, writeStored } from '../lib/storage'
 import { hasWebGL, useNearViewport, whenIdle } from '../lib/dom'
 import StepInstructions from './StepInstructions.vue'
@@ -27,11 +27,13 @@ const panel = ref<HTMLElement | null>(null)
 /** What window.print() lays out: the whole guide, or the tray label sheet. Null when not printing. */
 const printMode = ref<'guide' | 'labels' | null>(null)
 const shareUrl = ref('')
+/** Stage names by step kind, in guide order. */
+const STAGE_LABELS = { paint: 'Paint', build: 'Build', assemble: 'Assemble' } as const
 const stages = computed(() => [
   { label: 'Materials', index: 0 },
-  ...(['paint', 'build', 'assemble'] as const).flatMap(kind => {
+  ...(Object.keys(STAGE_LABELS) as (keyof typeof STAGE_LABELS)[]).flatMap(kind => {
     const first = props.guide.steps.findIndex(s => s.kind === kind)
-    return first < 0 ? [] : [{ label: { paint: 'Paint', build: 'Build', assemble: 'Assemble' }[kind], index: first + 1 }]
+    return first < 0 ? [] : [{ label: STAGE_LABELS[kind], index: first + 1 }]
   }),
 ])
 const currentStage = computed(() => stages.value.filter(s => s.index <= index.value).at(-1)?.label)
@@ -170,6 +172,7 @@ onMounted(() => {
   window.addEventListener('resize', stopMotion)
   window.addEventListener('wheel', stopScroll, { passive: true })
   window.addEventListener('touchstart', stopScroll, { passive: true })
+  window.addEventListener('keydown', onKey)
 })
 onBeforeUnmount(() => {
   cancelPrintPreload()
@@ -180,35 +183,15 @@ onBeforeUnmount(() => {
   window.removeEventListener('resize', stopMotion)
   window.removeEventListener('wheel', stopScroll)
   window.removeEventListener('touchstart', stopScroll)
+  window.removeEventListener('keydown', onKey)
 })
 watch(() => props.storageKey, () => { navigation++; stopMotion() })
-// Finished size. The field keeps what the reader typed; the remembered cube size only changes
-// when the text is a size in range, so a half-typed "1." never flashes a wrong result.
+
 const size = computed(() => finishedSize(props.model, cubeSize.value))
 const printedSize = computed(() =>
   `Finished size with ${cubeSize.value.value} ${cubeSize.value.unit} cubes: ${size.value.size} (${size.value.other}), ${size.value.axes}. Glue lines add a little.`)
-const sizeDraft = ref(String(cubeSize.value.value))
-const sizeInvalid = ref(false)
-const sizeLimits = computed(() => CUBE_SIZE_LIMITS[cubeSize.value.unit])
-function typeCubeSize(text: string) {
-  sizeDraft.value = text
-  const next = { value: Number(text.trim().replace(',', '.')), unit: cubeSize.value.unit }
-  sizeInvalid.value = text.trim() !== '' && !isCubeSize(next)
-  if (isCubeSize(next)) cubeSize.value = next
-}
-function settleCubeSize() {
-  sizeDraft.value = String(cubeSize.value.value)
-  sizeInvalid.value = false
-}
-/** Switching units converts the size, so the finished size stays the same until the reader edits it. */
-function changeCubeUnit(unit: LengthUnit) {
-  const { value, unit: from } = cubeSize.value
-  if (unit === from) return
-  const converted = Math.round((unit === 'in' ? value / 2.54 : value * 2.54) * 100) / 100
-  const { min, max } = CUBE_SIZE_LIMITS[unit]
-  cubeSize.value = { value: Math.min(max, Math.max(min, converted)), unit }
-  settleCubeSize()
-}
+const sizeField = useCubeSizeField(cubeSize)
+const { draft: sizeDraft, invalid: sizeInvalid, limits: sizeLimits } = sizeField
 
 const { supported: canKeepAwake, enabled: keepAwake, toggle: toggleWakeLock } = useWakeLock(keepScreenOn)
 async function toggleKeepAwake() {
@@ -236,8 +219,6 @@ function onKey(e: KeyboardEvent) {
     go(e.key === 'ArrowRight' ? 1 : -1)
   }
 }
-onMounted(() => window.addEventListener('keydown', onKey))
-onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 
 const previewCard = ref<HTMLElement | null>(null)
 // On wide screens the card is already on screen, so this resolves straight after the first paint.
@@ -248,11 +229,7 @@ const webglOk = ref(true)
 watch(previewNear, (near) => near && (webglOk.value = hasWebGL()), { immediate: true })
 const showPreview = computed(() => previewNear.value && webglOk.value)
 
-const stageLabel = computed(() => {
-  const s = step.value
-  if (!s) return 'Materials'
-  return s.kind === 'paint' ? 'Paint' : s.kind === 'build' ? 'Build' : 'Assemble'
-})
+const stageLabel = computed(() => (step.value ? STAGE_LABELS[step.value.kind] : 'Materials'))
 
 const paintRows = computed(() =>
   props.model.palette.map((p, i) => ({ ...p, ...props.guide.materials.perPaint[i] })),
@@ -356,10 +333,10 @@ const position = computed(() => (index.value === 0 ? 'Materials' : `Step ${index
                 :value="sizeDraft"
                 :aria-invalid="sizeInvalid"
                 :aria-describedby="sizeInvalid ? 'cube-size-error' : undefined"
-                @input="typeCubeSize(($event.target as HTMLInputElement).value)"
-                @blur="settleCubeSize"
+                @input="sizeField.type(($event.target as HTMLInputElement).value)"
+                @blur="sizeField.settle"
               />
-              <select aria-label="Cube size unit" :value="cubeSize.unit" @change="changeCubeUnit(($event.target as HTMLSelectElement).value as LengthUnit)">
+              <select aria-label="Cube size unit" :value="cubeSize.unit" @change="sizeField.changeUnit(($event.target as HTMLSelectElement).value as LengthUnit)">
                 <option value="cm">cm</option>
                 <option value="in">in</option>
               </select>

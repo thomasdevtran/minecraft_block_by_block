@@ -1,11 +1,9 @@
 /** Production frontend lab measurements. See performance/README.md for scope and reproducibility. */
 import assert from 'node:assert/strict'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { dirname } from 'node:path'
-import { createHash } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
 import { chromium } from 'playwright'
-import { preview } from 'vite'
+import { digest, readJson, startPreview, writeJson } from '../tests/browser-support.mjs'
 
 const { values } = parseArgs({ options: {
   output: { type: 'string', default: 'dist/performance-browser.json' },
@@ -46,26 +44,24 @@ const skin = {
   label: 'Steve', model: 'classic',
   dataUrl: `data:image/png;base64,${readFileSync('public/textures/steve.png').toString('base64')}`,
 }
-const buildHash = createHash('sha256').update(readFileSync(`${values.dist}/index.html`)).digest('hex')
-const manifest = JSON.parse(readFileSync(`${values.dist}/.vite/manifest.json`, 'utf8'))
+const buildHash = digest(readFileSync(`${values.dist}/index.html`))
+const manifest = readJson(`${values.dist}/.vite/manifest.json`)
 const sdkFile = manifest['node_modules/@supabase/supabase-js/dist/index.mjs']?.file
 const sdkPath = sdkFile ? '/' + sdkFile : null
 const settings = { cpuSlowdown: 4, latencyMs: 150, downloadBytesPerSecond: 200000, uploadBytesPerSecond: 93750, observationMs: 1500 }
 const samples = []
 const interactions = []
-const server = await preview({
-  build: { outDir: values.dist }, preview: { host: '127.0.0.1', port: 4175, strictPort: true },
-  plugins: values['immutable-assets'] ? [{
-    name: 'performance-asset-cache',
-    configurePreviewServer(server) {
-      server.middlewares.use((req, res, next) => {
-        // Match the deployed hashed-asset policy without changing application configuration.
-        if (req.url?.startsWith('/assets/')) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
-        next()
-      })
-    },
-  }] : [],
-})
+const server = await startPreview(values.dist, values['immutable-assets'] ? [{
+  name: 'performance-asset-cache',
+  configurePreviewServer(server) {
+    server.middlewares.use((req, res, next) => {
+      // Match the deployed hashed-asset policy without changing application configuration.
+      if (req.url?.startsWith('/assets/')) res.setHeader('Cache-Control', 'public, max-age=31536000, immutable')
+      next()
+    })
+  },
+}] : [])
+const { base } = server
 let browser
 
 function save() {
@@ -78,11 +74,10 @@ function save() {
     summaries.push({ scenario: scenario.name, mode, n: sorted.length, readyMedianMs: sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2,
       readyMinMs: sorted[0], readyMaxMs: sorted.at(-1) })
   }
-  mkdirSync(dirname(values.output), { recursive: true })
-  writeFileSync(values.output, JSON.stringify({ schemaVersion: 1, buildHash, browser: browser?.version(), node: process.version,
+  writeJson(values.output, { schemaVersion: 1, buildHash, browser: browser?.version(), node: process.version,
     profile: values.profile, ...profile, settings, runs, immutableAssets: values['immutable-assets'],
     scope: 'Local production preview; Resource Timing records compressed transfer and decoded sizes, no hosted APIs. LCP/CLS stop 1500ms after ready. Warm reload retains HTTP cache; guide progress reset between samples. Action samples are not field INP.',
-    summaries, samples, interactions }, null, 2) + '\n')
+    summaries, samples, interactions })
 }
 
 try {
@@ -131,7 +126,7 @@ try {
       await cdp.send('Network.emulateNetworkConditions', { offline: false, latency: settings.latencyMs,
         downloadThroughput: settings.downloadBytesPerSecond, uploadThroughput: settings.uploadBytesPerSecond, connectionType: 'cellular4g' })
       for (const mode of ['cold', 'warm']) {
-        if (mode === 'cold') await page.goto(`http://127.0.0.1:4175${scenario.path}`, { waitUntil: 'domcontentloaded' })
+        if (mode === 'cold') await page.goto(`${base}${scenario.path}`, { waitUntil: 'domcontentloaded' })
         else await page.reload({ waitUntil: 'domcontentloaded' })
         await page.waitForFunction(() => window.__perf && window.__perf.readyMs !== null, undefined, { timeout: 60000 })
         await page.waitForTimeout(settings.observationMs)
@@ -190,7 +185,7 @@ try {
         interactions.push({ scenario: 'catalog', run, action: 'show-more-guide-back', restoredTiles: 120 })
       }
       if (values['verify-skins'] && scenario.name === 'skin-3d' && run === 1) {
-        await page.goto('http://127.0.0.1:4175/skin')
+        await page.goto(`${base}/skin`)
         await page.locator('input[type=file]').setInputFiles('public/textures/steve.png')
         await page.locator(guide).waitFor()
         assert.match(await page.locator('.guide').locator('..').locator('h1').textContent(), /steve/i)
@@ -201,7 +196,7 @@ try {
           headers: { 'Content-Type': 'image/png', 'X-Skin-Model': 'classic', 'X-Skin-Username': 'FixtureSteve' },
           body: readFileSync('public/textures/steve.png'),
         }))
-        await page.goto('http://127.0.0.1:4175/skin')
+        await page.goto(`${base}/skin`)
         await page.getByLabel('Java Edition username', { exact: true }).fill('FixtureSteve')
         await page.getByRole('button', { name: 'Get skin', exact: true }).click()
         await page.locator(guide).waitFor()
@@ -213,6 +208,6 @@ try {
   }
 } finally {
   await browser?.close()
-  await new Promise(resolve => server.httpServer.close(resolve))
+  await server.close()
 }
 console.log(`Saved ${samples.length} samples to ${values.output}`)

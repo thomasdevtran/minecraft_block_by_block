@@ -1,6 +1,6 @@
-import { onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, type Ref } from 'vue'
 import type { BuildModel } from '../engine/model'
-import type { CubeSize, LengthUnit } from './buildSettings'
+import { CUBE_SIZE_LIMITS, isCubeSize, type CubeSize, type LengthUnit } from './buildSettings'
 
 /*
  * Tools for the reader's workbench while a guide is open: how big the build comes out with their
@@ -50,10 +50,47 @@ export function finishedSize(model: BuildModel, cube: CubeSize) {
   }
 }
 
+/** The same cube size in `unit`, to two decimals and kept within that unit's limits. */
+export function convertCubeSize(size: CubeSize, unit: LengthUnit): CubeSize {
+  if (unit === size.unit) return size
+  const converted = Math.round((unit === 'in' ? size.value / CM_PER_INCH : size.value * CM_PER_INCH) * 100) / 100
+  const { min, max } = CUBE_SIZE_LIMITS[unit]
+  return { value: Math.min(max, Math.max(min, converted)), unit }
+}
+
+/**
+ * The guide's cube-size field. `size` is buildSettings' remembered cubeSize, passed in like
+ * useWakeLock's choice. The field keeps what the reader typed; `size` only changes when the text
+ * is a size in range, so a half-typed "1." never flashes a wrong result.
+ */
+export function useCubeSizeField(size: Ref<CubeSize>) {
+  const draft = ref(String(size.value.value))
+  const invalid = ref(false)
+  const limits = computed(() => CUBE_SIZE_LIMITS[size.value.unit])
+
+  function type(text: string) {
+    draft.value = text
+    const next = { value: Number(text.trim().replace(',', '.')), unit: size.value.unit }
+    invalid.value = text.trim() !== '' && !isCubeSize(next)
+    if (isCubeSize(next)) size.value = next
+  }
+  function settle() {
+    draft.value = String(size.value.value)
+    invalid.value = false
+  }
+  /** Switching units converts the size, so the finished size stays the same until the reader edits it. */
+  function changeUnit(unit: LengthUnit) {
+    if (unit === size.value.unit) return
+    size.value = convertCubeSize(size.value, unit)
+    settle()
+  }
+
+  return { draft, invalid, limits, type, settle, changeUnit }
+}
+
 // ---------------------------------------------------------------------------------------------
 // Keep the screen on
 // ---------------------------------------------------------------------------------------------
-
 
 /**
  * Holds a screen wake lock while `wanted` and the page is visible. Builders have glue on their
@@ -108,7 +145,7 @@ export function createWakeLock() {
 
 /**
  * The guide's "Keep screen on" switch. `remembered` is the stored choice (buildSettings'
- * keepScreenOn, passed in so this module stays free of storage code); the lock itself only lasts
+ * keepScreenOn, passed in so the caller decides what is remembered); the lock itself only lasts
  * while the calling component is mounted, so leaving the guide lets the screen sleep.
  * `toggle()` resolves to false when the browser refused, so the caller can say so.
  */
