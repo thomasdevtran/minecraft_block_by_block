@@ -1,7 +1,7 @@
 /**
  * Draws the original wooden craft-cube mark as PNG icons. No game textures or grass-block branding.
  *
- *   npx tsx scripts/generate-icons.ts
+ *   npm run icons
  */
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'

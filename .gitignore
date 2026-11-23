@@ -36,5 +36,3 @@ performance/runs/
 # Supabase CLI link state (project ref, local caches)
 supabase/.temp
 supabase/.branches
-REFACTORING.md
-REFACTOR_SPEC.md

@@ -2,7 +2,7 @@
  * Downloads the Pixelify Sans webfont so the site can serve it itself.
  * Self-hosting keeps visitors' IP addresses from being sent to Google Fonts.
  *
- *   npx tsx scripts/fetch-fonts.ts
+ *   npm run fonts
  *
  * Pixelify Sans is licensed under the SIL Open Font License 1.1, which allows redistribution.
  */

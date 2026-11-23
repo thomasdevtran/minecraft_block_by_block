@@ -10,7 +10,7 @@ interface Box { from: Point; to: Point; faces: Partial<Record<Face, Surface>> }
 export interface CraftShape { id: string; name: string; group: string; category: 'block' | 'item'; note: string; data: ShapeData; sprite: PNG }
 
 /** Union boxes before hiding covered faces, so overlapping model pieces never double-count cubes. */
-export function bakeShape(boxes: Box[]): ShapeData {
+function bakeShape(boxes: Box[]): ShapeData {
   const opaqueFallback = new Map<Surface, [number, number, number]>()
   const fallback = (surface: Surface): [number, number, number] => {
     if (!opaqueFallback.has(surface)) {
@@ -71,7 +71,7 @@ export function bakeShape(boxes: Box[]): ShapeData {
 }
 
 /** Front-view template, centered without stretching tall objects into a square. */
-export function shapeSprite(data: ShapeData): PNG {
+function shapeSprite(data: ShapeData): PNG {
   const out = new PNG({ width: 16, height: 16 })
   const [w, h] = data.size
   const scale = Math.min(16 / w, 16 / h)

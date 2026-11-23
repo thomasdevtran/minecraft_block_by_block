@@ -8,6 +8,8 @@
     "build": "tsx scripts/generate-notices.ts && vue-tsc -b && vite build",
     "preview": "vite preview",
     "extract": "tsx scripts/extract-assets.ts",
+    "fonts": "tsx scripts/fetch-fonts.ts",
+    "icons": "tsx scripts/generate-icons.ts",
     "test": "vitest run",
     "check:catalog": "tsx scripts/check-catalog.ts",
     "asset-revision": "tsx scripts/asset-revision.ts",

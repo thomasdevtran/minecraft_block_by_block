@@ -15,7 +15,7 @@ import { join, relative, resolve, sep } from 'node:path'
 import { pathToFileURL } from 'node:url'
 
 /** What the catalog's `assetRevision` covers: everything `assetUrl()` serves. */
-export const CATALOG_ASSET_DIRS = ['public/textures', 'public/data/shapes']
+const CATALOG_ASSET_DIRS = ['public/textures', 'public/data/shapes']
 /** What the build's photo revision covers (see vite.config.ts). */
 export const PHOTO_DIRS = ['public/crafts']
 
@@ -52,7 +52,7 @@ export function hashFiles(root: string, dirs: string[]): string {
 export const catalogAssetRevision = (root = process.cwd()) => hashFiles(root, CATALOG_ASSET_DIRS)
 
 /** Writes the current revision into public/data/items.json, leaving everything else as it was. */
-export function writeCatalogRevision(root = process.cwd()): string {
+function writeCatalogRevision(root = process.cwd()): string {
   const path = join(root, 'public', 'data', 'items.json')
   const catalog = JSON.parse(readFileSync(path, 'utf8')) as Record<string, unknown>
   const assetRevision = catalogAssetRevision(root)

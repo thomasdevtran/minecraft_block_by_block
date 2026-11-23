@@ -1,5 +1,5 @@
 /** Categories for flat inventory items; first match wins. */
-export const ITEM_GROUPS: [string, RegExp][] = [
+const ITEM_GROUPS: [string, RegExp][] = [
   ['Mob Heads', /(_head$|_skull$)/],
   ['Spawn Eggs', /_spawn_egg$/],
   ['Music & Collectibles', /^(music_disc_|.*pottery_sherd$|.*smithing_template$|.*banner_pattern$|disc_fragment_|goat_horn$|enchanted_book$|nether_star$|trial_key$|ominous_trial_key$|heart_of_the_sea$)/],
