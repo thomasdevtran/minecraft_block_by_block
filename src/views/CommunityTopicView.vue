@@ -3,7 +3,7 @@ import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import CommunityPostForm from '../components/CommunityPostForm.vue'
 import CommunityReportForm from '../components/CommunityReportForm.vue'
-import { COMMUNITY_CATEGORIES, communityDate, listCommunityReplies, loadCommunityTopic, type CommunityReply, type CommunityTopic } from '../lib/communityDiscussions'
+import { communityDate, listCommunityReplies, loadCommunityTopic, type CommunityReply, type CommunityTopic } from '../lib/communityDiscussions'
 import { accountsEnabled } from '../lib/supabase'
 import { usePageFocus } from '../lib/dom'
 
@@ -87,7 +87,7 @@ function replyPosted() {
     </div>
     <template v-else-if="topic">
       <article class="original-post">
-        <p class="eyebrow muted">{{ COMMUNITY_CATEGORIES[topic.category] }}</p>
+        <p class="eyebrow muted">{{ topic.category_info?.label }}</p>
         <h1>{{ topic.title }}</h1>
         <p class="muted">{{ topic.author ? `@${topic.author.username}` : 'Deleted account' }} · <time :datetime="topic.created_at">{{ communityDate(topic.created_at) }}</time></p>
         <p class="post-body">{{ topic.body }}</p>

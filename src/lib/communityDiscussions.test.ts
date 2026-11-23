@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { createCommunityReply, createCommunityTopic, isCommunityReturnPath, listCommunityTopics, loadCommunityTopic } from './communityDiscussions'
+import { createCommunityReply, createCommunityTopic, isCommunityReturnPath, listCommunityCategories, listCommunityTopics, loadCommunityTopic } from './communityDiscussions'
 
 const mocks = vi.hoisted(() => ({
   user: { value: null as { id: string; email_confirmed_at: string | null } | null },
@@ -36,6 +36,32 @@ describe('community discussion client', () => {
     expect(url.searchParams.get('order')).toBe('created_at.desc,id.desc')
     expect(url.searchParams.get('offset')).toBe('20')
     expect(url.searchParams.get('limit')).toBe('21')
+  })
+
+  it('loads categories once in display order and retries after a failed load', async () => {
+    const categories = [{ id: 'help', label: 'Build Help', accepts_topics: true }]
+    mocks.fetch.mockResolvedValueOnce(json({ code: 'PGRST205', message: 'database details' }, 404)).mockResolvedValueOnce(json(categories))
+    await expect(listCommunityCategories()).rejects.toThrow('not available yet')
+    await expect(listCommunityCategories()).resolves.toEqual(categories)
+    await expect(listCommunityCategories()).resolves.toEqual(categories)
+    expect(mocks.fetch).toHaveBeenCalledTimes(2)
+    const url = new URL(String(mocks.fetch.mock.calls[1]?.[0]))
+    expect(url.pathname).toBe('/rest/v1/community_categories')
+    expect(url.searchParams.get('order')).toBe('sort_order.asc,id.asc')
+  })
+
+  it('reads category labels with each topic', async () => {
+    mocks.fetch.mockResolvedValueOnce(json([]))
+    await listCommunityTopics('')
+    const url = new URL(String(mocks.fetch.mock.calls[0]?.[0]))
+    expect(url.searchParams.get('select')).toContain('category_info:community_categories(label)')
+  })
+
+  it('explains a category that no longer accepts topics', async () => {
+    await expect(createCommunityTopic('', 'Valid title', 'Message')).rejects.toThrow('Choose a category')
+    expect(mocks.fetch).not.toHaveBeenCalled()
+    mocks.fetch.mockResolvedValueOnce(json({ code: '23514', message: 'Choose a category.' }, 400))
+    await expect(createCommunityTopic('ideas', 'Valid title', 'Message')).rejects.toThrow('Choose a category')
   })
 
   it('treats a hidden or missing topic as unavailable', async () => {

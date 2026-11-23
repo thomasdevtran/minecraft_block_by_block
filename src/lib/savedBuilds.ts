@@ -126,11 +126,18 @@ export async function openBuild(build: SavedBuild): Promise<{ path: string; upda
 }
 
 /**
- * Removes a build from the signed-in account's library. Only the database row goes: a skin image
- * may be shared by several saved builds, and storage has no delete policy yet.
+ * Removes a build from the signed-in account's library, then its skin image if nothing else uses it.
+ * Several saved builds can share one image; the storage policy only allows deleting it once none of
+ * them do, and a failed clean-up never undoes the delete.
  */
 export async function deleteBuild(build: SavedBuild): Promise<void> {
   if (signedInUser.value?.id !== build.user_id) throw new Error('Sign in to manage your saved builds.')
-  const { error } = await (await requireSupabase()).from('saved_builds').delete().eq('id', build.id)
+  const client = await requireSupabase()
+  const { error } = await client.from('saved_builds').delete().eq('id', build.id)
   if (error) throw error
+  if (build.image_path) {
+    try {
+      await client.storage.from('build-skins').remove([build.image_path])
+    } catch { /* The image stays until a later clean-up; the build itself is already gone. */ }
+  }
 }

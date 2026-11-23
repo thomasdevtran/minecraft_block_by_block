@@ -1,13 +1,14 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
-import { COMMUNITY_CATEGORIES, communityDate, listCommunityTopics, type CommunityCategory, type TopicSummary } from '../lib/communityDiscussions'
+import { communityDate, listCommunityCategories, listCommunityTopics, type CommunityCategory, type TopicSummary } from '../lib/communityDiscussions'
 import { accountsEnabled } from '../lib/supabase'
 import { authReady, user } from '../lib/auth'
 import { isCommunityModerator } from '../lib/communityModeration'
 import { usePageFocus } from '../lib/dom'
 
-const category = ref<CommunityCategory | ''>('')
+const category = ref('')
+const categories = ref<CommunityCategory[]>([])
 const page = ref(0)
 const retry = ref(0)
 const topics = ref<TopicSummary[]>([])
@@ -34,6 +35,10 @@ watch([authReady, () => user.value?.id], async (_value, _old, onCleanup) => {
     if (current) moderator.value = allowed
   } catch { /* The board stays readable before the moderation migration is installed. */ }
 }, { immediate: true })
+
+// Retired categories stay in the filter so their topics can still be browsed. If the list can't load,
+// the board still works with All categories.
+if (accountsEnabled) listCommunityCategories().then(list => { categories.value = list }, () => {})
 
 watch([category, page, retry], async ([filter, currentPage], _previous, onCleanup) => {
   if (!accountsEnabled) return
@@ -70,7 +75,7 @@ watch([category, page, retry], async ([filter, currentPage], _previous, onCleanu
       <label>Category
         <select v-model="category" @change="page = 0">
           <option value="">All categories</option>
-          <option v-for="(label, value) in COMMUNITY_CATEGORIES" :key="value" :value="value">{{ label }}</option>
+          <option v-for="option in categories" :key="option.id" :value="option.id">{{ option.label }}</option>
         </select>
       </label>
       <RouterLink v-if="!loading && !error" class="btn primary" to="/community/new">New topic</RouterLink>
@@ -84,7 +89,7 @@ watch([category, page, retry], async ([filter, currentPage], _previous, onCleanu
       <p v-if="!topics.length" ref="emptyNotice" class="notice">{{ page ? 'No topics on this page.' : 'No topics here yet. Start a conversation with New topic.' }}</p>
       <ul v-else ref="list" class="topic-list" :aria-label="`Discussion topics, page ${page + 1}`">
         <li v-for="topic in topics" :key="topic.id" class="card">
-          <p class="eyebrow muted">{{ COMMUNITY_CATEGORIES[topic.category] }}</p>
+          <p class="eyebrow muted">{{ topic.category_info?.label }}</p>
           <h2><RouterLink :to="{ name: 'community-topic', params: { topicId: topic.id } }">{{ topic.title }}</RouterLink></h2>
           <p class="muted">{{ topic.author ? `@${topic.author.username}` : 'Deleted account' }} · <time :datetime="topic.created_at">{{ communityDate(topic.created_at) }}</time></p>
         </li>

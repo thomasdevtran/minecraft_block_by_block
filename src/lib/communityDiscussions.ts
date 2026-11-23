@@ -1,19 +1,20 @@
 import { user } from './auth'
 import { requireSupabase } from './supabase'
 
-export const COMMUNITY_CATEGORIES = {
-  help: 'Build Help',
-  finished: 'Finished Builds',
-  ideas: 'Ideas & Feedback',
-} as const
-
-export type CommunityCategory = keyof typeof COMMUNITY_CATEGORIES
+/** Categories live in the database, so adding or retiring one needs no deploy. */
+export interface CommunityCategory {
+  id: string
+  label: string
+  /** Retired categories keep their topics readable but take no new ones. */
+  accepts_topics: boolean
+}
 type Author = { username: string } | null
 
 export interface TopicSummary {
   id: string
   title: string
-  category: CommunityCategory
+  category: string
+  category_info: { label: string } | null
   created_at: string
   author: Author
 }
@@ -31,7 +32,7 @@ export interface CommunityReply {
 }
 
 const PAGE_SIZE = 20
-const TOPIC_FIELDS = 'id,title,category,created_at,author:community_profiles(username)'
+const TOPIC_FIELDS = 'id,title,category,created_at,author:community_profiles(username),category_info:community_categories(label)'
 const UUID = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i
 
 export function isCommunityReturnPath(path: string) {
@@ -52,7 +53,23 @@ function pageOf<T>(rows: T[]) {
   return { items: rows.slice(0, PAGE_SIZE), hasMore: rows.length > PAGE_SIZE }
 }
 
-export async function listCommunityTopics(category: CommunityCategory | '', page = 0) {
+let categories: Promise<CommunityCategory[]> | undefined
+
+/** Every category in display order, loaded once per visit (a failed load is retried next time). */
+export function listCommunityCategories(): Promise<CommunityCategory[]> {
+  categories ??= (async () => {
+    const { data, error } = await (await requireSupabase()).from('community_categories')
+      .select('id,label,accepts_topics').order('sort_order').order('id').overrideTypes<CommunityCategory[], { merge: false }>()
+    if (error) throw readError(error.code)
+    return data
+  })().catch((failure: unknown) => {
+    categories = undefined
+    throw failure
+  })
+  return categories
+}
+
+export async function listCommunityTopics(category: string, page = 0) {
   let query = (await requireSupabase()).from('community_topics').select(TOPIC_FIELDS)
   if (category) query = query.eq('category', category)
   const start = page * PAGE_SIZE
@@ -98,15 +115,16 @@ async function publish(rpc: 'create_community_topic' | 'create_community_reply',
   if (error?.code === 'PT409') throw new Error('This topic is closed or unavailable.')
   if (error?.code === 'PT429') throw new Error(postingLimits.has(error.message) ? error.message : 'You’ve reached a posting limit. Try again later.')
   if (error?.code === '42501') throw new Error('Sign in with a confirmed email before posting.')
+  if (error?.code === '23514' && error.message === 'Choose a category.') throw new Error('Choose a category.')
   if (error?.code === 'PGRST202' || error?.code === '42883') throw readError('42P01')
   if (error || typeof data !== 'string' || !UUID.test(data)) throw new Error('Could not publish your post. Please try again.')
   return data
 }
 
-export async function createCommunityTopic(category: CommunityCategory, title: string, body: string) {
+export async function createCommunityTopic(category: string, title: string, body: string) {
   title = title.trim()
   body = body.trim()
-  if (!Object.hasOwn(COMMUNITY_CATEGORIES, category)) throw new Error('Choose a category.')
+  if (!category) throw new Error('Choose a category.')
   if (title.length < 5 || title.length > 120) throw new Error('Use a title between 5 and 120 characters.')
   if (!body || body.length > 4000) throw new Error('Enter a message of up to 4,000 characters.')
   return publish('create_community_topic', { topic_category: category, topic_title: title, topic_body: body })

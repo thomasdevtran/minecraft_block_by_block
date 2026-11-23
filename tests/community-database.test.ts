@@ -78,6 +78,7 @@ beforeAll(async () => {
   existingDiscussions = (await db.query(existingDiscussionsSql)).rows
   await db.exec(sqlFile('migrations/202611100002_community_moderation.sql'))
   await db.exec(sqlFile('migrations/202611150001_age_screen.sql'))
+  await db.exec(sqlFile('migrations/202611230001_database_foundations.sql'))
 }, 30_000)
 
 afterAll(async () => { await db?.close() })
@@ -87,11 +88,11 @@ describe('account migrations with existing library and community data', () => {
     expect((await db.query(existingLibrarySql)).rows).toEqual(existingLibrary)
   })
 
-  it('preserves existing topics and replies when adding moderation and the age screen', async () => {
+  it('preserves existing topics and replies through moderation, the age screen and categories', async () => {
     expect((await db.query(existingDiscussionsSql)).rows).toEqual(existingDiscussions)
   })
 
-  it.each(['saved_builds', 'library_limits', 'community_profiles', 'community_discussions', 'community_moderation', 'age_screen'])('passes the %s SQL regression checks', async name => {
+  it.each(['saved_builds', 'library_limits', 'community_profiles', 'community_discussions', 'community_moderation', 'age_screen', 'database_foundations'])('passes the %s SQL regression checks', async name => {
     try {
       const results = await db.exec(sqlFile(`tests/${name}.sql`))
       expect(results.some(result => result.rows.some(row => typeof row.result === 'string' && row.result.includes('passed')))).toBe(true)

@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => {
     insert: vi.fn(), update: vi.fn(), select: vi.fn(), eq: vi.fn(), single: vi.fn(), maybeSingle: vi.fn(), delete: vi.fn(),
   }
   return {
-    query, getUser: vi.fn(), upload: vi.fn(), download: vi.fn(), writeStored: vi.fn(), setSkin: vi.fn(),
+    query, getUser: vi.fn(), upload: vi.fn(), download: vi.fn(), remove: vi.fn(), writeStored: vi.fn(), setSkin: vi.fn(),
     signedInUser: { value: { id: 'owner-a' } as { id: string } | null },
     blobToDataUrl: vi.fn(),
   }
@@ -16,7 +16,7 @@ vi.mock('./supabase', () => ({
   requireSupabase: () => ({
     auth: { getUser: mocks.getUser },
     from: () => mocks.query,
-    storage: { from: () => ({ upload: mocks.upload, download: mocks.download }) },
+    storage: { from: () => ({ upload: mocks.upload, download: mocks.download, remove: mocks.remove }) },
   }),
 }))
 vi.mock('./catalog', () => ({ loadCatalog: async () => ({ version: '26.3' }) }))
@@ -143,12 +143,25 @@ describe('deleting saved builds', () => {
     await deleteBuild(build)
     expect(mocks.query.delete).toHaveBeenCalled()
     expect(mocks.query.eq).toHaveBeenCalledWith('id', 'build-id')
+    expect(mocks.remove).not.toHaveBeenCalled()
+  })
+
+  it('removes the skin image after the row, and a failed clean-up still counts as deleted', async () => {
+    const skinBuild = { ...build, image_path: 'owner-a/image.png' }
+    mocks.query.eq.mockResolvedValueOnce({ error: null })
+    await deleteBuild(skinBuild)
+    expect(mocks.remove).toHaveBeenCalledWith(['owner-a/image.png'])
+    expect(mocks.query.delete.mock.invocationCallOrder[0]).toBeLessThan(mocks.remove.mock.invocationCallOrder[0]!)
+    mocks.query.eq.mockResolvedValueOnce({ error: null })
+    mocks.remove.mockRejectedValueOnce(new Error('Network down'))
+    await expect(deleteBuild(skinBuild)).resolves.toBeUndefined()
   })
 
   it("refuses another account's build and reports server errors", async () => {
     await expect(deleteBuild({ ...build, user_id: 'owner-b' })).rejects.toThrow('Sign in')
     expect(mocks.query.delete).not.toHaveBeenCalled()
     mocks.query.eq.mockResolvedValueOnce({ error: new Error('Network down') })
-    await expect(deleteBuild(build)).rejects.toThrow('Network down')
+    await expect(deleteBuild({ ...build, image_path: 'owner-a/image.png' })).rejects.toThrow('Network down')
+    expect(mocks.remove).not.toHaveBeenCalled()
   })
 })

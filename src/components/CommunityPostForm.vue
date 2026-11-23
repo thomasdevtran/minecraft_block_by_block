@@ -2,7 +2,7 @@
 import { computed, onScopeDispose, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import { ageCheck, authReady, user } from '../lib/auth'
-import { COMMUNITY_CATEGORIES, createCommunityReply, createCommunityTopic, type CommunityCategory } from '../lib/communityDiscussions'
+import { createCommunityReply, createCommunityTopic, listCommunityCategories, type CommunityCategory } from '../lib/communityDiscussions'
 import { loadMyCommunityProfile } from '../lib/communityProfiles'
 
 const props = defineProps<{ returnTo: string; topicId?: string }>()
@@ -11,7 +11,8 @@ const accountLink = computed(() => ({ path: '/account', query: { next: props.ret
 const username = ref('')
 const checkingProfile = ref(false)
 const profileError = ref('')
-const category = ref<CommunityCategory>('help')
+const category = ref('')
+const categories = ref<CommunityCategory[]>([])
 const title = ref('')
 const body = ref('')
 const saving = ref(false)
@@ -45,6 +46,14 @@ watch([authReady, () => user.value?.id, () => user.value?.email_confirmed_at, ()
   saving.value = false
   void loadProfile()
 }, { immediate: true })
+
+// New topics can only go in categories that still accept them; the first one is preselected.
+if (!props.topicId) {
+  listCommunityCategories().then(list => {
+    categories.value = list.filter(option => option.accepts_topics)
+    category.value ||= categories.value[0]?.id ?? ''
+  }, () => { error.value = 'Could not load the categories. Reload the page to try again.' })
+}
 
 async function submit() {
   if (saving.value || !username.value) return
@@ -84,7 +93,7 @@ async function submit() {
       <template v-if="!topicId">
         <label>Category
           <select v-model="category">
-            <option v-for="(label, value) in COMMUNITY_CATEGORIES" :key="value" :value="value">{{ label }}</option>
+            <option v-for="option in categories" :key="option.id" :value="option.id">{{ option.label }}</option>
           </select>
         </label>
         <label>Title<input v-model="title" required minlength="5" maxlength="120" /></label>
