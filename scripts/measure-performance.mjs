@@ -1,4 +1,4 @@
-/** Production frontend lab measurements. See performance/README.md for scope and reproducibility. */
+/** Production frontend lab measurements. See README "Performance" for scope and reproducibility. */
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { parseArgs } from 'node:util'
